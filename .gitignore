@@ -8,6 +8,9 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 
+# Java 编译输出
+backend/**/target/
+backend/target/
 # 工具临时文件
 /shelf/
 /workspace.xml

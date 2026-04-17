@@ -1,3 +1,0 @@
-com\ecommerce\exception\BaseException.class
-com\ecommerce\exception\ProductException.class
-com\ecommerce\handler\GlobalExceptionHandler.class
