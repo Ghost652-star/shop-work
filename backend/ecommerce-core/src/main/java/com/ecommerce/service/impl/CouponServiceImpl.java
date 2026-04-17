@@ -1,0 +1,99 @@
+package com.ecommerce.service.impl;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ecommerce.entity.Coupon;
+import com.ecommerce.mapper.CouponMapper;
+import com.ecommerce.service.CouponService;
+import com.ecommerce.service.CategoryService;
+import com.ecommerce.vo.CouponVO;
+import com.ecommerce.vo.CategoryVO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * 优惠券服务实现类
+ */
+@Slf4j
+@Service
+public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements CouponService {
+    
+    @Autowired
+    private CategoryService categoryService;
+
+    /**
+     * 查询优惠券列表
+     * @return 优惠券列表
+     */
+    @Override
+    public List<CouponVO> listCoupons() {
+        log.debug("查询启用状态的优惠券列表");
+        
+        // 查询所有启用状态的优惠券
+        List<Coupon> coupons = query().eq("status", 1).list();
+        log.debug("查询到优惠券数量: {}", coupons.size());
+        
+        // 查询所有分类，用于关联分类名称
+        List<CategoryVO> categoryVOs = categoryService.listCategories();
+        Map<Integer, String> categoryMap = categoryVOs.stream()
+                .collect(Collectors.toMap(CategoryVO::getId, CategoryVO::getName));
+        
+        // 转换为 CouponVO 并计算倒计时
+        return coupons.stream()
+                .map(coupon -> convertToVO(coupon, categoryMap))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 将 Coupon 实体转换为 CouponVO
+     * @param coupon 优惠券实体
+     * @param categoryMap 分类ID到名称的映射
+     * @return 优惠券视图对象
+     */
+    private CouponVO convertToVO(Coupon coupon, Map<Integer, String> categoryMap) {
+        CouponVO vo = CouponVO.builder()
+                .id(coupon.getId())
+                .description(coupon.getDescription())
+                .categoryId(coupon.getCategoryId())
+                .categoryName(categoryMap.get(coupon.getCategoryId()))
+                .minSpend(coupon.getMinSpend())
+                .discountAmount(coupon.getDiscountAmount())
+                .startTime(coupon.getStartTime())
+                .endTime(coupon.getEndTime())
+                .validPeriod(coupon.getValidPeriod())
+                .stock(coupon.getStock())
+                .image(coupon.getImage())
+                .status(coupon.getStatus())
+                .build();
+        
+        // 计算倒计时
+        vo.setCountdown(calculateCountdown(coupon.getEndTime()));
+        
+        return vo;
+    }
+    
+    /**
+     * 计算倒计时
+     * @param endTime 结束时间
+     * @return 倒计时字符串，格式：HH:MM:SS
+     */
+    private String calculateCountdown(LocalDateTime endTime) {
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(endTime)) {
+            return "00:00:00";
+        }
+        
+        long seconds = ChronoUnit.SECONDS.between(now, endTime);
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long secs = seconds % 60;
+        
+        return String.format("%02d:%02d:%02d", hours, minutes, secs);
+    }
+}
