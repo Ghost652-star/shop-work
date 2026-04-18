@@ -2,12 +2,14 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
+import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.UserService;
 import com.ecommerce.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -73,5 +75,18 @@ public class UserController {
     public Result<Void> logout() {
         log.info("用户退出登录");
         return Result.success();
+    }
+    
+    /**
+     * 更新用户信息
+     * @param updateUserDTO 用户更新DTO
+     * @return 更新后的用户信息
+     */
+    @PutMapping("/update")
+    public Result<UserVO> updateUser(@RequestBody UpdateUserDTO updateUserDTO) {
+        log.info("用户信息更新请求: userId={}, nickname={}", updateUserDTO.getId(), updateUserDTO.getNickname());
+        UserVO user = userService.updateUser(updateUserDTO);
+        log.info("用户信息更新成功: userId={}", user.getId());
+        return Result.success(user);
     }
 }

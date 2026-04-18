@@ -31,3 +31,16 @@ export const getUserInfo = (userId) => request.get(`/user/info?userId=${userId}`
  * @returns {Promise}
  */
 export const logout = () => request.post('/user/logout')
+
+/**
+ * 更新用户信息
+ * @param {Object} updateData - 更新数据
+ * @param {number} updateData.id - 用户 ID
+ * @param {string} [updateData.nickname] - 昵称
+ * @param {string} [updateData.phone] - 手机号
+ * @param {string} [updateData.email] - 邮箱
+ * @param {string} [updateData.avatar] - 头像路径
+ * @param {number} [updateData.gender] - 性别：0-未知，1-男，2-女
+ * @returns {Promise}
+ */
+export const updateUser = (updateData) => request.put('/user/update', updateData)

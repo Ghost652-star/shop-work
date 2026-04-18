@@ -3,6 +3,7 @@ package com.ecommerce.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
+import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.UserMapper;
@@ -106,6 +107,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.warn("用户不存在: userId={}", userId);
             throw new BaseException("用户不存在");
         }
+        return convertToVO(user);
+    }
+    
+    /**
+     * 更新用户信息
+     * @param updateUserDTO 用户更新DTO
+     * @return 更新后的用户信息
+     */
+    @Override
+    public UserVO updateUser(UpdateUserDTO updateUserDTO) {
+        log.debug("开始更新用户信息: userId={}", updateUserDTO.getId());
+        
+        // 查询用户是否存在
+        User user = getById(updateUserDTO.getId());
+        if (user == null) {
+            log.warn("更新用户信息失败: 用户不存在, userId={}", updateUserDTO.getId());
+            throw new BaseException("用户不存在");
+        }
+        
+        // 检查手机号是否被其他用户使用
+        if (updateUserDTO.getPhone() != null && !updateUserDTO.getPhone().equals(user.getPhone())) {
+            User existingUser = findByPhone(updateUserDTO.getPhone());
+            if (existingUser != null && !existingUser.getId().equals(updateUserDTO.getId())) {
+                log.warn("更新用户信息失败: 手机号已被其他用户使用, phone={}", maskPhone(updateUserDTO.getPhone()));
+                throw new BaseException("手机号已被其他用户使用");
+            }
+        }
+        
+        // 更新用户信息
+        if (updateUserDTO.getNickname() != null) {
+            user.setNickname(updateUserDTO.getNickname());
+        }
+        if (updateUserDTO.getPhone() != null) {
+            user.setPhone(updateUserDTO.getPhone());
+        }
+        if (updateUserDTO.getEmail() != null) {
+            user.setEmail(updateUserDTO.getEmail());
+        }
+        if (updateUserDTO.getAvatar() != null) {
+            user.setAvatar(updateUserDTO.getAvatar());
+        }
+        if (updateUserDTO.getGender() != null) {
+            user.setGender(updateUserDTO.getGender());
+        }
+        
+        // 保存更新
+        updateById(user);
+        log.info("用户信息更新成功: userId={}", user.getId());
+        
         return convertToVO(user);
     }
     

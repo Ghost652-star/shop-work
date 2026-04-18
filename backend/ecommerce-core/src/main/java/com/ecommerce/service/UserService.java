@@ -3,6 +3,7 @@ package com.ecommerce.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
+import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
 import com.ecommerce.vo.UserVO;
 
@@ -44,4 +45,11 @@ public interface UserService extends IService<User> {
      * @return 用户信息
      */
     UserVO getUserById(Integer userId);
+    
+    /**
+     * 更新用户信息
+     * @param updateUserDTO 用户更新DTO
+     * @return 更新后的用户信息
+     */
+    UserVO updateUser(UpdateUserDTO updateUserDTO);
 }

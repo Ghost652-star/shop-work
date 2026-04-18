@@ -258,21 +258,81 @@
             </div>
             <div class="settings-item">
               <label>昵称</label>
-              <span>{{ userInfo.nickname }}</span>
+              <div class="item-value">
+                <span>{{ userInfo.nickname }}</span>
+                <button class="edit-icon" @click="handleEditProfile">✏️</button>
+              </div>
             </div>
             <div class="settings-item">
               <label>手机号</label>
-              <span>{{ userInfo.phone }}</span>
+              <div class="item-value">
+                <span>{{ userInfo.phone }}</span>
+                <button class="edit-icon" @click="handleEditProfile">✏️</button>
+              </div>
             </div>
             <div class="settings-item">
-              <label>注册时间</label>
-              <span>2024-01-01</span>
+              <label>邮箱</label>
+              <div class="item-value">
+                <span>{{ userInfo.email || '未设置' }}</span>
+                <button class="edit-icon" @click="handleEditProfile">✏️</button>
+              </div>
+            </div>
+            <div class="settings-item">
+              <label>性别</label>
+              <div class="item-value">
+                <span>{{ getGenderText(userInfo.gender) }}</span>
+                <button class="edit-icon" @click="handleEditProfile">✏️</button>
+              </div>
             </div>
           </div>
           
           <div class="settings-buttons">
-            <button class="btn-edit" @click="handleEditProfile">修改个人信息</button>
             <button class="btn-logout" @click="handleLogout">退出登录</button>
+          </div>
+          
+          <!-- 个人信息编辑弹窗 -->
+          <div v-if="showProfileDialog" class="dialog-overlay" @click="closeProfileDialog">
+            <div class="dialog-content profile-dialog" @click.stop>
+              <div class="dialog-header">
+                <h3>编辑个人信息</h3>
+                <button class="close-btn" @click="closeProfileDialog">×</button>
+              </div>
+              <div class="dialog-body">
+                <div class="form-item">
+                  <label>昵称</label>
+                  <input v-model="profileForm.nickname" type="text" placeholder="请输入昵称" maxlength="20" />
+                </div>
+                <div class="form-item">
+                  <label>手机号</label>
+                  <input v-model="profileForm.phone" type="tel" placeholder="请输入手机号" maxlength="11" />
+                </div>
+                <div class="form-item">
+                  <label>邮箱</label>
+                  <input v-model="profileForm.email" type="email" placeholder="请输入邮箱" />
+                </div>
+                <div class="form-item">
+                  <label>性别</label>
+                  <div class="gender-options">
+                    <label class="radio-label">
+                      <input v-model="profileForm.gender" type="radio" :value="0" />
+                      <span>未知</span>
+                    </label>
+                    <label class="radio-label">
+                      <input v-model="profileForm.gender" type="radio" :value="1" />
+                      <span>男</span>
+                    </label>
+                    <label class="radio-label">
+                      <input v-model="profileForm.gender" type="radio" :value="2" />
+                      <span>女</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="dialog-footer">
+                <button class="cancel-btn" @click="closeProfileDialog">取消</button>
+                <button class="submit-btn" @click="submitProfile">保存修改</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -284,7 +344,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserInfo, logout } from '../api/user'
+import { getUserInfo, logout, updateUser } from '../api/user'
 import { getAddressList, getDefaultAddress, addAddress, updateAddress, setDefaultAddress as setDefaultAddressApi, deleteAddress as deleteAddressApi } from '../api/address'
 import { getFavoriteList } from '../api/favorite'
 import { getProductDetail } from '../api/product'
@@ -329,6 +389,14 @@ const addressForm = ref({
   isDefault: false
 })
 const userInfo = ref({})
+const showProfileDialog = ref(false)
+const profileForm = ref({
+  nickname: '',
+  phone: '',
+  email: '',
+  avatar: '',
+  gender: 0
+})
 
 // 收藏相关数据
 const favoriteList = ref([]) // 收藏记录列表（包含 productId）
@@ -541,8 +609,81 @@ const closeAddressDialog = () => {
   resetAddressForm()
 }
 
+// 获取性别文本
+const getGenderText = (gender) => {
+  const genderMap = { 0: '未知', 1: '男', 2: '女' }
+  return genderMap[gender] || '未知'
+}
+
+// 打开编辑个人信息对话框
 const handleEditProfile = () => {
-  alert('修改个人信息功能开发中...')
+  profileForm.value = {
+    nickname: userInfo.value.nickname || '',
+    phone: userInfo.value.phone || '',
+    email: userInfo.value.email || '',
+    avatar: userInfo.value.avatar || '',
+    gender: userInfo.value.gender || 0
+  }
+  showProfileDialog.value = true
+}
+
+// 关闭个人信息对话框
+const closeProfileDialog = () => {
+  showProfileDialog.value = false
+}
+
+// 提交个人信息更新
+const submitProfile = async () => {
+  // 表单验证
+  if (!profileForm.value.nickname || !profileForm.value.nickname.trim()) {
+    ElMessage.warning('请输入昵称')
+    return
+  }
+  
+  if (!profileForm.value.phone || !profileForm.value.phone.trim()) {
+    ElMessage.warning('请输入手机号')
+    return
+  }
+  
+  if (!/^1[3-9]\d{9}$/.test(profileForm.value.phone)) {
+    ElMessage.warning('请输入正确的手机号')
+    return
+  }
+  
+  if (profileForm.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.value.email)) {
+    ElMessage.warning('请输入正确的邮箱地址')
+    return
+  }
+  
+  try {
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      ElMessage.warning('请先登录')
+      return
+    }
+    
+    const updateData = {
+      id: parseInt(userId),
+      nickname: profileForm.value.nickname.trim(),
+      phone: profileForm.value.phone.trim(),
+      email: profileForm.value.email?.trim() || null,
+      avatar: profileForm.value.avatar || null,
+      gender: profileForm.value.gender
+    }
+    
+    const result = await updateUser(updateData)
+    if (result.code === 1) {
+      ElMessage.success('修改成功')
+      showProfileDialog.value = false
+      // 重新加载用户信息
+      await loadUserInfo()
+    } else {
+      ElMessage.error(result.msg || '修改失败')
+    }
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    ElMessage.error('修改失败')
+  }
 }
 
 const handleLogout = async () => {
@@ -1340,71 +1481,102 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .dialog-content {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
+  padding: 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
 }
 
 .dialog-header h3 {
-  font-size: 18px;
+  font-size: 20px;
   color: #333;
   margin: 0;
+  font-weight: 600;
 }
 
 .close-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
-  font-size: 28px;
+  font-size: 32px;
   color: #999;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  transform: rotate(90deg);
 }
 
 .dialog-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .form-item {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
 }
 
 .form-item label {
   display: block;
   font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
-  font-weight: 500;
+  color: #555;
+  margin-bottom: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .form-item .required {
@@ -1414,21 +1586,24 @@ onMounted(() => {
 
 .form-item input[type="text"],
 .form-item input[type="tel"],
+.form-item input[type="email"],
 .form-item textarea {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border: 2px solid #e8e9ff;
+  border-radius: 8px;
   font-size: 14px;
   outline: none;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   font-family: inherit;
+  background: #fafbff;
 }
 
 .form-item input:focus,
 .form-item textarea:focus {
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  background: white;
 }
 
 .form-item textarea {
@@ -1469,21 +1644,22 @@ onMounted(() => {
 
 .dialog-footer {
   display: flex;
-  gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #eee;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid #f0f0f0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
 }
 
 .cancel-btn,
 .submit-btn {
   flex: 1;
-  padding: 12px;
+  padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 15px;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .cancel-btn {
@@ -1493,16 +1669,18 @@ onMounted(() => {
 
 .cancel-btn:hover {
   background: #e8e8e8;
+  transform: translateY(-1px);
 }
 
 .submit-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
 /* 订单标签页 */
@@ -1551,20 +1729,33 @@ onMounted(() => {
 
 /* 个人设置 */
 .settings-card {
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-  border-radius: 10px;
-  padding: 25px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+  border-radius: 12px;
+  padding: 30px;
   margin-bottom: 30px;
   border: 1px solid #e8e9ff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.08);
+  transition: all 0.3s ease;
+}
+
+.settings-card:hover {
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
+  transform: translateY(-2px);
 }
 
 .settings-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.08);
+  transition: all 0.2s ease;
+}
+
+.settings-item:hover {
+  padding-left: 10px;
+  background: rgba(102, 126, 234, 0.02);
+  border-radius: 8px;
 }
 
 .settings-item:last-child {
@@ -1597,40 +1788,73 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.item-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.edit-icon:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.gender-options {
+  display: flex;
+  gap: 20px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .settings-buttons {
   display: flex;
   gap: 12px;
   margin-top: 24px;
 }
 
-.btn-edit, .btn-logout {
-  flex: 1;
-  padding: 10px 0;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-edit {
-  background: #FF5000;
-  color: white;
-  border: none;
-}
-
-.btn-edit:hover {
-  background: #FF6A00;
-}
-
 .btn-logout {
-  background: #FF5000;
-  color: white;
+  flex: 1;
+  padding: 12px 0;
   border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
 .btn-logout:hover {
-  background: #FF6A00;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+}
+
+.profile-dialog {
+  max-width: 500px;
 }
 
 /* ========== 收藏页面 ========== */
