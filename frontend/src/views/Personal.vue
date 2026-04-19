@@ -148,8 +148,48 @@
           <div class="content-header">
             <h2>🎁 优惠券</h2>
           </div>
-          <div class="empty-state">
+          
+          <div v-if="userCouponList.length === 0" class="empty-state">
+            <div class="empty-icon">🎁</div>
             <p>暂无优惠券</p>
+            <button class="action-btn-primary" @click="goToCouponPage">去领取</button>
+          </div>
+          
+          <div v-else class="coupon-list">
+            <div 
+              v-for="coupon in userCouponList" 
+              :key="coupon.id"
+              :class="['coupon-item', {
+                'coupon-unused': coupon.status === 0,
+                'coupon-used': coupon.status === 1,
+                'coupon-expired': coupon.status === 2
+              }]"
+            >
+              <div class="coupon-left">
+                <div class="coupon-amount">
+                  <span class="amount-symbol">¥</span>
+                  <span class="amount-value">{{ coupon.discountAmount }}</span>
+                </div>
+                <div class="coupon-condition">
+                  {{ coupon.minSpend > 0 ? '满' + coupon.minSpend + '元可用' : '无门槛' }}
+                </div>
+              </div>
+              <div class="coupon-right">
+                <h4 class="coupon-name">{{ coupon.description }}</h4>
+                <div class="coupon-info">
+                  <div class="coupon-time">
+                    <span>有效期至：{{ formatDate(coupon.expireTime) }}</span>
+                  </div>
+                  <div class="coupon-status" :class="{
+                    'status-unused': coupon.status === 0,
+                    'status-used': coupon.status === 1,
+                    'status-expired': coupon.status === 2
+                  }">
+                    {{ formatCouponStatus(coupon.status) }}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -341,12 +381,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserInfo, logout, updateUser } from '../api/user'
+import { getUserInfo, logout } from '../api/user'
 import { getAddressList, getDefaultAddress, addAddress, updateAddress, setDefaultAddress as setDefaultAddressApi, deleteAddress as deleteAddressApi } from '../api/address'
-import { getFavoriteList } from '../api/favorite'
+import { getFavoriteList, removeFavorite } from '../api/favorite'
+import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
 
 // 路由
@@ -366,6 +407,10 @@ watch(
       // 如果是收藏页面，重新加载收藏列表
       if (newTab === 'favorites') {
         loadFavoriteList()
+      }
+      // 如果是优惠券页面，重新加载优惠券列表
+      if (newTab === 'coupons') {
+        loadUserCouponList()
       }
     }
   }
@@ -402,6 +447,9 @@ const profileForm = ref({
 const favoriteList = ref([]) // 收藏记录列表（包含 productId）
 const favoriteProducts = ref([]) // 收藏的商品详情列表
 
+// 优惠券相关数据
+const userCouponList = ref([]) // 用户优惠券列表
+
 // 方法
 const goBack = () => {
   router.push('/')
@@ -436,6 +484,44 @@ const loadUserInfo = async () => {
   } catch (error) {
     // 静默处理错误
   }
+}
+
+// 加载用户优惠券列表
+const loadUserCouponList = async () => {
+  try {
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      ElMessage.warning('请先登录')
+      return
+    }
+    
+    const result = await getUserCouponList(parseInt(userId))
+    if (result.code === 1) {
+      userCouponList.value = result.data || []
+    } else {
+      ElMessage.error(result.msg || '加载优惠券列表失败')
+    }
+  } catch (error) {
+    console.error('加载优惠券列表失败:', error)
+    ElMessage.error('加载优惠券列表失败')
+  }
+}
+
+// 格式化优惠券状态
+const formatCouponStatus = (status) => {
+  switch (status) {
+    case 0: return '未使用'
+    case 1: return '已使用'
+    case 2: return '已过期'
+    default: return '未知'
+  }
+}
+
+// 格式化日期
+const formatDate = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('zh-CN')
 }
 
 // 地址管理方法
@@ -778,6 +864,11 @@ const cancelFavorite = async (productId) => {
       ElMessage.error('取消收藏失败')
     }
   }
+}
+
+// 跳转到优惠券领取页面
+const goToCouponPage = () => {
+  router.push('/coupon')
 }
 
 // 跳转到商品详情
@@ -1855,6 +1946,138 @@ onMounted(() => {
 
 .profile-dialog {
   max-width: 500px;
+}
+
+/* 优惠券列表样式 */
+.coupon-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coupon-item {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.coupon-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.coupon-left {
+  width: 120px;
+  padding: 20px 16px;
+  text-align: center;
+  position: relative;
+}
+
+.coupon-right {
+  flex: 1;
+  padding: 16px;
+  border-left: 1px dashed #e5e5e5;
+}
+
+.coupon-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.amount-symbol {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.amount-value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.coupon-condition {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.coupon-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #333;
+}
+
+.coupon-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.coupon-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.coupon-status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* 优惠券状态样式 */
+.coupon-unused .coupon-left {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
+}
+
+.coupon-unused .amount-symbol,
+.coupon-unused .amount-value,
+.coupon-unused .coupon-condition {
+  color: white;
+}
+
+.coupon-unused .status-unused {
+  background: #fff0f0;
+  color: #ff6b6b;
+}
+
+.coupon-used .coupon-left {
+  background: #e5e5e5;
+  color: #666;
+}
+
+.coupon-used .amount-symbol,
+.coupon-used .amount-value,
+.coupon-used .coupon-condition {
+  color: #666;
+}
+
+.coupon-used .status-used {
+  background: #f0f0f0;
+  color: #999;
+}
+
+.coupon-expired .coupon-left {
+  background: #e5e5e5;
+  color: #666;
+}
+
+.coupon-expired .amount-symbol,
+.coupon-expired .amount-value,
+.coupon-expired .coupon-condition {
+  color: #666;
+}
+
+.coupon-expired .status-expired {
+  background: #f0f0f0;
+  color: #999;
 }
 
 /* ========== 收藏页面 ========== */

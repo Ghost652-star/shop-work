@@ -255,7 +255,7 @@
 </template>
 
 <script>
-import { getCouponList } from '../api/coupon'
+import { getCouponList, receiveCoupon } from '../api/coupon'
 import { login, register } from '../api/user'
 
 export default {
@@ -517,20 +517,34 @@ export default {
       coupon.grabbing = true
       
       try {
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        coupon.claimed = true
-        coupon.stock = Math.max(0, coupon.stock - 1)
-        this.showSuccessToast = true
-        
-        if (this.timers[coupon.id]) {
-          clearInterval(this.timers[coupon.id])
-          this.timers[coupon.id] = null
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          this.showLoginDialog = true
+          return
         }
         
-        setTimeout(() => {
-          this.showSuccessToast = false
-        }, 2000)
+        // 调用后端领取优惠券接口
+        const result = await receiveCoupon({
+          userId: parseInt(userId),
+          couponId: coupon.id
+        })
+        
+        if (result.code === 1) {
+          coupon.claimed = true
+          coupon.stock = Math.max(0, coupon.stock - 1)
+          this.showSuccessToast = true
+          
+          if (this.timers[coupon.id]) {
+            clearInterval(this.timers[coupon.id])
+            this.timers[coupon.id] = null
+          }
+          
+          setTimeout(() => {
+            this.showSuccessToast = false
+          }, 2000)
+        } else {
+          alert(result.msg || '领取失败')
+        }
       } catch (error) {
         console.error('领取优惠券失败:', error)
         alert('领取失败，请稍后重试')

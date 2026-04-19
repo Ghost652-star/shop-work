@@ -2,19 +2,23 @@ package com.ecommerce.handler;
 
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.result.Result;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     
     @ExceptionHandler(BaseException.class)
     public Result<Object> handleBaseException(BaseException e) {
+        log.error("业务异常：code={}, message={}", e.getCode(), e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
     }
     
     @ExceptionHandler(Exception.class)
     public Result<Object> handleException(Exception e) {
-        return Result.error(500, "服务器内部错误");
+        log.error("服务器内部错误：", e);
+        return Result.error(500, "服务器内部错误：" + e.getMessage());
     }
 }
