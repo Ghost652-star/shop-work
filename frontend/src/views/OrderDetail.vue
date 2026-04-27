@@ -6,13 +6,6 @@
         <div class="logo-section">
           <h1 class="logo" @click="goHome">电商平台</h1>
         </div>
-        <div class="search-wrapper">
-          <div class="search-box">
-            <span class="search-icon-placeholder">🔍</span>
-            <input type="text" placeholder="搜索商品" class="search-input" />
-            <button class="search-btn">搜索</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -145,47 +138,29 @@
 </template>
 
 <script>
+import { getOrderDetail, cancelOrder } from '../api/order'
+
 export default {
   name: 'OrderDetail',
   data() {
     return {
       isScrolled: false,
-      // 模拟订单数据
       order: {
-        id: 1,
-        orderNo: 'ORD202604090001',
+        id: 0,
+        orderNo: '',
         status: 0, // 0-待付款，1-待发货，2-待收货，3-已完成，4-已取消
-        createTime: '2026-04-09 10:30:00',
+        createTime: '',
         paymentType: '在线支付',
-        receiverName: '张三',
-        receiverPhone: '138****8888',
-        receiverProvince: '广东省',
-        receiverCity: '深圳市',
-        receiverDistrict: '南山区',
-        receiverDetailAddress: '科技园南区 XXX 大厦',
-        totalAmount: 3298.00,
-        freightAmount: 0.00,
-        payAmount: 3298.00,
-        items: [
-          {
-            id: 1,
-            productId: 1,
-            productName: '智能手机 Pro Max 256GB',
-            productDescription: '高性能处理器 | 超清摄像头',
-            productImage: 'https://via.placeholder.com/200x200?text=Smartphone',
-            price: 2999,
-            quantity: 1
-          },
-          {
-            id: 2,
-            productId: 3,
-            productName: '无线耳机 Pro',
-            productDescription: '主动降噪 | 高保真音质',
-            productImage: 'https://via.placeholder.com/200x200?text=Headphone',
-            price: 299,
-            quantity: 1
-          }
-        ]
+        receiverName: '',
+        receiverPhone: '',
+        receiverProvince: '',
+        receiverCity: '',
+        receiverDistrict: '',
+        receiverDetailAddress: '',
+        totalAmount: 0,
+        freightAmount: 0,
+        payAmount: 0,
+        items: []
       }
     }
   },
@@ -235,45 +210,62 @@ export default {
     goHome() {
       this.$router.push('/');
     },
-    loadOrderData() {
-      // 后期从后端加载订单数据
-      // const orderId = this.$route.params.id;
-      // const res = await axios.get(`/api/order/${orderId}`);
-      // this.order = res.data;
+    async loadOrderData() {
+      const orderId = this.$route.query.id || this.$route.params.id;
+      if (!orderId) {
+        this.$message.error('订单ID不存在');
+        this.$router.push('/');
+        return;
+      }
       
-      // 从 localStorage 获取购物车数据生成订单
-      const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
-      if (cartItems.length > 0) {
-        this.order.items = cartItems.map(item => ({
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName,
-          productDescription: item.productDescription,
-          productImage: item.productImage,
-          price: item.price,
-          quantity: item.quantity
-        }));
-        
-        // 计算总金额
-        this.order.totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        this.order.payAmount = this.order.totalAmount;
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        this.$message.error('用户未登录');
+        this.$router.push('/');
+        return;
+      }
+      
+      try {
+        const result = await getOrderDetail(orderId, userId);
+        if (result.code === 1) {
+          this.order = result.data;
+        } else {
+          this.$message.error(result.msg || '加载订单失败');
+        }
+      } catch (error) {
+        console.error('加载订单失败:', error);
+        this.$message.error('加载订单失败，请稍后重试');
       }
     },
-    cancelOrder() {
+    async cancelOrder() {
       this.$confirm('确定要取消该订单吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
-      }).then(() => {
-        this.order.status = 4; // 已取消
-        this.$message.success('订单已取消');
-        // 后期调用后端 API
+      }).then(async () => {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          this.$message.error('用户未登录');
+          this.$router.push('/');
+          return;
+        }
+        
+        try {
+          const result = await cancelOrder(this.order.id, userId);
+          if (result.code === 1) {
+            this.order.status = 4; // 已取消
+            this.$message.success('订单已取消');
+          } else {
+            this.$message.error(result.msg || '取消订单失败');
+          }
+        } catch (error) {
+          console.error('取消订单失败:', error);
+          this.$message.error('取消订单失败，请稍后重试');
+        }
       }).catch(() => {});
     },
     payOrder() {
-      this.$message.success('跳转到支付页面（待实现）');
-      // 后期跳转到支付页面
-      // this.$router.push(`/payment/${this.order.id}`);
+      this.$router.push(`/payment/${this.order.id}`);
     }
   }
 }
@@ -329,62 +321,6 @@ export default {
 }
 
 .logo:hover {
-  opacity: 0.9;
-}
-
-.search-wrapper {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-}
-
-.search-box {
-  display: flex;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  min-width: 400px;
-  background: var(--color-bg-white);
-  transition: all 0.2s var(--ease-in-out);
-}
-
-.search-box:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
-}
-
-.search-icon-placeholder {
-  padding: 10px 12px;
-  background: var(--color-bg);
-  border-right: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-lg);
-}
-
-.search-input {
-  flex: 1;
-  padding: 10px 15px;
-  border: none;
-  outline: none;
-  font-size: var(--text-base);
-}
-
-.search-btn {
-  padding: 10px 30px;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: var(--text-base);
-  font-weight: 500;
-  transition: opacity 0.2s var(--ease-in-out);
-}
-
-.search-btn:hover {
   opacity: 0.9;
 }
 

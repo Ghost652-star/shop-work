@@ -11,6 +11,7 @@ import com.ecommerce.service.UserCouponService;
 import com.ecommerce.vo.UserCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,10 +56,11 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         }
         
         // 3. 检查用户是否已领取过该优惠券
+        // 注意：数据库通常会对 (user_id, coupon_id) 做唯一约束，表示“同一用户同一优惠券只能领一次”。
+        // 所以这里不能只查 status=0，否则用户领取后再使用/过期（status=1/2）时，仍会触发唯一键冲突。
         UserCoupon existingCoupon = query()
                 .eq("user_id", userCouponDTO.getUserId())
                 .eq("coupon_id", userCouponDTO.getCouponId())
-                .eq("status", 0)
                 .one();
         if (existingCoupon != null) {
             throw new BaseException("您已领取过该优惠券");
@@ -78,14 +80,25 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
                 .useTime(null) // 未使用，使用时间为空
                 .expireTime(now.plusDays(coupon.getValidPeriod())) // 过期时间
                 .build();
-        save(userCoupon);
-        
+        try {
+            save(userCoupon);
+        } catch (DuplicateKeyException e) {
+            // 并发/重复点击导致的唯一键冲突，转换为可读的业务异常
+            throw new BaseException("您已领取过该优惠券");
+        }
+
         log.info("领取优惠券成功: userCouponId={}", userCoupon.getId());
         
         // 6. 返回VO
         return convertToVO(userCoupon, coupon);
     }
 
+    /**
+     *
+     * 查询用户的优惠券列表
+     * @param userId 用户 ID
+     * @return
+     */
     @Override
     public List<UserCouponVO> getUserCouponList(Long userId) {
         log.info("查询用户优惠券列表：userId={}", userId);

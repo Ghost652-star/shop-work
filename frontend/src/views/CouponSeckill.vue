@@ -255,7 +255,7 @@
 </template>
 
 <script>
-import { getCouponList, receiveCoupon } from '../api/coupon'
+import { getCouponList, receiveCoupon, getUserCouponList } from '../api/coupon'
 import { login, register } from '../api/user'
 
 export default {
@@ -288,6 +288,9 @@ export default {
       registerPhone: '',
       registerPassword: '',
       confirmPassword: ''
+      ,
+      // 当前用户已领取过的优惠券ID（用于刷新后也能置灰/禁用领取按钮）
+      claimedCouponIds: []
     }
   },
   computed: {
@@ -324,12 +327,51 @@ export default {
             buttonDisabled: false
           }))
           this.startAllCountdowns()
+
+          // 如果用户已登录，把“已领取”的券标记出来（刷新页面也生效）
+          if (this.isLoggedIn) {
+            await this.loadClaimedCoupons()
+            this.applyClaimedState()
+          }
         }
       } catch (error) {
         console.error('加载优惠券失败:', error)
       }
     },
-    
+
+    async loadClaimedCoupons() {
+      const userIdRaw = localStorage.getItem('userId')
+      const userId = userIdRaw ? parseInt(userIdRaw) : NaN
+      if (!userId || Number.isNaN(userId)) {
+        this.claimedCouponIds = []
+        return
+      }
+
+      try {
+        const result = await getUserCouponList(userId)
+        if (result.code === 1 && Array.isArray(result.data)) {
+          // 后端返回 UserCouponVO 列表：[{couponId: ...}, ...]
+          this.claimedCouponIds = result.data
+            .map(uc => uc && uc.couponId)
+            .filter(id => id != null)
+            .map(id => Number(id))
+        } else {
+          this.claimedCouponIds = []
+        }
+      } catch (e) {
+        console.error('加载用户已领取优惠券失败:', e)
+        this.claimedCouponIds = []
+      }
+    },
+
+    applyClaimedState() {
+      if (!Array.isArray(this.allCoupons) || this.allCoupons.length === 0) return
+      const claimedSet = new Set(this.claimedCouponIds || [])
+      this.allCoupons.forEach(coupon => {
+        coupon.claimed = claimedSet.has(Number(coupon.id))
+      })
+    },
+
     switchTab(index) {
       this.activeTab = index
     },
@@ -423,6 +465,9 @@ export default {
       if (savedLoginState === 'true') {
         this.isLoggedIn = true
         this.userNickname = savedNickname || '用户'
+
+        // 登录状态恢复时，同步“已领取”状态
+        this.loadClaimedCoupons().then(() => this.applyClaimedState())
       }
     },
     
@@ -451,6 +496,11 @@ export default {
           localStorage.setItem('userNickname', user.nickname)
           localStorage.setItem('userId', user.id)
           this.showLoginDialog = false
+
+          // 登录成功后，立刻把已领取的券置灰
+          await this.loadClaimedCoupons()
+          this.applyClaimedState()
+
           alert('登录成功')
         } else {
           alert(result.msg || '登录失败')
@@ -531,6 +581,10 @@ export default {
         
         if (result.code === 1) {
           coupon.claimed = true
+          // 同步到本地 claimed 列表，避免本次会话内状态不一致
+          if (!this.claimedCouponIds.includes(Number(coupon.id))) {
+            this.claimedCouponIds.push(Number(coupon.id))
+          }
           coupon.stock = Math.max(0, coupon.stock - 1)
           this.showSuccessToast = true
           

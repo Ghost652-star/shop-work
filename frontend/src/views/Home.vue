@@ -258,6 +258,7 @@ import { ElMessage } from 'element-plus'
 import CartSidebar from '../components/CartSidebar.vue'
 import { getCategoryList, getProductList } from '../api/product'
 import { login, register, logout } from '../api/user'
+import { addToCart } from '../api/cart'
 
 const router = useRouter()
 const categories = ref([])
@@ -438,13 +439,35 @@ const closeLoginDialog = () => { showLoginDialog.value = false }
 const goHome = () => { router.push('/') }
 const goToProductDetail = (productId) => { router.push({ path: '/product', query: { id: productId } }) }
 
-const buyNow = (product) => {
+const buyNow = async (product) => {
   if (!isLoggedIn.value) { showLoginDialog.value = true; return }
-  const cartItem = { id: Date.now(), productId: product.id, productName: product.name, productDescription: product.description, productImage: product.mainImage, price: product.price, quantity: 1, stock: product.stock || 999 }
-  const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]')
-  cartItems.push(cartItem)
-  localStorage.setItem('cartItems', JSON.stringify(cartItems))
-  router.push('/order/detail')
+
+  try {
+    const result = await addToCart({
+      userId: parseInt(localStorage.getItem('userId')),
+      productId: product.id,
+      quantity: 1
+    })
+
+    if (result.code === 1 && result.data) {
+      const selectedItems = [{
+        cartItemId: result.data.id,
+        productId: product.id,
+        productName: product.name,
+        productDescription: product.description,
+        productImage: product.mainImage,
+        price: product.price,
+        quantity: 1,
+        categoryId: product.categoryId
+      }]
+      localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
+      router.push('/order-confirm')
+    } else {
+      ElMessage.error(result.msg || '立即购买失败')
+    }
+  } catch (error) {
+    ElMessage.error('立即购买失败,请稍后重试')
+  }
 }
 
 const nextSlide = () => { currentIndex.value++; resetAutoplay() }

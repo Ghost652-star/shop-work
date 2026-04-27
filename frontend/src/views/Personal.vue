@@ -60,19 +60,19 @@
           <!-- 统计卡片 -->
           <div class="stats-section">
             <div class="stat-card">
-              <div class="stat-value">12</div>
+              <div class="stat-value">{{ orderStats.pending }}</div>
               <div class="stat-label">待付款</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value">5</div>
+              <div class="stat-value">{{ orderStats.shipment }}</div>
               <div class="stat-label">待发货</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value">3</div>
+              <div class="stat-value">{{ orderStats.receipt }}</div>
               <div class="stat-label">待收货</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value">8</div>
+              <div class="stat-value">{{ orderStats.completed }}</div>
               <div class="stat-label">待评价</div>
             </div>
           </div>
@@ -88,24 +88,20 @@
           
           <!-- 订单列表 -->
           <div class="order-list">
-            <div class="order-card">
-              <div class="order-header">
-                <span>订单号：20240408123456</span>
-                <span class="order-status">已完成</span>
-              </div>
-              <div class="order-content">
-                <p>智能手机 × 1</p>
-                <p>¥2999.00</p>
-              </div>
+            <div v-if="filteredOrders.length === 0" class="empty-state">
+              <div class="empty-icon">📦</div>
+              <p>暂无订单</p>
             </div>
-            <div class="order-card">
-              <div class="order-header">
-                <span>订单号：20240407987654</span>
-                <span class="order-status">待发货</span>
-              </div>
-              <div class="order-content">
-                <p>无线耳机 × 2</p>
-                <p>¥598.00</p>
+            <div v-else>
+              <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+                <div class="order-header">
+                  <span>订单号：{{ order.orderNo }}</span>
+                  <span class="order-status" :class="statusClass(order.status)">{{ order.statusText || formatOrderStatus(order.status) }}</span>
+                </div>
+                <div class="order-content">
+                  <p>{{ getOrderItemSummary(order) }}</p>
+                  <p>¥{{ formatAmount(order.payAmount) }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -287,8 +283,9 @@
 
         <!-- 个人设置页面 -->
         <div v-if="activeTab === 'settings'">
-          <div class="content-header">
+          <div class="content-header settings-header">
             <h2>⚙️ 个人设置</h2>
+            <button class="edit-profile-btn" @click="handleEditProfile">编辑资料</button>
           </div>
           
           <div class="settings-card">
@@ -300,28 +297,24 @@
               <label>昵称</label>
               <div class="item-value">
                 <span>{{ userInfo.nickname }}</span>
-                <button class="edit-icon" @click="handleEditProfile">✏️</button>
               </div>
             </div>
             <div class="settings-item">
               <label>手机号</label>
               <div class="item-value">
                 <span>{{ userInfo.phone }}</span>
-                <button class="edit-icon" @click="handleEditProfile">✏️</button>
               </div>
             </div>
             <div class="settings-item">
               <label>邮箱</label>
               <div class="item-value">
                 <span>{{ userInfo.email || '未设置' }}</span>
-                <button class="edit-icon" @click="handleEditProfile">✏️</button>
               </div>
             </div>
             <div class="settings-item">
               <label>性别</label>
               <div class="item-value">
                 <span>{{ getGenderText(userInfo.gender) }}</span>
-                <button class="edit-icon" @click="handleEditProfile">✏️</button>
               </div>
             </div>
           </div>
@@ -381,7 +374,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserInfo, logout } from '../api/user'
@@ -389,6 +382,7 @@ import { getAddressList, getDefaultAddress, addAddress, updateAddress, setDefaul
 import { getFavoriteList, removeFavorite } from '../api/favorite'
 import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
+import { getOrderList } from '../api/order'
 
 // 路由
 const router = useRouter()
@@ -411,6 +405,9 @@ watch(
       // 如果是优惠券页面，重新加载优惠券列表
       if (newTab === 'coupons') {
         loadUserCouponList()
+      }
+      if (newTab === 'orders') {
+        loadOrderList()
       }
     }
   }
@@ -450,6 +447,8 @@ const favoriteProducts = ref([]) // 收藏的商品详情列表
 // 优惠券相关数据
 const userCouponList = ref([]) // 用户优惠券列表
 
+const orderList = ref([])
+
 // 方法
 const goBack = () => {
   router.push('/')
@@ -457,10 +456,6 @@ const goBack = () => {
 
 const navigateTo = (tab) => {
   // 特殊页面跳转
-  if (tab === 'orders') {
-    router.push('/orders')
-    return
-  }
   if (tab === 'address') {
     activeTab.value = 'address'
     router.push({ path: '/personal', query: { tab: 'address' } })
@@ -876,6 +871,94 @@ const goToProduct = (productId) => {
   router.push({ path: '/product', query: { id: productId } })
 }
 
+// 加载订单列表
+const loadOrderList = async () => {
+  try {
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      orderList.value = []
+      return
+    }
+
+    const result = await getOrderList(parseInt(userId))
+    if (result.code === 1) {
+      orderList.value = result.data || []
+    } else {
+      ElMessage.error(result.msg || '加载订单列表失败')
+      orderList.value = []
+    }
+  } catch (error) {
+    console.error('加载订单列表失败:', error)
+    ElMessage.error('加载订单列表失败')
+    orderList.value = []
+  }
+}
+
+const statusMap = {
+  pending: 0,
+  shipment: 1,
+  receipt: 2,
+  completed: 3
+}
+
+const filteredOrders = computed(() => {
+  if (orderTab.value === 'all') {
+    return orderList.value
+  }
+  const status = statusMap[orderTab.value]
+  return orderList.value.filter(order => order.status === status)
+})
+
+const orderStats = computed(() => {
+  const stats = { pending: 0, shipment: 0, receipt: 0, completed: 0 }
+  orderList.value.forEach(order => {
+    if (order.status === 0) stats.pending += 1
+    if (order.status === 1) stats.shipment += 1
+    if (order.status === 2) stats.receipt += 1
+    if (order.status === 3) stats.completed += 1
+  })
+  return stats
+})
+
+const formatAmount = (value) => {
+  const numberValue = typeof value === 'number' ? value : parseFloat(value || 0)
+  return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '0.00'
+}
+
+const getOrderItemSummary = (order) => {
+  if (!order || !Array.isArray(order.items) || order.items.length === 0) {
+    return '暂无商品信息'
+  }
+  const totalCount = order.items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+  const firstItem = order.items[0]
+  if (order.items.length === 1) {
+    return `${firstItem.productName} × ${firstItem.quantity}`
+  }
+  return `${firstItem.productName} 等${totalCount}件`
+}
+
+const formatOrderStatus = (status) => {
+  switch (status) {
+    case 0: return '待付款'
+    case 1: return '待发货'
+    case 2: return '待收货'
+    case 3: return '已完成'
+    case 4: return '已取消'
+    default: return '未知'
+  }
+}
+
+const statusClass = (status) => {
+  switch (status) {
+    case 0: return 'status-pending'
+    case 1: return 'status-shipping'
+    case 2: return 'status-received'
+    case 3: return 'status-completed'
+    case 4: return 'status-cancelled'
+    default: return ''
+  }
+}
+
 // 生命周期
 onMounted(() => {
   // 从路由参数获取当前 tab
@@ -896,6 +979,10 @@ onMounted(() => {
     loadFavoriteList()
   }
   
+  if (activeTab.value === 'orders') {
+    loadOrderList()
+  }
+
   // 监听购物车事件（如果有的话）
   window.addEventListener('addressUpdated', loadAddressList)
 })
@@ -1090,17 +1177,20 @@ onMounted(() => {
 
 .settings-card {
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
-  padding: 24px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: none;
 }
 
 .settings-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  justify-content: flex-start;
 }
 
 .settings-item:last-child {
@@ -1108,25 +1198,49 @@ onMounted(() => {
 }
 
 .settings-item label {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
-}
-
-.settings-item label::before {
-  content: '*';
-  color: #e43932;
-  margin-right: 4px;
+  font-weight: 500;
+  min-width: auto;
+  display: inline;
 }
 
 .settings-item span {
-  font-size: 14px;
-  color: #333;
-  padding: 6px 12px;
-  background: #f9f9f9;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
+  font-size: 13px;
+  color: #222;
+  font-weight: 400;
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
+.item-value {
+  display: inline;
+}
+
+.edit-profile-btn {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  color: #555;
+  font-size: 12px;
+}
+
+.settings-buttons {
+  margin-top: 12px;
+}
+
+.btn-logout {
+  padding: 10px 0;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: #555;
+}
+
+/* 右侧内容区 - 我的订单页面 */
 .recent-orders {
   margin-top: 40px;
 }
@@ -1820,33 +1934,21 @@ onMounted(() => {
 
 /* 个人设置 */
 .settings-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
-  border: 1px solid #e8e9ff;
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.08);
-  transition: all 0.3s ease;
-}
-
-.settings-card:hover {
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
-  transform: translateY(-2px);
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: none;
 }
 
 .settings-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.08);
-  transition: all 0.2s ease;
-}
-
-.settings-item:hover {
-  padding-left: 10px;
-  background: rgba(102, 126, 234, 0.02);
-  border-radius: 8px;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  justify-content: flex-start;
 }
 
 .settings-item:last-child {
@@ -1854,98 +1956,46 @@ onMounted(() => {
 }
 
 .settings-item label {
-  font-size: 15px;
+  font-size: 13px;
   color: #666;
   font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.settings-item label::before {
-  content: '•';
-  color: #667eea;
-  font-weight: bold;
+  min-width: auto;
+  display: inline;
 }
 
 .settings-item span {
-  font-size: 15px;
-  color: #333;
-  font-weight: 500;
-  background: #fff;
-  padding: 6px 12px;
-  border-radius: 16px;
-  border: 1px solid #e8e9ff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  font-size: 13px;
+  color: #222;
+  font-weight: 400;
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .item-value {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: inline;
 }
 
-.edit-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px 8px;
+.edit-profile-btn {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.edit-icon:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.gender-options {
-  display: flex;
-  gap: 20px;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
-}
-
-.radio-label input[type="radio"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+  background: #fff;
+  color: #555;
+  font-size: 12px;
 }
 
 .settings-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 .btn-logout {
-  flex: 1;
-  padding: 12px 0;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  color: white;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
-}
-
-.btn-logout:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
-}
-
-.profile-dialog {
-  max-width: 500px;
+  padding: 10px 0;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: #555;
 }
 
 /* 优惠券列表样式 */

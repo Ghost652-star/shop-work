@@ -58,6 +58,13 @@
         <div v-else class="cart-body">
           <div class="cart-list">
             <div v-for="item in cartItems" :key="item.id" class="cart-item">
+              <div class="item-checkbox">
+                <input
+                  type="checkbox"
+                  :checked="item.isChecked === 1"
+                  @change="toggleItemChecked(item)"
+                />
+              </div>
               <div class="item-image" @click="goToProduct(item.productId)">
                 <img :src="item.productImage" :alt="item.productName" />
               </div>
@@ -82,6 +89,12 @@
 
         <!-- 底部操作栏 -->
         <div v-if="cartItems.length > 0" class="cart-footer">
+          <div class="cart-select-all">
+            <label>
+              <input type="checkbox" :checked="allChecked" @change="toggleAllChecked" />
+              <span>全选</span>
+            </label>
+          </div>
           <div class="cart-total">
             <div class="total-row">
               <span>商品总额：</span>
@@ -103,6 +116,8 @@
 </template>
 
 <script>
+import { addToCart, getCartList, updateQuantity, deleteCart, batchDelete, getCartCount, updateChecked, checkAll } from '../api/cart'
+
 export default {
   name: 'CartSidebar',
   data() {
@@ -120,11 +135,17 @@ export default {
     cartCount() {
       return this.cartItems.reduce((sum, item) => sum + item.quantity, 0)
     },
+    selectedItems() {
+      return this.cartItems.filter(item => item.isChecked === 1)
+    },
+    allChecked() {
+      return this.cartItems.length > 0 && this.cartItems.every(item => item.isChecked === 1)
+    },
     totalCount() {
-      return this.cartItems.length
+      return this.selectedItems.reduce((sum, item) => sum + item.quantity, 0)
     },
     totalPrice() {
-      return this.cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
+      return this.selectedItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0).toFixed(2)
     }
   },
   mounted() {
@@ -153,11 +174,24 @@ export default {
       // TODO: 跳转到客服页面或打开客服弹窗
       this.$message.info('客服功能开发中...')
     },
-    loadCartData() {
-      const savedCart = localStorage.getItem('cartItems')
-      if (savedCart) {
-        this.cartItems = JSON.parse(savedCart)
-      } else {
+    async loadCartData() {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.cartItems = []
+        return
+      }
+      
+      try {
+        const result = await getCartList(parseInt(userId))
+        if (result.code === 1) {
+          this.cartItems = result.data || []
+        } else {
+          this.$message.error(result.msg || '加载购物车失败')
+          this.cartItems = []
+        }
+      } catch (error) {
+        console.error('加载购物车失败:', error)
+        this.$message.error('加载购物车失败，请稍后重试')
         this.cartItems = []
       }
     },
@@ -169,54 +203,179 @@ export default {
       this.closeCart()
       this.$router.push('/')
     },
-    increaseQuantity(item) {
-      if (item.quantity < item.stock) {
-        item.quantity++
-        this.saveCart()
+    async increaseQuantity(item) {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
+        return
+      }
+      
+      try {
+        const result = await updateQuantity({
+          id: item.id,
+          quantity: item.quantity + 1
+        })
+        if (result.code === 1) {
+          this.loadCartData()
+        } else {
+          this.$message.error(result.msg || '更新数量失败')
+        }
+      } catch (error) {
+        console.error('更新数量失败:', error)
+        this.$message.error('更新数量失败，请稍后重试')
       }
     },
-    decreaseQuantity(item) {
+    async decreaseQuantity(item) {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
+        return
+      }
+      
       if (item.quantity <= 1) {
         this.$confirm('数量已为 1，再减少将移除该商品', '提示', {
           confirmButtonText: '移除',
           cancelButtonText: '取消',
           type: 'warning'
-        }).then(() => {
-          this.removeFromCart(item)
+        }).then(async () => {
+          await this.removeFromCart(item)
         }).catch(() => {})
       } else {
-        item.quantity--
-        this.saveCart()
+        try {
+          const result = await updateQuantity({
+            id: item.id,
+            quantity: item.quantity - 1
+          })
+          if (result.code === 1) {
+            this.loadCartData()
+          } else {
+            this.$message.error(result.msg || '更新数量失败')
+          }
+        } catch (error) {
+          console.error('更新数量失败:', error)
+          this.$message.error('更新数量失败，请稍后重试')
+        }
       }
     },
-    removeFromCart(item) {
-      const index = this.cartItems.findIndex(i => i.id === item.id)
-      if (index !== -1) {
-        this.cartItems.splice(index, 1)
-        this.saveCart()
+    async removeFromCart(item) {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
+        return
+      }
+      
+      try {
+        const result = await deleteCart(item.id)
+        if (result.code === 1) {
+          this.loadCartData()
+          this.$message.success('移除成功')
+        } else {
+          this.$message.error(result.msg || '移除失败')
+        }
+      } catch (error) {
+        console.error('移除失败:', error)
+        this.$message.error('移除失败，请稍后重试')
       }
     },
-    clearCart() {
+    async clearCart() {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
+        return
+      }
+      
       this.$confirm('确定要清空购物车吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
-      }).then(() => {
-        this.cartItems = []
-        this.saveCart()
+      }).then(async () => {
+        try {
+          const ids = this.cartItems.map(item => item.id)
+          if (ids.length > 0) {
+            const result = await batchDelete(ids)
+            if (result.code === 1) {
+              this.loadCartData()
+              this.$message.success('清空成功')
+            } else {
+              this.$message.error(result.msg || '清空失败')
+            }
+          } else {
+            this.$message.info('购物车已是空的')
+          }
+        } catch (error) {
+          console.error('清空失败:', error)
+          this.$message.error('清空失败，请稍后重试')
+        }
       }).catch(() => {})
     },
-    saveCart() {
-      localStorage.setItem('cartItems', JSON.stringify(this.cartItems))
-      window.dispatchEvent(new Event('cartUpdated'))
-    },
-    checkout() {
-      if (this.cartItems.length === 0) {
-        this.$message.warning('购物车是空的')
+    async toggleItemChecked(item) {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
         return
       }
+
+      const nextChecked = item.isChecked === 1 ? 0 : 1
+      try {
+        const result = await updateChecked({
+          id: item.id,
+          userId: parseInt(userId),
+          isChecked: nextChecked
+        })
+        if (result.code === 1) {
+          this.loadCartData()
+        } else {
+          this.$message.error(result.msg || '更新选中状态失败')
+        }
+      } catch (error) {
+        console.error('更新选中状态失败:', error)
+        this.$message.error('更新选中状态失败，请稍后重试')
+      }
+    },
+    async toggleAllChecked() {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        this.$message.warning('请先登录')
+        return
+      }
+
+      const nextChecked = this.allChecked ? 0 : 1
+      try {
+        const result = await checkAll({
+          userId: parseInt(userId),
+          isChecked: nextChecked
+        })
+        if (result.code === 1) {
+          this.loadCartData()
+        } else {
+          this.$message.error(result.msg || '更新全选状态失败')
+        }
+      } catch (error) {
+        console.error('更新全选状态失败:', error)
+        this.$message.error('更新全选状态失败，请稍后重试')
+      }
+    },
+    checkout() {
+      if (this.selectedItems.length === 0) {
+        this.$message.warning('请先勾选要结算的商品')
+        return
+      }
+      
+      const selectedItems = this.selectedItems.map(item => ({
+        cartItemId: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productImage: item.productImage,
+        price: item.price,
+        quantity: item.quantity,
+        categoryId: item.categoryId
+      }))
+      
+      // 存储选中的商品到 localStorage
+      localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
+      
       this.closeCart()
-      this.$router.push('/order/detail')
+      this.$router.push('/order-confirm')
     }
   }
 }
@@ -457,9 +616,17 @@ export default {
   background: var(--color-bg-white);
 }
 
-.cart-item:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+.item-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 4px;
+}
+
+.item-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .item-image {
@@ -576,6 +743,21 @@ export default {
   border-top: 1px solid var(--color-border-light);
   padding: 16px 20px;
   background: var(--color-bg);
+}
+
+.cart-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.cart-select-all input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .cart-total {

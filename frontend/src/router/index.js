@@ -4,6 +4,8 @@ import Personal from '../views/Personal.vue'
 import ProductDetail from '../views/ProductDetail.vue'
 import OrderDetail from '../views/OrderDetail.vue'
 import CouponSeckill from '../views/CouponSeckill.vue'
+import Payment from '../views/Payment.vue'
+import OrderConfirm from '../views/OrderConfirm.vue'
 
 const routes = [
   {
@@ -15,6 +17,10 @@ const routes = [
     path: '/personal',
     name: 'Personal',
     component: Personal
+  },
+  {
+    path: '/orders',
+    redirect: { path: '/personal', query: { tab: 'orders' } }
   },
   {
     path: '/product',
@@ -30,6 +36,16 @@ const routes = [
     path: '/coupon-seckill',
     name: 'CouponSeckill',
     component: CouponSeckill
+  },
+  {
+    path: '/payment/:id',
+    name: 'Payment',
+    component: Payment
+  },
+  {
+    path: '/order-confirm',
+    name: 'OrderConfirm',
+    component: OrderConfirm
   }
 ]
 

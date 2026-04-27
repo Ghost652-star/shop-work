@@ -373,6 +373,7 @@ import CartSidebar from '../components/CartSidebar.vue'
 import { getProductDetail } from '@/api/product'
 import { login, register } from '../api/user'
 import { addFavorite, removeFavorite, isFavorite } from '../api/favorite'
+import { addToCart } from '../api/cart'
 
 export default {
   name: 'ProductDetail',
@@ -562,40 +563,66 @@ export default {
       }
     },
     
-    addToCart() {
+    async addToCart() {
       // 检查登录状态
       if (!this.isLoggedIn) {
         this.showLoginDialog = true
         return
       }
       
-      const cartItem = {
-        id: Date.now(),
-        productId: this.product.id,
-        productName: this.product.name,
-        productDescription: this.product.description,
-        productImage: this.productImages[this.currentImageIndex],
-        price: this.product.price,
-        quantity: this.quantity,
-        stock: this.product.stock,
-        spec: this.selectedSpec
+      try {
+        const result = await addToCart({
+          userId: parseInt(localStorage.getItem('userId')),
+          productId: this.product.id,
+          quantity: this.quantity
+        })
+        
+        if (result.code === 1) {
+          this.$message.success('已加入购物车')
+          // 通知购物车组件更新
+          window.dispatchEvent(new Event('cartUpdated'))
+        } else {
+          this.$message.error(result.msg || '加入购物车失败')
+        }
+      } catch (error) {
+        console.error('加入购物车失败:', error)
+        this.$message.error('加入购物车失败，请稍后重试')
       }
-      
-      const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]')
-      cartItems.push(cartItem)
-      localStorage.setItem('cartItems', JSON.stringify(cartItems))
-      window.dispatchEvent(new Event('cartUpdated'))
-      
-      alert('已加入购物车')
     },
-    buyNow() {
+    async buyNow() {
       // 检查登录状态
       if (!this.isLoggedIn) {
         this.showLoginDialog = true
         return
       }
-      
-      this.$router.push('/order/detail')
+
+      try {
+        const result = await addToCart({
+          userId: parseInt(localStorage.getItem('userId')),
+          productId: this.product.id,
+          quantity: this.quantity
+        })
+
+        if (result.code === 1 && result.data) {
+          const selectedItems = [{
+            cartItemId: result.data.id,
+            productId: this.product.id,
+            productName: this.product.name,
+            productDescription: this.product.description,
+            productImage: this.product.mainImage,
+            price: this.product.price,
+            quantity: this.quantity,
+            categoryId: this.product.categoryId
+          }]
+          localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
+          this.$router.push('/order-confirm')
+        } else {
+          this.$message.error(result.msg || '立即购买失败')
+        }
+      } catch (error) {
+        console.error('立即购买失败:', error)
+        this.$message.error('立即购买失败，请稍后重试')
+      }
     },
     toggleFavorite() {
       // 检查登录状态

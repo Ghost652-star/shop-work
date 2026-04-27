@@ -36,7 +36,7 @@ public class UserCoupon {
     private Long couponId;
     
     /**
-     * 状态：0-未使用，1-已使用，2-已过期
+     * 状态：0-未使用，1-已使用，2-已冻结，3-已过期
      */
     private Integer status;
     
