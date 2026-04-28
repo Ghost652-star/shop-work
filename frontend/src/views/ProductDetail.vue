@@ -177,16 +177,15 @@
               </button>
               <input 
                 type="number" 
-                v-model="quantity" 
+                v-model.number="quantity" 
                 :min="1" 
                 :max="product.stock"
                 class="quantity-input"
-                readonly
               />
               <button 
                 class="quantity-btn increase"
                 :disabled="quantity >= product.stock"
-                @click="increaseQuantity"
+                @click="handleIncreaseClick"
               >
                 +
               </button>
@@ -374,6 +373,8 @@ import { getProductDetail } from '@/api/product'
 import { login, register } from '../api/user'
 import { addFavorite, removeFavorite, isFavorite } from '../api/favorite'
 import { addToCart } from '../api/cart'
+import { createOrder } from '../api/order'
+import { getDefaultAddress } from '../api/address'
 
 export default {
   name: 'ProductDetail',
@@ -436,6 +437,19 @@ export default {
     this.loadProductDetail()
     this.checkLoginStatus()
   },
+  watch: {
+    'product.stock': { 
+      handler(newVal) {
+        console.log('库存变化:', newVal)
+      },
+      immediate: true
+    },
+    quantity: {
+      handler(newVal) {
+        console.log('数量变化:', newVal, '当前库存:', this.product.stock)
+      }
+    }
+  },
   methods: {
     loadProductDetail() {
       const productId = this.$route.query.id || this.$route.params.id
@@ -446,7 +460,14 @@ export default {
       getProductDetail(productId)
         .then(response => {
           if (response.code === 1) {
-            this.product = response.data
+            console.log('商品详情数据:', response.data)
+            // 确保 stock 字段存在且有效
+            const productData = response.data
+            if (!productData.stock || productData.stock <= 0) {
+              productData.stock = 999 // 设置默认库存
+            }
+            this.product = productData
+            console.log('最终商品数据 - stock:', this.product.stock)
             // 加载收藏状态
             this.loadFavoriteStatus()
           }
@@ -466,13 +487,33 @@ export default {
       this.$router.push('/coupon-seckill')
     },
     increaseQuantity() {
+      console.log('点击增加按钮 - 当前数量:', this.quantity, '库存:', this.product.stock)
       if (this.quantity < this.product.stock) {
         this.quantity++
+        console.log('增加后数量:', this.quantity)
+      } else {
+        console.log('已达到库存上限')
       }
     },
+    testIncrease() {
+      console.log('=== 测试按钮点击 ===')
+      console.log('当前数量:', this.quantity)
+      console.log('当前库存:', this.product.stock)
+      console.log('是否禁用:', this.quantity >= this.product.stock)
+      this.increaseQuantity()
+    },
+    handleIncreaseClick(event) {
+      console.log('=== 原生点击事件 ===', event)
+      console.log('目标元素:', event.target)
+      console.log('当前数量:', this.quantity)
+      console.log('当前库存:', this.product.stock)
+      this.increaseQuantity()
+    },
     decreaseQuantity() {
+      console.log('点击减少按钮 - 当前数量:', this.quantity)
       if (this.quantity > 1) {
         this.quantity--
+        console.log('减少后数量:', this.quantity)
       }
     },
     checkLoginStatus() {
@@ -570,11 +611,19 @@ export default {
         return
       }
       
+      // 验证数量
+      if (!this.quantity || this.quantity < 1) {
+        this.$message.warning('请选择购买数量')
+        return
+      }
+      
+      console.log('加入购物车 - 商品ID:', this.product.id, '数量:', this.quantity)
+      
       try {
         const result = await addToCart({
           userId: parseInt(localStorage.getItem('userId')),
           productId: this.product.id,
-          quantity: this.quantity
+          quantity: parseInt(this.quantity)
         })
         
         if (result.code === 1) {
@@ -596,28 +645,43 @@ export default {
         return
       }
 
-      try {
-        const result = await addToCart({
-          userId: parseInt(localStorage.getItem('userId')),
-          productId: this.product.id,
-          quantity: this.quantity
-        })
+      // 验证数量
+      if (!this.quantity || this.quantity < 1) {
+        this.$message.warning('请选择购买数量')
+        return
+      }
 
-        if (result.code === 1 && result.data) {
-          const selectedItems = [{
-            cartItemId: result.data.id,
-            productId: this.product.id,
-            productName: this.product.name,
-            productDescription: this.product.description,
-            productImage: this.product.mainImage,
-            price: this.product.price,
-            quantity: this.quantity,
-            categoryId: this.product.categoryId
+      console.log('立即购买 - 商品ID:', this.product.id, '数量:', this.quantity)
+
+      try {
+        const userId = parseInt(localStorage.getItem('userId'))
+        const addressResult = await getDefaultAddress(userId)
+
+        if (addressResult.code !== 1 || !addressResult.data) {
+          this.$message.warning('请先设置默认收货地址')
+          this.$router.push({ path: '/personal', query: { tab: 'address' } })
+          return
+        }
+
+        const orderData = {
+          userId,
+          addressId: addressResult.data.id,
+          couponIds: [],
+          remark: '',
+          items: [{ 
+            productId: this.product.id, 
+            quantity: parseInt(this.quantity) 
           }]
-          localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
-          this.$router.push('/order-confirm')
+        }
+
+        console.log('创建订单请求数据:', JSON.stringify(orderData))
+
+        const orderResult = await createOrder(orderData)
+
+        if (orderResult.code === 1 && orderResult.data) {
+          this.$router.push(`/order/detail?id=${orderResult.data.id}`)
         } else {
-          this.$message.error(result.msg || '立即购买失败')
+          this.$message.error(orderResult.msg || '立即购买失败')
         }
       } catch (error) {
         console.error('立即购买失败:', error)

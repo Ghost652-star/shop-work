@@ -258,7 +258,8 @@ import { ElMessage } from 'element-plus'
 import CartSidebar from '../components/CartSidebar.vue'
 import { getCategoryList, getProductList } from '../api/product'
 import { login, register, logout } from '../api/user'
-import { addToCart } from '../api/cart'
+import { createOrder } from '../api/order'
+import { getDefaultAddress } from '../api/address'
 
 const router = useRouter()
 const categories = ref([])
@@ -443,27 +444,27 @@ const buyNow = async (product) => {
   if (!isLoggedIn.value) { showLoginDialog.value = true; return }
 
   try {
-    const result = await addToCart({
-      userId: parseInt(localStorage.getItem('userId')),
-      productId: product.id,
-      quantity: 1
+    const userId = parseInt(localStorage.getItem('userId'))
+    const addressResult = await getDefaultAddress(userId)
+
+    if (addressResult.code !== 1 || !addressResult.data) {
+      ElMessage.warning('请先设置默认收货地址')
+      router.push({ path: '/personal', query: { tab: 'address' } })
+      return
+    }
+
+    const orderResult = await createOrder({
+      userId,
+      addressId: addressResult.data.id,
+      couponIds: [],
+      remark: '',
+      items: [{ productId: product.id, quantity: 1 }]
     })
 
-    if (result.code === 1 && result.data) {
-      const selectedItems = [{
-        cartItemId: result.data.id,
-        productId: product.id,
-        productName: product.name,
-        productDescription: product.description,
-        productImage: product.mainImage,
-        price: product.price,
-        quantity: 1,
-        categoryId: product.categoryId
-      }]
-      localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
-      router.push('/order-confirm')
+    if (orderResult.code === 1 && orderResult.data) {
+      router.push(`/order/detail?id=${orderResult.data.id}`)
     } else {
-      ElMessage.error(result.msg || '立即购买失败')
+      ElMessage.error(orderResult.msg || '立即购买失败')
     }
   } catch (error) {
     ElMessage.error('立即购买失败,请稍后重试')

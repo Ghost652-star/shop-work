@@ -248,13 +248,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             cartMapper.delete(new QueryWrapper<Cart>()
                     .eq("user_id", orderDTO.getUserId())
                     .in("id", orderDTO.getCartItemIds()));
-        } else {
-            List<Long> productIds = requestItems.stream()
-                    .map(OrderItemDTO::getProductId)
-                    .collect(Collectors.toList());
-            cartMapper.delete(new QueryWrapper<Cart>()
-                    .eq("user_id", orderDTO.getUserId())
-                    .in("product_id", productIds));
         }
 
         // 10. 构建返回结果
@@ -334,11 +327,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new BaseException("订单不存在或不属于当前用户");
         }
         
-        if (order.getStatus() != 0) {
+        if (order.getStatus() != 0 && order.getStatus() != 1 && order.getStatus() != 2) {
             throw new BaseException("订单无法取消");
         }
         
         // 更新订单状态
+        // TODO 已支付/待收货订单取消需要处理退款/售后流程
         order.setStatus(4); // 已取消
         orderMapper.updateById(order);
         

@@ -27,23 +27,23 @@
             <span>我的订单</span>
           </div>
           <div class="nav-item" :class="{ active: activeTab === 'favorites' }" @click="navigateTo('favorites')">
-
+            <span class="nav-icon">❤️</span>
             <span>我的收藏</span>
           </div>
           <div class="nav-item" :class="{ active: activeTab === 'coupons' }" @click="navigateTo('coupons')">
-
+            <span class="nav-icon">🎁</span>
             <span>优惠券</span>
           </div>
           <div class="nav-item" :class="{ active: activeTab === 'address' }" @click="navigateTo('address')">
-
+            <span class="nav-icon">📍</span>
             <span>地址管理</span>
           </div>
           <div class="nav-item" :class="{ active: activeTab === 'reviews' }" @click="navigateTo('reviews')">
-
+            <span class="nav-icon">💬</span>
             <span>我的评论</span>
           </div>
           <div class="nav-item" :class="{ active: activeTab === 'settings' }" @click="navigateTo('settings')">
-
+            <span class="nav-icon">⚙️</span>
             <span>个人设置</span>
           </div>
         </div>
@@ -54,7 +54,7 @@
         <!-- 我的订单页面 -->
         <div v-if="activeTab === 'orders'">
           <div class="content-header">
-
+            <h2>📦 我的订单</h2>
           </div>
           
           <!-- 统计卡片 -->
@@ -75,6 +75,10 @@
               <div class="stat-value">{{ orderStats.completed }}</div>
               <div class="stat-label">待评价</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ orderStats.cancelled }}</div>
+              <div class="stat-label">已取消</div>
+            </div>
           </div>
           
           <!-- 订单导航栏 -->
@@ -84,6 +88,7 @@
             <div class="order-tab" :class="{ active: orderTab === 'shipment' }" @click="orderTab = 'shipment'">待发货</div>
             <div class="order-tab" :class="{ active: orderTab === 'receipt' }" @click="orderTab = 'receipt'">待收货</div>
             <div class="order-tab" :class="{ active: orderTab === 'completed' }" @click="orderTab = 'completed'">已完成</div>
+            <div class="order-tab" :class="{ active: orderTab === 'cancelled' }" @click="orderTab = 'cancelled'">已取消</div>
           </div>
           
           <!-- 订单列表 -->
@@ -93,7 +98,7 @@
               <p>暂无订单</p>
             </div>
             <div v-else>
-              <div v-for="order in filteredOrders" :key="order.id" class="order-card">
+              <div v-for="order in filteredOrders" :key="order.id" class="order-card" @click="goToOrderDetail(order.id)">
                 <div class="order-header">
                   <span>订单号：{{ order.orderNo }}</span>
                   <span class="order-status" :class="statusClass(order.status)">{{ order.statusText || formatOrderStatus(order.status) }}</span>
@@ -101,6 +106,11 @@
                 <div class="order-content">
                   <p>{{ getOrderItemSummary(order) }}</p>
                   <p>¥{{ formatAmount(order.payAmount) }}</p>
+                </div>
+                <div class="order-actions">
+                  <button class="action-btn" @click.stop="goToOrderDetail(order.id)">查看详情</button>
+                  <button v-if="order.status === 0" class="action-btn primary" @click.stop="goToPay(order.id)">去支付</button>
+                  <button v-if="order.status === 0 || order.status === 1 || order.status === 2" class="action-btn" @click.stop="cancelOrderAction(order.id)">取消订单</button>
                 </div>
               </div>
             </div>
@@ -374,15 +384,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserInfo, logout } from '../api/user'
+import { getUserInfo, logout, updateUser } from '../api/user'
 import { getAddressList, getDefaultAddress, addAddress, updateAddress, setDefaultAddress as setDefaultAddressApi, deleteAddress as deleteAddressApi } from '../api/address'
 import { getFavoriteList, removeFavorite } from '../api/favorite'
 import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
-import { getOrderList } from '../api/order'
+import { getOrderList, cancelOrder as cancelOrderApi } from '../api/order'
 
 // 路由
 const router = useRouter()
@@ -898,7 +908,8 @@ const statusMap = {
   pending: 0,
   shipment: 1,
   receipt: 2,
-  completed: 3
+  completed: 3,
+  cancelled: 4
 }
 
 const filteredOrders = computed(() => {
@@ -910,12 +921,13 @@ const filteredOrders = computed(() => {
 })
 
 const orderStats = computed(() => {
-  const stats = { pending: 0, shipment: 0, receipt: 0, completed: 0 }
+  const stats = { pending: 0, shipment: 0, receipt: 0, completed: 0, cancelled: 0 }
   orderList.value.forEach(order => {
     if (order.status === 0) stats.pending += 1
     if (order.status === 1) stats.shipment += 1
     if (order.status === 2) stats.receipt += 1
     if (order.status === 3) stats.completed += 1
+    if (order.status === 4) stats.cancelled += 1
   })
   return stats
 })
@@ -959,1268 +971,810 @@ const statusClass = (status) => {
   }
 }
 
-// 生命周期
-onMounted(() => {
-  // 从路由参数获取当前 tab
-  if (route.query.tab) {
-    activeTab.value = route.query.tab
-  }
-  
-  // 加载用户信息
-  loadUserInfo()
-  
-  // 如果是地址管理页面，加载地址列表
-  if (activeTab.value === 'address') {
-    loadAddressList()
-  }
-  
-  // 如果是收藏页面，加载收藏列表
-  if (activeTab.value === 'favorites') {
-    loadFavoriteList()
-  }
-  
-  if (activeTab.value === 'orders') {
-    loadOrderList()
-  }
-
-  // 监听购物车事件（如果有的话）
-  window.addEventListener('addressUpdated', loadAddressList)
-})
-</script>
-
-<style scoped>
-.personal-container {
-  min-height: 100vh;
-  background: #f5f5f5;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 顶部导航 */
-.top-nav {
-  background: #409EFF;
-  color: white;
-  padding: 12px 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.nav-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: rgba(255,255,255,0.2);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-.back-icon {
-  font-size: 16px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 500;
-}
-
-/* 主体内容 */
-.main-container {
-  flex: 1;
-  display: flex;
-  background: #f5f5f5;
-}
-
-/* 左侧导航栏 */
-.side-nav {
-  width: 200px;
-  min-width: 200px;
-  background: #fff;
-  border-right: 1px solid #f0f0f0;
-  color: #333;
-  display: flex;
-  flex-direction: column;
-}
-
-.back-home {
-  padding: 16px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 16px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-
-.back-home:hover {
-  background: #f5f5f5;
-  color: #e43932;
-}
-
-.user-profile {
-  padding: 28px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3a7bd5 0%, #3a96dd 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-placeholder {
-  color: white;
-  font-size: 32px;
-  font-weight: bold;
-}
-
-.avatar-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.user-info h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
-  font-weight: 500;
-}
-
-.user-info p {
-  margin: 6px 0 0 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.nav-menu {
-  padding: 20px 0;
-}
-
-.nav-item {
-  padding: 14px 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: #666;
-  border-left: 3px solid transparent;
-  font-weight: 400;
-}
-
-.nav-item:hover {
-  background: #f5f5f5;
-  color: #333;
-}
-
-.nav-item.active {
-  color: #FF5000;
-  background: #FFF9F5;
-  border-left-color: #FF5000;
-  font-weight: 500;
-}
-
-.nav-icon {
-  font-size: 18px;
-  width: 22px;
-  text-align: center;
-}
-
-/* 右侧内容区 */
-.content-area {
-  flex: 1;
-  background: #fff;
-  padding: 24px;
-  overflow-y: auto;
-}
-
-.content-header {
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.content-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-}
-
-.settings-card {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
-  box-shadow: none;
-}
-
-.settings-item {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
-  justify-content: flex-start;
-}
-
-.settings-item:last-child {
-  border-bottom: none;
-}
-
-.settings-item label {
-  font-size: 13px;
-  color: #666;
-  font-weight: 500;
-  min-width: auto;
-  display: inline;
-}
-
-.settings-item span {
-  font-size: 13px;
-  color: #222;
-  font-weight: 400;
-  background: transparent;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.item-value {
-  display: inline;
-}
-
-.edit-profile-btn {
-  padding: 4px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fff;
-  color: #555;
-  font-size: 12px;
-}
-
-.settings-buttons {
-  margin-top: 12px;
-}
-
-.btn-logout {
-  padding: 10px 0;
-  border-radius: 6px;
-  background: #f5f5f5;
-  color: #555;
-}
-
-/* 右侧内容区 - 我的订单页面 */
-.recent-orders {
-  margin-top: 40px;
-}
-
-.recent-orders h3 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.recent-orders h3::before {
-  content: '📋';
-  font-size: 16px;
-}
-
-.order-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.order-header span {
-  font-size: 13px;
-  color: #999;
-}
-
-.order-status {
-  color: #e43932;
-  font-size: 13px;
-}
-
-.status-pending {
-  background: #FFF9F5;
-  color: #FF5000;
-}
-
-.status-shipping {
-  background: #F0FAFF;
-  color: #1890FF;
-}
-
-.status-received {
-  background: #F5F7FF;
-  color: #597EF7;
-}
-
-.status-completed {
-  background: #F6FFED;
-  color: #52C41A;
-}
-
-.status-cancelled {
-  background: #F5F5F5;
-  color: #999;
-}
-
-.order-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.order-content p {
-  margin: 0;
-  font-size: 14px;
-  color: #333;
-}
-
-.order-content p:last-child {
-  color: #e43932;
-  font-weight: 500;
-}
-
-/* 统计卡片 */
-.stats-section {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
-  padding: 20px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #e43932;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #999;
-}
-
-/* 空状态 */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: #999;
-  font-size: 16px;
-}
-
-.empty-state .empty-icon {
-  font-size: 80px;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-/* 购物车样式 */
-.cart-content {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.cart-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.cart-item {
-  display: flex;
-  gap: 15px;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.cart-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-}
-
-.cart-item-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #f5f5f5;
-}
-
-.cart-item-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cart-item-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.cart-item-name {
-  font-size: 15px;
-  color: #333;
-  margin: 0;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.4;
-}
-
-.cart-item-spec {
-  font-size: 13px;
-  color: #999;
-  margin: 0;
-}
-
-.cart-item-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cart-item-price {
-  font-size: 18px;
-  color: #ff4757;
-  font-weight: bold;
-}
-
-.cart-item-quantity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cart-item-quantity button {
-  width: 28px;
-  height: 28px;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.cart-item-quantity button:hover:not(:disabled) {
-  border-color: #667eea;
-  color: #667eea;
-}
-
-.cart-item-quantity button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cart-item-quantity span {
-  font-size: 14px;
-  color: #333;
-  min-width: 20px;
-  text-align: center;
-}
-
-.remove-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 5px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.remove-btn:hover {
-  background: #fff5f5;
-}
-
-.cart-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-top: 1px solid #eee;
-  margin-top: 15px;
-}
-
-.cart-total {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 14px;
-  color: #666;
-}
-
-.total-price {
-  font-size: 20px;
-  color: #ff4757;
-  font-weight: bold;
-}
-
-.checkout-btn {
-  padding: 12px 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.checkout-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.action-btn-primary {
-  padding: 12px 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 15px;
-  transition: all 0.2s;
-}
-
-.action-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-/* 地址管理样式 */
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.content-header h2 {
-  font-size: 18px;
-  color: #333;
-  margin: 0;
-}
-
-.add-address-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.add-address-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.address-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.address-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.address-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-}
-
-.address-item.default {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-}
-
-.address-info {
-  flex: 1;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 10px;
-}
-
-.user-info .name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.user-info .phone {
-  font-size: 14px;
-  color: #666;
-}
-
-.user-info .default-tag {
-  padding: 3px 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.address-detail {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.6;
-}
-
-.address-actions {
-  display: flex;
-  gap: 10px;
-  margin-left: 20px;
-}
-
-.address-actions .action-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  background: #f0f0f0;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.address-actions .action-btn:hover {
-  background: #667eea;
-  color: white;
-}
-
-.address-actions .action-btn.delete:hover {
-  background: #ff4757;
-}
-
-/* 弹窗样式 */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+// 跳转到订单详情
+const goToOrderDetail = (orderId) => {
+  router.push({ path: '/order/detail', query: { id: orderId } })
+}
+
+// 跳转到支付页面
+const goToPay = (orderId) => {
+  router.push(`/payment/${orderId}`)
+}
+
+// 取消订单
+const cancelOrderAction = async (orderId) => {
+  try {
+    await ElMessageBox.confirm('确定要取消该订单吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
+      ElMessage.warning('请先登录')
+      return
+    }
+
+    const result = await cancelOrderApi(userId, orderId)
+    if (result.code === 1) {
+      ElMessage.success('订单已取消')
+      await loadOrderList()
+    } else {
+      ElMessage.error(result.msg || '取消订单失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消订单失败:', error)
+      ElMessage.error('取消订单失败')
+    }
   }
 }
 
-.dialog-content {
-  background: #fff;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
-}
-
-.dialog-header h3 {
-  font-size: 20px;
-  color: #333;
-  margin: 0;
-  font-weight: 600;
-}
-
-.close-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: transparent;
-  font-size: 32px;
-  color: #999;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  transform: rotate(90deg);
-}
-
-.dialog-body {
-  padding: 24px;
-}
-
-.form-item {
-  margin-bottom: 24px;
-}
-
-.form-item:last-child {
-  margin-bottom: 0;
-}
-
-.form-item label {
-  display: block;
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-.form-item .required {
-  color: #ff4757;
-  margin-left: 3px;
-}
-
-.form-item input[type="text"],
-.form-item input[type="tel"],
-.form-item input[type="email"],
-.form-item textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e8e9ff;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.3s ease;
-  font-family: inherit;
-  background: #fafbff;
-}
-
-.form-item input:focus,
-.form-item textarea:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-  background: white;
-}
-
-.form-item textarea {
-  resize: vertical;
-}
-
-.region-input {
-  display: flex;
-  gap: 10px;
-}
-
-.region-input input {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-}
-
-.region-input input:focus {
-  border-color: #667eea;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: normal;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.dialog-footer {
-  display: flex;
-  gap: 12px;
-  padding: 24px;
-  border-top: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-}
-
-.cancel-btn,
-.submit-btn {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background: #e8e8e8;
-  transform: translateY(-1px);
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-}
-
-/* 订单标签页 */
-.order-tabs {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.order-tab {
-  padding: 12px 0;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  position: relative;
-  font-weight: 400;
-}
-
-.order-tab:hover {
-  color: #333;
-}
-
-.order-tab.active {
-  color: #FF5000;
-  font-weight: 500;
-}
-
-.order-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: #FF5000;
-  border-radius: 1px;
-}
-
-.order-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* 个人设置 */
-.settings-card {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 16px;
-  box-shadow: none;
-}
-
-.settings-item {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
-  justify-content: flex-start;
-}
-
-.settings-item:last-child {
-  border-bottom: none;
-}
-
-.settings-item label {
-  font-size: 13px;
-  color: #666;
-  font-weight: 500;
-  min-width: auto;
-  display: inline;
-}
-
-.settings-item span {
-  font-size: 13px;
-  color: #222;
-  font-weight: 400;
-  background: transparent;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.item-value {
-  display: inline;
-}
-
-.edit-profile-btn {
-  padding: 4px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fff;
-  color: #555;
-  font-size: 12px;
-}
-
-.settings-buttons {
-  margin-top: 12px;
-}
-
-.btn-logout {
-  padding: 10px 0;
-  border-radius: 6px;
-  background: #f5f5f5;
-  color: #555;
-}
-
-/* 优惠券列表样式 */
-.coupon-list {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.coupon-item {
-  display: flex;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-}
-
-.coupon-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-}
-
-.coupon-left {
-  width: 120px;
-  padding: 20px 16px;
-  text-align: center;
-  position: relative;
-}
-
-.coupon-right {
-  flex: 1;
-  padding: 16px;
-  border-left: 1px dashed #e5e5e5;
-}
-
-.coupon-amount {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.amount-symbol {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.amount-value {
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.coupon-condition {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.coupon-name {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #333;
-}
-
-.coupon-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.coupon-time {
-  font-size: 12px;
-  color: #999;
-}
-
-.coupon-status {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 12px;
-}
-
-/* 优惠券状态样式 */
-.coupon-unused .coupon-left {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-  color: white;
-}
-
-.coupon-unused .amount-symbol,
-.coupon-unused .amount-value,
-.coupon-unused .coupon-condition {
-  color: white;
-}
-
-.coupon-unused .status-unused {
-  background: #fff0f0;
-  color: #ff6b6b;
-}
-
-.coupon-used .coupon-left {
-  background: #e5e5e5;
-  color: #666;
-}
-
-.coupon-used .amount-symbol,
-.coupon-used .amount-value,
-.coupon-used .coupon-condition {
-  color: #666;
-}
-
-.coupon-used .status-used {
-  background: #f0f0f0;
-  color: #999;
-}
-
-.coupon-expired .coupon-left {
-  background: #e5e5e5;
-  color: #666;
-}
-
-.coupon-expired .amount-symbol,
-.coupon-expired .amount-value,
-.coupon-expired .coupon-condition {
-  color: #666;
-}
-
-.coupon-expired .status-expired {
-  background: #f0f0f0;
-  color: #999;
-}
-
-/* ========== 收藏页面 ========== */
-.favorite-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  padding: 10px 0;
-}
-
-.favorite-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.favorite-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.favorite-image {
-  width: 100%;
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: #f5f5f5;
-}
-
-.favorite-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.favorite-card:hover .favorite-image img {
-  transform: scale(1.05);
-}
-
-.favorite-info {
-  padding: 12px;
-}
-
-.favorite-name {
-  font-size: 14px;
-  color: #333;
-  margin: 0 0 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.4;
-}
-
-.favorite-price {
-  font-size: 18px;
-  color: #FF5000;
-  font-weight: 600;
-  margin: 0 0 10px;
-}
-
-.cancel-fav-btn {
-  width: 100%;
-  padding: 6px 0;
-  background: white;
-  color: #999;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-
-.cancel-fav-btn:hover {
-  border-color: #FF5000;
-  color: #FF5000;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .main-container {
-    flex-direction: column;
-  }
-  
-  .side-nav {
-    width: 100%;
-    min-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-  }
-}
-</style>
+        onMounted(() => {
+          // 从路由参数获取当前 tab
+          if (route.query.tab) {
+            activeTab.value = route.query.tab
+          }
+
+          // 加载基础数据
+          loadUserInfo()
+
+          if (activeTab.value === 'address') {
+            loadAddressList()
+          }
+          if (activeTab.value === 'favorites') {
+            loadFavoriteList()
+          }
+          if (activeTab.value === 'coupons') {
+            loadUserCouponList()
+          }
+          if (activeTab.value === 'orders') {
+            loadOrderList()
+          }
+
+          window.addEventListener('addressUpdated', loadAddressList)
+        })
+
+        onBeforeUnmount(() => {
+          window.removeEventListener('addressUpdated', loadAddressList)
+        })
+
+        </script>
+        
+        <style scoped>
+        .personal-container {
+          min-height: 100vh;
+          background-color: #f5f5f5;
+        }
+        
+        .main-container {
+          display: flex;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+          gap: 20px;
+        }
+        
+        .side-nav {
+          width: 250px;
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          height: fit-content;
+        }
+        
+        .back-home {
+          cursor: pointer;
+          padding: 10px;
+          margin-bottom: 20px;
+          border-radius: 4px;
+          transition: background-color 0.3s;
+        }
+        
+        .back-home:hover {
+          background-color: #f0f0f0;
+        }
+        
+        .user-profile {
+          text-align: center;
+          padding: 20px 0;
+          border-bottom: 1px solid #eee;
+          margin-bottom: 20px;
+        }
+        
+        .avatar {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          margin: 0 auto 10px;
+          overflow: hidden;
+          background-color: #f0f0f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .avatar-placeholder {
+          font-size: 24px;
+          font-weight: bold;
+          color: #666;
+        }
+        
+        .user-info h3 {
+          margin: 0 0 5px 0;
+          font-size: 16px;
+        }
+        
+        .user-info p {
+          margin: 0;
+          color: #999;
+          font-size: 14px;
+        }
+        
+        .nav-menu {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        
+        .nav-item {
+          display: flex;
+          align-items: center;
+          padding: 12px 15px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        
+        .nav-item:hover {
+          background-color: #f8f8f8;
+        }
+        
+        .nav-item.active {
+          background-color: #e6f7ff;
+          color: #1890ff;
+        }
+        
+        .nav-icon {
+          margin-right: 10px;
+          font-size: 18px;
+        }
+        
+        .content-area {
+          flex: 1;
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .content-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid #eee;
+        }
+        
+        .content-header h2 {
+          margin: 0;
+          font-size: 20px;
+        }
+        
+        .add-address-btn {
+          background: #1890ff;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        
+        .add-address-btn:hover {
+          background: #40a9ff;
+        }
+        
+        .stats-section {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 15px;
+          margin-bottom: 30px;
+        }
+        
+        .stat-card {
+          text-align: center;
+          padding: 20px;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+        
+        .stat-value {
+          font-size: 24px;
+          font-weight: bold;
+          color: #1890ff;
+          margin-bottom: 5px;
+        }
+        
+        .stat-label {
+          font-size: 14px;
+          color: #666;
+        }
+        
+        .order-tabs {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 10px;
+        }
+        
+        .order-tab {
+          padding: 8px 16px;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.3s;
+        }
+        
+        .order-tab:hover {
+          background-color: #f0f0f0;
+        }
+        
+        .order-tab.active {
+          background-color: #1890ff;
+          color: white;
+        }
+        
+        .order-list {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        
+        .order-card {
+          border: 1px solid #eee;
+          border-radius: 8px;
+          padding: 15px;
+          cursor: pointer;
+          transition: box-shadow 0.3s;
+        }
+        
+        .order-card:hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .order-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+        
+        .order-status {
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+        
+        .status-pending {
+          background: #fff7e6;
+          color: #fa8c16;
+        }
+        
+        .status-shipping {
+          background: #e6f7ff;
+          color: #1890ff;
+        }
+        
+        .status-received {
+          background: #f6ffed;
+          color: #52c41a;
+        }
+        
+        .status-completed {
+          background: #f0f0f0;
+          color: #666;
+        }
+        
+        .status-cancelled {
+          background: #fff1f0;
+          color: #ff4d4f;
+        }
+        
+        .order-content {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 15px;
+        }
+        
+        .order-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+        
+        .action-btn {
+          padding: 6px 12px;
+          border: 1px solid #d9d9d9;
+          background: white;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        
+        .action-btn:hover {
+          border-color: #40a9ff;
+          color: #40a9ff;
+        }
+        
+        .action-btn.primary {
+          background: #1890ff;
+          color: white;
+          border-color: #1890ff;
+        }
+        
+        .action-btn.primary:hover {
+          background: #40a9ff;
+          border-color: #40a9ff;
+        }
+        
+        .action-btn.delete {
+          color: #ff4d4f;
+          border-color: #ff4d4f;
+        }
+        
+        .action-btn.delete:hover {
+          background: #ff4d4f;
+          color: white;
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+          color: #999;
+        }
+        
+        .empty-icon {
+          font-size: 48px;
+          margin-bottom: 15px;
+        }
+        
+        .action-btn-primary {
+          background: #1890ff;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-top: 15px;
+        }
+        
+        .action-btn-primary:hover {
+          background: #40a9ff;
+        }
+        
+        .favorite-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 20px;
+        }
+        
+        .favorite-card {
+          border: 1px solid #eee;
+          border-radius: 8px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .favorite-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .favorite-image {
+          width: 100%;
+          height: 150px;
+          overflow: hidden;
+        }
+        
+        .favorite-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .favorite-info {
+          padding: 15px;
+        }
+        
+        .favorite-name {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          height: 40px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+        
+        .favorite-price {
+          margin: 0 0 10px 0;
+          color: #ff4d4f;
+          font-weight: bold;
+        }
+        
+        .cancel-fav-btn {
+          width: 100%;
+          padding: 6px;
+          background: #f0f0f0;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+        }
+        
+        .cancel-fav-btn:hover {
+          background: #d9d9d9;
+        }
+        
+        .coupon-list {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        
+        .coupon-item {
+          display: flex;
+          border: 1px solid #eee;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        
+        .coupon-left {
+          width: 120px;
+          background: linear-gradient(135deg, #ff7875, #ff4d4f);
+          color: white;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 15px;
+        }
+        
+        .coupon-amount {
+          display: flex;
+          align-items: baseline;
+        }
+        
+        .amount-symbol {
+          font-size: 16px;
+        }
+        
+        .amount-value {
+          font-size: 24px;
+          font-weight: bold;
+        }
+        
+        .coupon-condition {
+          font-size: 12px;
+          margin-top: 5px;
+        }
+        
+        .coupon-right {
+          flex: 1;
+          padding: 15px;
+        }
+        
+        .coupon-name {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+        }
+        
+        .coupon-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .coupon-time {
+          font-size: 12px;
+          color: #999;
+        }
+        
+        .coupon-status {
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+        
+        .status-unused {
+          background: #f6ffed;
+          color: #52c41a;
+        }
+        
+        .status-used {
+          background: #f0f0f0;
+          color: #666;
+        }
+        
+        .status-expired {
+          background: #fff1f0;
+          color: #ff4d4f;
+        }
+        
+        .address-list {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        
+        .address-item {
+          border: 1px solid #eee;
+          border-radius: 8px;
+          padding: 15px;
+        }
+        
+        .address-item.default {
+          border-color: #1890ff;
+          background: #f0f9ff;
+        }
+        
+        .address-info {
+          margin-bottom: 10px;
+        }
+        
+        .user-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 5px;
+        }
+        
+        .name {
+          font-weight: bold;
+        }
+        
+        .phone {
+          color: #666;
+        }
+        
+        .default-tag {
+          background: #1890ff;
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+        
+        .address-detail {
+          color: #666;
+          font-size: 14px;
+        }
+        
+        .address-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+        
+        .dialog-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        
+        .dialog-content {
+          background: white;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        
+        .dialog-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px 20px;
+          border-bottom: 1px solid #eee;
+        }
+        
+        .dialog-header h3 {
+          margin: 0;
+        }
+        
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 20px;
+          cursor: pointer;
+          padding: 0;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .dialog-body {
+          padding: 20px;
+        }
+        
+        .form-item {
+          margin-bottom: 15px;
+        }
+        
+        .form-item label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: 500;
+        }
+        
+        .required {
+          color: #ff4d4f;
+        }
+        
+        .form-item input,
+        .form-item textarea {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          font-size: 14px;
+        }
+        
+        .form-item input:focus,
+        .form-item textarea:focus {
+          outline: none;
+          border-color: #40a9ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+        
+        .region-input {
+          display: flex;
+          gap: 10px;
+        }
+        
+        .region-input input {
+          flex: 1;
+        }
+        
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          cursor: pointer;
+        }
+        
+        .dialog-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 15px 20px;
+          border-top: 1px solid #eee;
+        }
+        
+        .cancel-btn {
+          padding: 8px 16px;
+          border: 1px solid #d9d9d9;
+          background: white;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .submit-btn {
+          padding: 8px 16px;
+          background: #1890ff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .submit-btn:hover {
+          background: #40a9ff;
+        }
+        
+        .settings-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .edit-profile-btn {
+          padding: 8px 16px;
+          background: #1890ff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .edit-profile-btn:hover {
+          background: #40a9ff;
+        }
+        
+        .settings-card {
+          border: 1px solid #eee;
+          border-radius: 8px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        
+        .settings-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .settings-item:last-child {
+          border-bottom: none;
+        }
+        
+        .settings-item label {
+          font-weight: 500;
+          color: #666;
+        }
+        
+        .item-value {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .gender-options {
+          display: flex;
+          gap: 15px;
+        }
+        
+        .radio-label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          cursor: pointer;
+        }
+        
+        .settings-buttons {
+          display: flex;
+          justify-content: center;
+        }
+        
+        .btn-logout {
+          padding: 10px 20px;
+          background: #ff4d4f;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .btn-logout:hover {
+          background: #ff7875;
+        }
+        
+        .profile-dialog {
+          max-width: 400px;
+        }
+        </style>

@@ -117,8 +117,8 @@
           </div>
           <div class="action-buttons">
             <button 
-              v-if="order.status === 0"
-              class="btn-cancel" 
+              v-if="order.status === 0 || order.status === 1 || order.status === 2"
+              class="btn-cancel"
               @click="cancelOrder"
             >
               取消订单
