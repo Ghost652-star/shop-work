@@ -168,11 +168,10 @@ export default {
       this.visible = false
     },
     handleMessage() {
-      this.$router.push({ path: '/personal', query: { tab: 'messages' } })
+      this.$router.push('/customer-service')
     },
     handleService() {
-      // TODO: 跳转到客服页面或打开客服弹窗
-      this.$message.info('客服功能开发中...')
+      this.$router.push('/customer-service')
     },
     async loadCartData() {
       const userId = localStorage.getItem('userId')
@@ -411,9 +410,11 @@ export default {
   justify-content: center;
   width: 20px;
   height: 50px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   position: relative;
   color: var(--color-text-secondary);
 }
@@ -421,6 +422,11 @@ export default {
 .nav-item:hover {
   background: var(--color-primary-light);
   color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.nav-item:active {
+  transform: scale(0.95);
 }
 
 .nav-item:hover .nav-tooltip {
@@ -546,12 +552,15 @@ export default {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .close-btn:hover {
   background: var(--color-bg);
   color: var(--color-text-primary);
+  transform: rotate(90deg);
 }
 
 /* 空购物车 */
@@ -585,12 +594,20 @@ export default {
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-base);
-  font-weight: 500;
-  transition: all 0.2s var(--ease-in-out);
+  font-weight: 600;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .go-shopping-btn:hover {
-  opacity: 0.9;
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+
+.go-shopping-btn:active {
+  transform: scale(0.97);
+  background: var(--color-primary-dark);
 }
 
 /* 购物车列表 */
@@ -612,8 +629,14 @@ export default {
   padding: 12px;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
   background: var(--color-bg-white);
+}
+
+.cart-item:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-xs);
 }
 
 .item-checkbox {
@@ -632,11 +655,16 @@ export default {
 .item-image {
   width: 72px;
   height: 72px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   background: var(--color-bg);
   flex-shrink: 0;
+  transition: transform var(--duration-normal) var(--ease-in-out);
+}
+
+.item-image:hover {
+  transform: scale(1.03);
 }
 
 .item-image img {
@@ -695,12 +723,20 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .qty-btn:hover:not(:disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.qty-btn:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .qty-btn:disabled {
@@ -728,7 +764,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   flex-shrink: 0;
   align-self: flex-start;
 }
@@ -736,6 +774,11 @@ export default {
 .remove-item-btn:hover {
   background: #FFF5F5;
   color: #ff4757;
+  transform: scale(1.1);
+}
+
+.remove-item-btn:active {
+  transform: scale(0.9);
 }
 
 /* 底部操作栏 */
@@ -798,8 +841,12 @@ export default {
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-sm);
-  font-weight: 500;
-  transition: all 0.2s var(--ease-in-out);
+  font-weight: 600;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .clear-cart-btn {
@@ -811,6 +858,11 @@ export default {
 .clear-cart-btn:hover {
   border-color: #ff4757;
   color: #ff4757;
+  background: #FFF5F5;
+}
+
+.clear-cart-btn:active {
+  transform: scale(0.97);
 }
 
 .checkout-btn {
@@ -819,7 +871,13 @@ export default {
 }
 
 .checkout-btn:hover {
-  opacity: 0.9;
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+
+.checkout-btn:active {
+  transform: scale(0.97);
+  background: var(--color-primary-dark);
 }
 
 /* 响应式 */

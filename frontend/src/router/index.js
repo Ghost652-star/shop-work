@@ -6,6 +6,7 @@ import OrderDetail from '../views/OrderDetail.vue'
 import CouponSeckill from '../views/CouponSeckill.vue'
 import Payment from '../views/Payment.vue'
 import OrderConfirm from '../views/OrderConfirm.vue'
+import CustomerService from '../views/CustomerService.vue'
 
 const routes = [
   {
@@ -46,6 +47,11 @@ const routes = [
     path: '/order-confirm',
     name: 'OrderConfirm',
     component: OrderConfirm
+  },
+  {
+    path: '/customer-service',
+    name: 'CustomerService',
+    component: CustomerService
   }
 ]
 

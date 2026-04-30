@@ -875,18 +875,22 @@ export default {
   width: 64px;
   height: 64px;
   border: 2px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .thumbnail-item:hover {
   border-color: var(--color-primary);
+  transform: scale(1.05);
 }
 
 .thumbnail-item.active {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.15);
 }
 
 .thumbnail-item img {
@@ -931,7 +935,11 @@ export default {
   padding: 8px 0;
   position: relative;
   font-weight: 500;
-  transition: all 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+.tab-item:hover {
+  color: var(--color-text-primary);
 }
 
 .tab-item.active {
@@ -1031,6 +1039,19 @@ export default {
   color: var(--color-primary);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+}
+
+.review-tag:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.review-tag:active {
+  transform: scale(0.96);
 }
 
 .review-list {
@@ -1221,13 +1242,20 @@ export default {
 .coupon-entry {
   cursor: pointer;
   color: var(--color-primary);
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   background: var(--color-primary-light);
 }
 
 .coupon-entry:hover {
   background: var(--color-primary);
   color: white;
+  transform: scale(1.02);
+}
+
+.coupon-entry:active {
+  transform: scale(0.98);
 }
 
 .coupon-arrow {
@@ -1263,7 +1291,10 @@ export default {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   text-align: center;
 }
 
@@ -1272,11 +1303,16 @@ export default {
   color: var(--color-primary);
 }
 
+.spec-option:active {
+  transform: scale(0.96);
+}
+
 .spec-option.selected {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-light);
   font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.1);
 }
 
 /* 数量选择 - 增加内边距 */
@@ -1312,7 +1348,9 @@ export default {
   cursor: pointer;
   font-size: 18px;
   color: var(--color-text-primary);
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1321,6 +1359,10 @@ export default {
 .quantity-btn:hover:not(:disabled) {
   background: var(--color-primary);
   color: white;
+}
+
+.quantity-btn:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .quantity-btn:disabled {
@@ -1376,7 +1418,9 @@ export default {
   cursor: pointer;
   font-size: var(--text-base);
   font-weight: 600;
-  transition: all 0.25s var(--ease-out);
+  transition: background var(--duration-slow) var(--ease-out),
+              box-shadow var(--duration-slow) var(--ease-out),
+              transform var(--duration-fast) var(--ease-in-out);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1398,7 +1442,7 @@ export default {
 }
 
 .cart-btn:active {
-  transform: translateY(0);
+  transform: scale(0.97);
 }
 
 .buy-btn {
@@ -1414,7 +1458,7 @@ export default {
 }
 
 .buy-btn:active {
-  transform: translateY(0);
+  transform: scale(0.97);
   box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
 
@@ -1430,7 +1474,10 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 1px;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   padding: 4px;
   flex-shrink: 0;
 }
@@ -1438,6 +1485,11 @@ export default {
 .favorite-btn:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-light);
+  transform: scale(1.05);
+}
+
+.favorite-btn:active {
+  transform: scale(0.92);
 }
 
 .favorite-btn.active {
@@ -1544,11 +1596,14 @@ export default {
   cursor: pointer;
   padding: 4px;
   line-height: 1;
-  transition: color 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+  border-radius: var(--radius-sm);
 }
 
 .close-btn:hover {
   color: var(--color-text-primary);
+  transform: rotate(90deg);
 }
 
 .login-dialog-body {
@@ -1569,13 +1624,18 @@ export default {
   color: var(--color-text-secondary);
   font-size: var(--text-base);
   border-bottom: 2px solid transparent;
-  transition: all 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out);
+}
+
+.login-tabs span:hover {
+  color: var(--color-text-primary);
 }
 
 .login-tabs span.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .login-form {
@@ -1621,15 +1681,16 @@ export default {
   flex: 1;
   padding: 10px 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-base);
   outline: none;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
 }
 
 .form-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.1);
+  box-shadow: var(--input-focus-shadow);
 }
 
 .get-code-btn {
@@ -1637,10 +1698,13 @@ export default {
   background: var(--color-primary-light);
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-base);
-  transition: all 0.2s var(--ease-in-out);
+  white-space: nowrap;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
 .get-code-btn:hover {
@@ -1648,20 +1712,33 @@ export default {
   color: white;
 }
 
+.get-code-btn:active {
+  transform: scale(0.97);
+}
+
 .login-btn {
   padding: 12px;
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-lg);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 
-.login-btn:hover { opacity: 0.9; }
-.login-btn:active { transform: scale(0.98); }
+.login-btn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+
+.login-btn:active {
+  transform: scale(0.97);
+  background: var(--color-primary-dark);
+}
 
 .other-login {
   text-align: center;

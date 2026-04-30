@@ -11,7 +11,7 @@
           <span v-if="!isLoggedIn" class="register-btn" @click="showRegister = true; showLoginDialog = true">免费注册</span>
         </div>
         <div class="right-links">
-          <span class="action-link" @click="handlePersonalCenter">我的淘宝</span>
+          <span class="action-link" @click="handlePersonalCenter">个人中心</span>
           <span class="divider">|</span>
           <span class="action-link" @click="handleCart">购物车</span>
           <span class="divider">|</span>
@@ -21,7 +21,7 @@
           <span class="divider">|</span>
           <span class="action-link">卖家中心</span>
           <span class="divider">|</span>
-          <span class="action-link">联系客服</span>
+          <span class="action-link" @click="goToCustomerService">联系客服</span>
           <span class="divider">|</span>
           <span class="action-link">网站导航</span>
           <span class="divider">|</span>
@@ -378,6 +378,7 @@ const startSeckillCountdown = () => {
   seckillTimer.value = setInterval(updateCountdown, 1000)
 }
 
+const goToCustomerService = () => { router.push('/customer-service') }
 const goToCouponSeckill = () => { router.push('/coupon-seckill') }
 const handleSearchFocus = () => { isSearchFocused.value = true }
 const handleSearchBlur = () => { if (!searchText.value) isSearchFocused.value = false }
@@ -554,12 +555,17 @@ onBeforeUnmount(() => {
 .register-btn:hover { text-decoration: underline; }
 .action-link {
   cursor: pointer;
-  transition: color 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
 }
-.action-link:hover { color: var(--color-primary); }
+.action-link:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
 .divider { color: var(--color-border); font-size: var(--text-xs); }
 
 /* ===== 吸顶容器 ===== */
@@ -618,11 +624,12 @@ onBeforeUnmount(() => {
   overflow: hidden;
   height: 44px;
   width: 100%;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
 }
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1); /* ✅ 外发光反馈 */
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
 }
 .search-input {
   flex: 1;
@@ -640,9 +647,19 @@ onBeforeUnmount(() => {
   cursor: pointer;
   font-size: var(--text-md);
   font-weight: 500;
-  transition: opacity 0.2s var(--ease-in-out);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
-.search-btn:hover { opacity: 0.9; } /* ✅ 用透明度替代渐变变化 */
+.search-btn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.25);
+}
+.search-btn:active {
+  transform: scale(0.97);
+  background: var(--color-primary-dark);
+} /* ✅ 用透明度替代渐变变化 */
 .hot-search {
   display: flex;
   align-items: center;
@@ -684,10 +701,11 @@ onBeforeUnmount(() => {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out);
   font-weight: 400;
   white-space: nowrap;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 .category-item:hover {
   background: var(--color-bg);
@@ -704,9 +722,18 @@ onBeforeUnmount(() => {
   font-weight: 600;
   margin-right: 8px;
   padding: 10px 16px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
-.all-categories:hover { opacity: 0.9; }
+.all-categories:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
+}
+.all-categories:active {
+  transform: scale(0.97);
+}
 
 /* ===== 主体内容 ===== */
 .main-content {
@@ -744,9 +771,13 @@ onBeforeUnmount(() => {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
-.hot-sales-item:hover { background: var(--color-primary-light); }
+.hot-sales-item:hover {
+  background: var(--color-primary-light);
+  transform: translateX(3px);
+}
 .item-rank {
   width: 22px;
   height: 22px;
@@ -761,8 +792,9 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .item-rank.top-3 {
-  background: var(--color-primary); /* ✅ 纯色替代渐变 */
+  background: var(--color-primary);
   color: white;
+  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.2);
 }
 .item-info { flex: 1; overflow: hidden; }
 .item-name {
@@ -818,12 +850,19 @@ onBeforeUnmount(() => {
   font-size: 20px;
   cursor: pointer;
   z-index: 10;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   box-shadow: var(--shadow-sm);
 }
 .carousel-btn:hover {
   background: var(--color-bg-white);
   box-shadow: var(--shadow-md);
+  transform: translateY(-50%) scale(1.08);
+}
+.carousel-btn:active {
+  transform: translateY(-50%) scale(0.95);
+  box-shadow: var(--shadow-xs);
 }
 .prev-btn { left: 12px; }
 .next-btn { right: 12px; }
@@ -864,14 +903,20 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 16px 18px;
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: transform var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out);
   border: 1px solid var(--color-border-light);
   background: var(--color-bg-white);
 }
 .promo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
   border-color: var(--color-primary);
+}
+.promo-card:active {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 .promo-text h4 {
   font-size: var(--text-md);
@@ -947,13 +992,20 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s var(--ease-out); /* ✅ 贝塞尔曲线 */
+  transition: transform var(--duration-slow) var(--ease-out),
+              box-shadow var(--duration-slow) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-in-out);
   background: var(--color-bg-white);
+  box-shadow: var(--shadow-xs);
 }
 .product-card:hover {
-  transform: translateY(-2px); /* ✅ 减小位移幅度 */
-  box-shadow: var(--shadow-md); /* ✅ 使用设计令牌 */
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
   border-color: var(--color-primary);
+}
+.product-card:active {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 .product-image {
   width: 100%;
@@ -1046,9 +1098,16 @@ onBeforeUnmount(() => {
   font-size: 24px;
   color: var(--color-text-tertiary);
   cursor: pointer;
-  transition: color 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+  line-height: 1;
+  padding: 4px;
+  border-radius: var(--radius-sm);
 }
-.close-btn:hover { color: var(--color-text-primary); }
+.close-btn:hover {
+  color: var(--color-text-primary);
+  transform: rotate(90deg);
+}
 .login-dialog-body { padding: 24px; }
 .login-tabs {
   display: flex;
@@ -1063,12 +1122,17 @@ onBeforeUnmount(() => {
   color: var(--color-text-secondary);
   font-size: var(--text-base);
   border-bottom: 2px solid transparent;
-  transition: all 0.2s var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out),
+              font-weight var(--duration-fast) var(--ease-in-out);
+}
+.login-tabs span:hover {
+  color: var(--color-text-primary);
 }
 .login-tabs span.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 .login-form { display: flex; flex-direction: column; gap: 18px; }
 .form-group { display: flex; flex-direction: column; gap: 8px; }
@@ -1096,42 +1160,57 @@ onBeforeUnmount(() => {
   flex: 1;
   padding: 10px 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-base);
   outline: none;
-  transition: all 0.2s var(--ease-in-out);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
 }
 .form-input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.1);
+  box-shadow: var(--input-focus-shadow);
 }
 .get-code-btn {
   padding: 0 16px;
   background: var(--color-primary-light);
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-base);
-  transition: all 0.2s var(--ease-in-out);
+  white-space: nowrap;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 .get-code-btn:hover {
   background: var(--color-primary);
   color: white;
+}
+.get-code-btn:active {
+  transform: scale(0.97);
 }
 .login-btn {
   padding: 12px;
   background: var(--color-primary);
   color: #fff;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-lg);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
-.login-btn:hover { opacity: 0.9; }
-.login-btn:active { transform: scale(0.98); } /* ✅ 按压反馈 */
+.login-btn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+.login-btn:active {
+  transform: scale(0.97);
+  background: var(--color-primary-dark);
+}
 .other-login {
   text-align: center;
   padding: 20px 0;
@@ -1149,13 +1228,20 @@ onBeforeUnmount(() => {
   cursor: pointer;
   padding: 8px 16px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s var(--ease-in-out);
+  border-radius: var(--radius-md);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
 }
 .login-icon:hover {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background: var(--color-primary-light);
+  transform: translateY(-1px);
+}
+.login-icon:active {
+  transform: scale(0.97);
 }
 .login-tip {
   text-align: center;
