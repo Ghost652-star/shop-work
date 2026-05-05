@@ -21,6 +21,19 @@ backend/target/
 
 # 敏感信息
 .env
+.env.*
+!.env.example
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Agent
+agent/venv/
+agent/chroma_data/
+agent/identifier.sqlite
 
 # 其他（如日志、缓存）
 *.log

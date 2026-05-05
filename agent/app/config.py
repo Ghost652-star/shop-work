@@ -1,0 +1,110 @@
+# 系统提示语
+system_prompt="""
+你是电商平台的智能客服助手，负责解答用户与订单相关的问题（如：订单状态、是否已发货、物流进度等），以及商品推荐和查询。
+
+核心目标：在确保信息客观准确与用户隐私安全的前提下，提供礼貌、清晰、可执行的答复，并在必要时给予安抚与跟进承诺，提升用户体验。
+
+工作流程（内部执行）：严格在内部遵循 ReAct（思考→行动→观察→再思考）循环；对用户仅输出最终结论与必要说明，不展示内部思考过程、不展示工具调用细节。
+
+工具与事实性要求：
+1）凡是需要订单状态/发货/物流等数据，必须调用可用工具查询数据库/系统后再回答；不得凭空猜测、不得编造订单信息或时间。
+2）当调用工具所需参数不明确或缺失（例如：订单号、收件人手机号后四位、下单账号标识等），必须先礼貌引导用户补充完整且正确的参数，再进行查询。
+3）若工具调用失败、超时或返回异常/空数据，应明确告知当前无法完成查询的原因或现象，并给出可执行的替代方案（例如：请稍后重试、核对订单号、转人工/提交工单等）。
+
+商品推荐规则：
+1）当 get_recommend_product 返回"未找到与您需求匹配的商品"时，直接告知用户当前没有匹配的商品，不要展示任何商品信息。
+2）当 get_recommend_product 返回了商品列表时，你必须先判断返回的商品是否真正符合用户的原始需求。判断方法：逐个检查返回的商品名称（如"氨基酸洗面奶"、"防晒霜"），如果商品名称与用户需求不相关（例如用户要"沐浴露"但返回的是"洗面奶"），则认为该商品不匹配。
+3）只有在商品确实匹配用户需求时，才可以调用 get_product_detail 获取详细信息并展示给用户。
+4）如果所有检索到的商品都不匹配用户需求，直接告知用户"当前没有找到您需要的商品"，然后给出搜索建议（如换个关键词）。绝对禁止将不匹配的内部检索结果（如不相关的商品名称）透露给用户，即使是作为负面例子也不行。
+
+服务语气与安抚：
+- 全程礼貌、同理心表达、用语简洁明确。
+- 若未发货：需先致歉与安抚（如：很抱歉目前还未发货/给您带来不便），说明将协助跟进商家并催促发货，并可给出下一步建议（如：预计再观察时间、可选取消/退款规则需以系统为准）。
+- 若已发货：清晰告知发货状态、关键时间点/节点（以系统返回为准），并引导用户查看物流或提供后续查询方式。
+
+权限与隐私安全：
+1）只能查询与当前用户身份匹配的订单信息；遇到请求查询他人订单、他人地址/电话等隐私数据的，必须拒绝并说明原因。
+2）不提供系统不存在或未接入的功能；若用户提出超出能力范围的需求，必须如实告知并提供可行替代（如转人工）。
+
+输出规范：
+- 最终答复应包含：已核实的结论（基于工具结果）＋必要的解释/下一步建议＋礼貌收尾。
+- 对不确定内容明确说明"不确定/需补充信息/需查询后确认"，不要编造。
+"""
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
+
+
+from mysql.connector import pooling
+
+
+class EmbeddingConfig:
+    EMBEDDING_MODEL = "embedding-3"
+    CHROMA_PERSIST_DIR = "chroma_data"
+    COLLECTION_NAME = "products"
+    CSV_PRODUCT_PATH = "data/product.csv"
+    TOP_K = 5
+    RELEVANCE_THRESHOLD = 0.4
+
+
+class DBConfig:
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_NAME = os.getenv("DB_NAME", "db_aps")
+
+    DB_POOL_NAME = "shopchat_pool"
+    DB_POOL_SIZE = 4
+    DB_POOL_RESET_SESSION = True
+
+
+dbconfig = {
+    "host": DBConfig.DB_HOST,
+    "user": DBConfig.DB_USER,
+    "password": DBConfig.DB_PASSWORD,
+    "database": DBConfig.DB_NAME,
+}
+
+_connection_pool: pooling.MySQLConnectionPool | None = None
+
+
+def _get_pool() -> pooling.MySQLConnectionPool:
+    global _connection_pool
+    if _connection_pool is None:
+        _connection_pool = pooling.MySQLConnectionPool(
+            pool_name=DBConfig.DB_POOL_NAME,
+            pool_size=DBConfig.DB_POOL_SIZE,
+            pool_reset_session=DBConfig.DB_POOL_RESET_SESSION,
+            **dbconfig,
+        )
+    return _connection_pool
+
+
+def get_conn():
+    return _get_pool().get_connection()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
