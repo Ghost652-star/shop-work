@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 .lingma/
+.trae/
 
 # 构建输出
 backend/target/
@@ -23,6 +24,9 @@ backend/target/
 .env
 .env.*
 !.env.example
+
+# 文档
+*.md
 
 # Python
 **/__pycache__/

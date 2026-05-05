@@ -1,14 +1,9 @@
 import request from '../utils/request'
 
 /**
- * 发送消息到客服AI处理接口
- * @param {string} message - 用户消息
- * @param {string|number} userId - 用户ID
+ * 发送客服消息
+ * @param {string} message - 用户消息内容
+ * @param {string} userId - 用户 ID
  * @returns {Promise}
  */
-export const processMessage = (message, userId) => {
-  return request.post('/shop/customer-service/process', {
-    message,
-    userId: String(userId)
-  })
-}
+export const processMessage = (message, userId) => request.post('/shop/customer-service/process', { message, user_id: userId })

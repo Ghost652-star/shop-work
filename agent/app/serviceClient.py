@@ -58,5 +58,4 @@ def run_service_agent(message: str, user_id: Optional[str] = None) -> str:
 
 
 
-# 仅用于本地命令行快速测试
-#print(run_service_agent("有没有热销的沐浴露推荐的,尽量是便宜实惠的", user_id="1"))
+

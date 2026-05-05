@@ -1,37 +1,26 @@
 package com.ecommerce.Controller.Shop;
 
-import com.ecommerce.dto.CustomerServiceDTO;
 import com.ecommerce.result.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * 客服控制器
- */
 @Slf4j
 @RestController
 @RequestMapping("/shop/customer-service")
 public class CustomerServiceController {
 
-    private final FastAPIWebClient fastAPIWebClient;
+    @Autowired
+    private FastAPIWebClient fastAPIWebClient;
 
-    public CustomerServiceController(FastAPIWebClient fastAPIWebClient) {
-        this.fastAPIWebClient = fastAPIWebClient;
-    }
+    @PostMapping(value = "/process", produces = "application/json; charset=utf-8")
+    public Result<Object> processMessage(@RequestBody Map<String, String> requestData) {
+        log.info("接收到客服请求: {}", requestData);
 
-    /**
-     * 处理客服消息请求
-     * @param dto 客服消息DTO
-     * @return 处理结果
-     */
-    @PostMapping("/process")
-    public Result<Object> processMessage(@RequestBody CustomerServiceDTO dto) {
-        log.info("接收到客服请求: message={}, userId={}", dto.getMessage(), dto.getUserId());
-
-        String message = dto.getMessage();
-        String userId = dto.getUserId();
+        String message = requestData.get("message");
+        String userId = requestData.get("user_id");
 
         if (message == null || message.isEmpty()) {
             return Result.error("消息内容不能为空");
