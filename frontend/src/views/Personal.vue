@@ -256,11 +256,14 @@
                 </div>
                 <div class="form-item">
                   <label>所在地区 <span class="required">*</span></label>
-                  <div class="region-input">
-                    <input v-model="addressForm.province" type="text" placeholder="请输入省份" />
-                    <input v-model="addressForm.city" type="text" placeholder="请输入城市" />
-                    <input v-model="addressForm.district" type="text" placeholder="请输入区县" />
-                  </div>
+                  <el-cascader
+                    v-model="regionSelected"
+                    :options="regionOptions"
+                    placeholder="请选择省/市/区"
+                    clearable
+                    style="width: 100%"
+                    @change="handleRegionChange"
+                  />
                 </div>
                 <div class="form-item">
                   <label>详细地址 <span class="required">*</span></label>
@@ -393,6 +396,7 @@ import { getFavoriteList, removeFavorite } from '../api/favorite'
 import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
 import { getOrderList, cancelOrder as cancelOrderApi } from '../api/order'
+import { regionOptions, getNameToCode, getCodeToName } from '../data/regions'
 
 // 路由
 const router = useRouter()
@@ -429,6 +433,7 @@ const orderTab = ref('all')
 const showAddressDialog = ref(false)
 const isEditing = ref(false)
 const addressList = ref([])
+const regionSelected = ref([])
 const addressForm = ref({
   id: null,
   userId: null,
@@ -592,8 +597,30 @@ const editAddress = (address) => {
     userId: parseInt(localStorage.getItem('userId')),
     isDefault: address.isDefault === 1  // 整数转布尔值,用于 checkbox
   }
+  if (address.province && address.city && address.district) {
+    regionSelected.value = [
+      getNameToCode(address.province),
+      getNameToCode(address.city),
+      getNameToCode(address.district)
+    ]
+  } else {
+    regionSelected.value = []
+  }
   isEditing.value = true
   showAddressDialog.value = true
+}
+
+// 省市区级联选择变更
+const handleRegionChange = (value) => {
+  if (value && value.length === 3) {
+    addressForm.province = getCodeToName(value[0])
+    addressForm.city = getCodeToName(value[1])
+    addressForm.district = getCodeToName(value[2])
+  } else {
+    addressForm.province = ''
+    addressForm.city = ''
+    addressForm.district = ''
+  }
 }
 
 // 删除地址
@@ -691,6 +718,7 @@ const resetAddressForm = () => {
     detailAddress: '',
     isDefault: false
   }
+  regionSelected.value = []
   isEditing.value = false
 }
 
@@ -1803,15 +1831,6 @@ const cancelOrderAction = async (orderId) => {
           outline: none;
           border-color: var(--color-primary, #E53935);
           box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.12);
-        }
-
-        .region-input {
-          display: flex;
-          gap: 8px;
-        }
-
-        .region-input input {
-          flex: 1;
         }
 
         .checkbox-label {
