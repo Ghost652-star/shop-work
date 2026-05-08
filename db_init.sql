@@ -158,6 +158,7 @@ CREATE TABLE `orders` (
   `receiver_district`       VARCHAR(50)   NOT NULL                 COMMENT '收货区/县',
   `receiver_detail_address` VARCHAR(255)  NOT NULL                 COMMENT '收货详细地址',
   `remark`                  VARCHAR(500)  NULL                     COMMENT '订单备注',
+  `after_sale_status`       TINYINT       DEFAULT 0                COMMENT '售后状态：0-无售后，1-售后中',
   `create_time`             DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
@@ -249,3 +250,36 @@ CREATE TABLE `comment` (
   KEY `idx_product_id` (`product_id`),
   KEY `idx_order_id`   (`order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品评论表';
+
+-- -----------------------------------------------------------
+-- 13. 售后主表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `after_sale`;
+CREATE TABLE `after_sale` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '售后 ID',
+  `order_id`        BIGINT        NOT NULL                 COMMENT '关联订单',
+  `user_id`         BIGINT        NOT NULL                 COMMENT '用户',
+  `reason`          VARCHAR(200)  NOT NULL                 COMMENT '售后原因',
+  `description`     VARCHAR(500)  NULL                     COMMENT '问题描述',
+  `images`          VARCHAR(500)  NULL                     COMMENT '凭证图片URL（逗号分隔）',
+  `refund_amount`   DECIMAL(10,2) NOT NULL                 COMMENT '退款金额',
+  `status`          TINYINT       DEFAULT 0                COMMENT '状态：0-待处理，1-已通过，2-已驳回，3-已完成',
+  `admin_remark`    VARCHAR(200)  NULL                     COMMENT '商家处理备注',
+  `create_time`     DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time`     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_order_id` (`order_id`),
+  KEY `idx_user_id`  (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='售后主表';
+
+-- -----------------------------------------------------------
+-- 14. 售后商品明细表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `after_sale_item`;
+CREATE TABLE `after_sale_item` (
+  `id`               BIGINT NOT NULL AUTO_INCREMENT COMMENT '明细 ID',
+  `after_sale_id`    BIGINT NOT NULL                 COMMENT '关联售后主表',
+  `order_item_id`    BIGINT NOT NULL                 COMMENT '关联订单商品项',
+  PRIMARY KEY (`id`),
+  KEY `idx_after_sale_id` (`after_sale_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='售后商品明细表';
