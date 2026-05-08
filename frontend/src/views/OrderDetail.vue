@@ -116,19 +116,40 @@
             </div>
           </div>
           <div class="action-buttons">
-            <button 
+            <button
               v-if="order.status === 0 || order.status === 1 || order.status === 2"
               class="btn-cancel"
               @click="cancelOrder"
             >
               取消订单
             </button>
-            <button 
+            <button
               v-if="order.status === 0"
-              class="btn-pay" 
+              class="btn-pay"
               @click="payOrder"
             >
               去支付
+            </button>
+            <button
+              v-if="order.status === 2"
+              class="btn-confirm"
+              @click="confirmReceipt"
+            >
+              确认收货
+            </button>
+            <button
+              v-if="(order.status === 2 || order.status === 3) && order.afterSaleStatus !== 1"
+              class="btn-aftersale"
+              @click="goToAfterSale"
+            >
+              申请售后
+            </button>
+            <button
+              v-if="order.afterSaleStatus === 1"
+              class="btn-aftersale"
+              @click="goToAfterSaleDetail"
+            >
+              查看售后
             </button>
           </div>
         </div>
@@ -138,7 +159,8 @@
 </template>
 
 <script>
-import { getOrderDetail, cancelOrder } from '../api/order'
+import { getOrderDetail, cancelOrder, confirmOrder } from '../api/order'
+import { getAfterSaleList } from '../api/afterSale'
 
 export default {
   name: 'OrderDetail',
@@ -266,6 +288,44 @@ export default {
     },
     payOrder() {
       this.$router.push(`/payment/${this.order.id}`);
+    },
+    async confirmReceipt() {
+      try {
+        await this.$confirm('确定已收到商品吗？', '确认收货', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'info'
+        })
+        const userId = localStorage.getItem('userId')
+        const result = await confirmOrder(this.$route.query.id, userId)
+        if (result.code === 1) {
+          this.$message.success('已确认收货')
+          this.loadOrderData()
+        } else {
+          this.$message.error(result.msg || '确认收货失败')
+        }
+      } catch (e) {
+        if (e !== 'cancel') {
+          console.error('确认收货失败:', e)
+        }
+      }
+    },
+    goToAfterSale() {
+      this.$router.push({ path: '/after-sale/apply', query: { orderId: this.$route.query.id } })
+    },
+    async goToAfterSaleDetail() {
+      const userId = localStorage.getItem('userId')
+      try {
+        const result = await getAfterSaleList(userId)
+        if (result.code === 1) {
+          const found = (result.data || []).find(a => a.orderId === this.order.id)
+          if (found) {
+            this.$router.push({ path: '/after-sale/detail', query: { id: found.id } })
+          }
+        }
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 }
@@ -713,6 +773,36 @@ export default {
 
 .btn-pay:active {
   transform: scale(0.98);
+}
+
+.btn-confirm {
+  padding: 12px 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 500;
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #43A047;
+}
+
+.btn-aftersale {
+  padding: 12px 32px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 500;
+  background: white;
+  color: var(--color-primary);
+}
+
+.btn-aftersale:hover {
+  background: #fff5f5;
 }
 
 /* 响应式设计 */

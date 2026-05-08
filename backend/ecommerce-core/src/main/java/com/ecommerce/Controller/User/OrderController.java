@@ -103,8 +103,15 @@ public class OrderController {
     public Result<AvailableCouponVO> getAvailableCoupons(@RequestBody AvailableCouponDTO availableCouponDTO) {
         log.info("获取可用优惠券请求: userId={}", availableCouponDTO.getUserId());
         AvailableCouponVO availableCouponVO = orderService.getAvailableCoupons(availableCouponDTO);
-        log.info("获取可用优惠券成功: 可用{}张, 不可用{}张", 
+        log.info("获取可用优惠券成功: 可用{}张, 不可用{}张",
                 availableCouponVO.getAvailable().size(), availableCouponVO.getUnavailable().size());
         return Result.success(availableCouponVO);
+    }
+
+    @PutMapping("/confirm")
+    public Result<Boolean> confirmOrder(@RequestParam Long orderId, @RequestParam Long userId) {
+        log.info("确认收货请求: orderId={}, userId={}", orderId, userId);
+        boolean result = orderService.confirmOrder(orderId, userId);
+        return Result.success(result);
     }
 }

@@ -91,6 +91,11 @@ public class OrderVO {
      * 订单备注
      */
     private String remark;
+
+    /**
+     * 售后状态：0-无售后，1-售后中
+     */
+    private Integer afterSaleStatus;
     
     /**
      * 创建时间

@@ -70,3 +70,13 @@ export const payOrder = (payData) => request.post('/order/pay', payData)
 export const getAvailableCoupons = (data) => {
   return request.post('/order/coupons/available', data)
 }
+
+/**
+ * 确认收货
+ * @param {number} orderId - 订单 ID
+ * @param {number} userId - 用户 ID
+ * @returns {Promise}
+ */
+export const confirmOrder = (orderId, userId) => {
+  return request.put(`/order/confirm?orderId=${orderId}&userId=${userId}`)
+}

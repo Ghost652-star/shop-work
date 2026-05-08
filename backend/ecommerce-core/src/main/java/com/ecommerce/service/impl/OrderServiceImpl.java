@@ -541,6 +541,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .receiverPhone(order.getReceiverPhone())
                 .receiverAddress(receiverAddress)
                 .remark(order.getRemark())
+                .afterSaleStatus(order.getAfterSaleStatus())
                 .createTime(order.getCreateTime())
                 .items(itemVOs)
                 .coupons(couponVOs)
@@ -559,5 +560,24 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             case 4: return "已取消";
             default: return "未知";
         }
+    }
+
+    @Override
+    public boolean confirmOrder(Long orderId, Long userId) {
+        log.info("确认收货: orderId={}, userId={}", orderId, userId);
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) {
+            throw new BaseException("订单不存在");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new BaseException("无权操作该订单");
+        }
+        if (order.getStatus() != 2) {
+            throw new BaseException("仅待收货状态可确认收货");
+        }
+        order.setStatus(3);
+        orderMapper.updateById(order);
+        log.info("确认收货成功: orderId={}", orderId);
+        return true;
     }
 }

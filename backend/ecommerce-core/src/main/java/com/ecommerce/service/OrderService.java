@@ -60,4 +60,12 @@ public interface OrderService extends IService<Order> {
      * @return 可用优惠券 VO
      */
     AvailableCouponVO getAvailableCoupons(AvailableCouponDTO availableCouponDTO);
+
+    /**
+     * 确认收货
+     * @param orderId 订单 ID
+     * @param userId 用户 ID
+     * @return 操作结果
+     */
+    boolean confirmOrder(Long orderId, Long userId);
 }

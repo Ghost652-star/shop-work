@@ -27,6 +27,7 @@ backend/target/
 
 # 文档
 *.md
+docs/
 
 # Python
 **/__pycache__/

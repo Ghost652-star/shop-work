@@ -46,6 +46,10 @@
             <span class="nav-icon">💬</span>
             <span>我的评论</span>
           </div>
+          <div class="nav-item" :class="{ active: activeTab === 'aftersale' }" @click="navigateTo('aftersale')">
+            <span class="nav-icon">🔄</span>
+            <span>售后处理</span>
+          </div>
           <div class="nav-item" :class="{ active: activeTab === 'settings' }" @click="navigateTo('settings')">
             <span class="nav-icon">⚙️</span>
             <span>个人设置</span>
@@ -83,6 +87,10 @@
               <div class="stat-value">{{ orderStats.cancelled }}</div>
               <div class="stat-label">已取消</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ orderStats.aftersale }}</div>
+              <div class="stat-label">售后中</div>
+            </div>
           </div>
           
           <!-- 订单导航栏 -->
@@ -93,6 +101,7 @@
             <div class="order-tab" :class="{ active: orderTab === 'receipt' }" @click="orderTab = 'receipt'">待收货</div>
             <div class="order-tab" :class="{ active: orderTab === 'completed' }" @click="orderTab = 'completed'">已完成</div>
             <div class="order-tab" :class="{ active: orderTab === 'cancelled' }" @click="orderTab = 'cancelled'">已取消</div>
+            <div class="order-tab" :class="{ active: orderTab === 'aftersale' }" @click="orderTab = 'aftersale'">售后中</div>
           </div>
           
           <!-- 订单列表 -->
@@ -115,6 +124,9 @@
                   <button class="action-btn" @click.stop="goToOrderDetail(order.id)">查看详情</button>
                   <button v-if="order.status === 0" class="action-btn primary" @click.stop="goToPay(order.id)">去支付</button>
                   <button v-if="order.status === 0 || order.status === 1 || order.status === 2" class="action-btn" @click.stop="cancelOrderAction(order.id)">取消订单</button>
+                  <button v-if="(order.status === 2 || order.status === 3) && order.afterSaleStatus !== 1" class="action-btn" @click.stop="goToAfterSale(order.id)">申请售后</button>
+                  <button v-if="order.afterSaleStatus === 1" class="action-btn" @click.stop="goToAfterSaleDetail(order.id)">查看售后</button>
+                  <button v-if="order.status === 2" class="action-btn primary" @click.stop="confirmOrderAction(order.id)">确认收货</button>
                 </div>
               </div>
             </div>
@@ -337,6 +349,32 @@
           </div>
         </div>
 
+        <!-- 售后处理页面 -->
+        <div v-if="activeTab === 'aftersale'">
+          <div class="content-header">
+            <h2>🔄 售后处理</h2>
+          </div>
+          <div v-if="afterSaleList.length === 0" class="empty-state">
+            <div class="empty-icon">🔄</div>
+            <p>暂无售后记录</p>
+          </div>
+          <div v-else class="order-list">
+            <div v-for="item in afterSaleList" :key="item.id" class="order-card" @click="goToAfterSaleDetailById(item.id)">
+              <div class="order-header">
+                <span>订单号：{{ item.orderNo }}</span>
+                <span class="order-status" :class="afterSaleStatusClass(item.status)">{{ item.statusText }}</span>
+              </div>
+              <div class="order-content">
+                <p>{{ getAfterSaleItemSummary(item) }}</p>
+                <p>退款金额：<span style="color:#E53935;font-weight:bold">¥{{ item.refundAmount }}</span></p>
+              </div>
+              <div class="order-actions">
+                <button class="action-btn" @click.stop="goToAfterSaleDetailById(item.id)">查看详情</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 个人设置页面 -->
         <div v-if="activeTab === 'settings'">
           <div class="content-header settings-header">
@@ -438,7 +476,8 @@ import { getAddressList, getDefaultAddress, addAddress, updateAddress, setDefaul
 import { getFavoriteList, removeFavorite } from '../api/favorite'
 import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
-import { getOrderList, cancelOrder as cancelOrderApi } from '../api/order'
+import { getOrderList, cancelOrder as cancelOrderApi, confirmOrder as confirmOrderApi } from '../api/order'
+import { getAfterSaleList } from '../api/afterSale'
 import { getCartList, updateQuantity as updateCartQuantityApi, deleteCart } from '../api/cart'
 import { regionOptions, getNameToCode, getCodeToName } from '../data/regions'
 
@@ -469,6 +508,9 @@ watch(
       }
       if (newTab === 'cart') {
         loadCartData()
+      }
+      if (newTab === 'aftersale') {
+        loadAfterSaleList()
       }
     }
   }
@@ -510,6 +552,7 @@ const favoriteProducts = ref([]) // 收藏的商品详情列表
 const userCouponList = ref([]) // 用户优惠券列表
 
 const orderList = ref([])
+const afterSaleList = ref([])
 
 // 购物车相关数据
 const cartItems = ref([])
@@ -1034,18 +1077,22 @@ const filteredOrders = computed(() => {
   if (orderTab.value === 'all') {
     return orderList.value
   }
+  if (orderTab.value === 'aftersale') {
+    return orderList.value.filter(order => order.afterSaleStatus === 1)
+  }
   const status = statusMap[orderTab.value]
   return orderList.value.filter(order => order.status === status)
 })
 
 const orderStats = computed(() => {
-  const stats = { pending: 0, shipment: 0, receipt: 0, completed: 0, cancelled: 0 }
+  const stats = { pending: 0, shipment: 0, receipt: 0, completed: 0, cancelled: 0, aftersale: 0 }
   orderList.value.forEach(order => {
     if (order.status === 0) stats.pending += 1
     if (order.status === 1) stats.shipment += 1
     if (order.status === 2) stats.receipt += 1
     if (order.status === 3) stats.completed += 1
     if (order.status === 4) stats.cancelled += 1
+    if (order.afterSaleStatus === 1) stats.aftersale += 1
   })
   return stats
 })
@@ -1129,6 +1176,82 @@ const cancelOrderAction = async (orderId) => {
   }
 }
 
+const loadAfterSaleList = async () => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) return
+  try {
+    const result = await getAfterSaleList(parseInt(userId))
+    if (result.code === 1) {
+      afterSaleList.value = result.data || []
+    }
+  } catch (e) {
+    console.error('加载售后列表失败:', e)
+  }
+}
+
+const afterSaleStatusClass = (status) => {
+  switch (status) {
+    case 0: return 'status-pending'
+    case 1: return 'status-completed'
+    case 2: return 'status-cancelled'
+    case 3: return 'status-completed'
+    default: return ''
+  }
+}
+
+const getAfterSaleItemSummary = (item) => {
+  if (!item.items || item.items.length === 0) return '暂无商品信息'
+  const first = item.items[0]
+  if (item.items.length === 1) return first.productName
+  return `${first.productName} 等${item.items.length}件商品`
+}
+
+const goToAfterSale = (orderId) => {
+  router.push({ path: '/after-sale/apply', query: { orderId } })
+}
+
+const goToAfterSaleDetail = async (orderId) => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) return
+  try {
+    const result = await getAfterSaleList(parseInt(userId))
+    if (result.code === 1) {
+      const found = (result.data || []).find(a => a.orderId === orderId)
+      if (found) {
+        router.push({ path: '/after-sale/detail', query: { id: found.id } })
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const goToAfterSaleDetailById = (id) => {
+  router.push({ path: '/after-sale/detail', query: { id } })
+}
+
+const confirmOrderAction = async (orderId) => {
+  try {
+    await ElMessageBox.confirm('确定已收到商品吗？', '确认收货', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    const userId = localStorage.getItem('userId')
+    const result = await confirmOrderApi(orderId, parseInt(userId))
+    if (result.code === 1) {
+      ElMessage.success('已确认收货')
+      await loadOrderList()
+    } else {
+      ElMessage.error(result.msg || '确认收货失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('确认收货失败:', e)
+    }
+  }
+}
+
 onMounted(() => {
   // 从路由参数获取当前 tab
   if (route.query.tab) {
@@ -1152,6 +1275,9 @@ onMounted(() => {
   }
   if (activeTab.value === 'cart') {
     loadCartData()
+  }
+  if (activeTab.value === 'aftersale') {
+    loadAfterSaleList()
   }
 
   window.addEventListener('addressUpdated', loadAddressList)

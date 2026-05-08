@@ -7,6 +7,8 @@ import CouponSeckill from '../views/CouponSeckill.vue'
 import Payment from '../views/Payment.vue'
 import OrderConfirm from '../views/OrderConfirm.vue'
 import CustomerService from '../views/CustomerService.vue'
+import AfterSaleApply from '../views/AfterSaleApply.vue'
+import AfterSaleDetail from '../views/AfterSaleDetail.vue'
 
 const routes = [
   {
@@ -52,6 +54,16 @@ const routes = [
     path: '/customer-service',
     name: 'CustomerService',
     component: CustomerService
+  },
+  {
+    path: '/after-sale/apply',
+    name: 'AfterSaleApply',
+    component: AfterSaleApply
+  },
+  {
+    path: '/after-sale/detail',
+    name: 'AfterSaleDetail',
+    component: AfterSaleDetail
   }
 ]
 
