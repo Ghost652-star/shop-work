@@ -355,7 +355,7 @@ export default {
 }
 
 .order-status.status-1 {
-  background: #1890FF;
+  background: var(--color-info);
 }
 
 .order-status.status-2 {
@@ -363,7 +363,7 @@ export default {
 }
 
 .order-status.status-3 {
-  background: #52C41A;
+  background: var(--color-success);
 }
 
 .order-status.status-4 {
@@ -395,6 +395,19 @@ export default {
   font-weight: 600;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border-light);
+  position: relative;
+  padding-left: 14px;
+}
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 18px;
+  background: var(--color-primary);
+  border-radius: 2px;
 }
 
 /* 订单信息 */

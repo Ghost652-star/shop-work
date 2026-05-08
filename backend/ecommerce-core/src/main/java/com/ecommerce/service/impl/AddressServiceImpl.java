@@ -236,19 +236,19 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         if (address == null) {
             return null;
         }
-        
-        return AddressVO.builder()
-                .id(address.getId())
-                .userId(address.getUserId())
-                .name(address.getName())
-                .phone(address.getPhone())
-                .province(address.getProvince())
-                .city(address.getCity())
-                .district(address.getDistrict())
-                .detailAddress(address.getDetailAddress())
-                .isDefault(address.getIsDefault())
-                .createTime(address.getCreateTime())
-                .updateTime(address.getUpdateTime())
-                .build();
+
+        AddressVO vo = new AddressVO();
+        vo.setId(address.getId());
+        vo.setUserId(address.getUserId());
+        vo.setName(address.getName());
+        vo.setPhone(address.getPhone());
+        vo.setProvince(address.getProvince());
+        vo.setCity(address.getCity());
+        vo.setDistrict(address.getDistrict());
+        vo.setDetailAddress(address.getDetailAddress());
+        vo.setIsDefault(address.getIsDefault());
+        vo.setCreateTime(address.getCreateTime());
+        vo.setUpdateTime(address.getUpdateTime());
+        return vo;
     }
 }

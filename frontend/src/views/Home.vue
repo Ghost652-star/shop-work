@@ -36,8 +36,8 @@
       <div class="header-search">
         <div class="search-content">
           <div class="logo" @click="goHome">
-            <span class="logo-icon">淘</span>
-            <span class="logo-text">淘宝网</span>
+            <span class="logo-icon">潮</span>
+            <span class="logo-text">潮选优品</span>
           </div>
           <div class="search-center">
             <div class="search-box">
@@ -524,7 +524,9 @@ onBeforeUnmount(() => {
 <style scoped>
 @import '../styles/variables.css';
 
-.home-container { min-height: 100vh; background: var(--color-bg); }
+.home-container { min-height: 100vh; background: var(--color-bg); background-image:
+  radial-gradient(circle at 20% 0%, rgba(229, 57, 53, 0.02) 0%, transparent 50%),
+  radial-gradient(circle at 80% 100%, rgba(30, 136, 229, 0.02) 0%, transparent 50%); }
 
 /* ===== 顶部第一行 - 灰色用户操作栏 ===== */
 .header-top {
@@ -594,7 +596,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .logo-icon {
-  background: var(--color-primary); /* ✅ 纯色替代渐变 */
+  background: var(--color-primary);
   color: white;
   width: 48px;
   height: 48px;
@@ -604,6 +606,11 @@ onBeforeUnmount(() => {
   font-size: var(--text-3xl);
   font-weight: 700;
   border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+.logo:hover .logo-icon {
+  transform: rotate(-3deg) scale(1.05);
 }
 .logo-text {
   font-size: var(--text-3xl);
@@ -626,6 +633,7 @@ onBeforeUnmount(() => {
   width: 100%;
   transition: border-color var(--duration-normal) var(--ease-in-out),
               box-shadow var(--duration-normal) var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
 }
 .search-box:focus-within {
   border-color: var(--color-primary);
@@ -726,6 +734,7 @@ onBeforeUnmount(() => {
   transition: background var(--duration-normal) var(--ease-in-out),
               box-shadow var(--duration-normal) var(--ease-in-out),
               transform var(--duration-fast) var(--ease-in-out);
+  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.15);
 }
 .all-categories:hover {
   background: var(--color-primary-hover);
@@ -754,6 +763,17 @@ onBeforeUnmount(() => {
   height: 400px;
   overflow: hidden;
   border: 1px solid var(--color-border-light);
+  position: relative;
+}
+.hot-sales::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 .hot-sales-header { margin-bottom: 16px; }
 .hot-sales-header h3 {
@@ -796,6 +816,9 @@ onBeforeUnmount(() => {
   color: white;
   box-shadow: 0 2px 6px rgba(229, 57, 53, 0.2);
 }
+.hot-sales-item:nth-child(1) .item-rank.top-3 { background: #FF4757; box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3); }
+.hot-sales-item:nth-child(2) .item-rank.top-3 { background: #FF6348; box-shadow: 0 2px 8px rgba(255, 99, 72, 0.25); }
+.hot-sales-item:nth-child(3) .item-rank.top-3 { background: #FFA502; box-shadow: 0 2px 8px rgba(255, 165, 2, 0.25); }
 .item-info { flex: 1; overflow: hidden; }
 .item-name {
   font-size: var(--text-xs);
@@ -831,11 +854,15 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 40px;
   left: 20px;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: white;
-  padding: 10px 16px;
+  padding: 10px 20px;
   font-size: var(--text-lg);
   border-radius: var(--radius-md);
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 .carousel-btn {
   position: absolute;
@@ -931,21 +958,45 @@ onBeforeUnmount(() => {
 }
 .promo-icon { font-size: 32px; }
 /* ✅ 移除所有渐变背景,使用浅色背景 + 图标色彩 */
-.promo-orange,
-.promo-pink,
-.promo-orange2,
-.promo-blue {
-  background: var(--color-bg-white);
-  color: var(--color-text-primary);
+.promo-orange {
+  background: linear-gradient(135deg, #FFF8F0, #FFFFFF);
+  border-color: #FFE0CC;
 }
+.promo-orange:hover { border-color: #FF8C42; box-shadow: 0 8px 24px rgba(255, 140, 66, 0.12); }
+.promo-pink {
+  background: linear-gradient(135deg, #FFF0F3, #FFFFFF);
+  border-color: #FFD6E0;
+}
+.promo-pink:hover { border-color: #FF6B8A; box-shadow: 0 8px 24px rgba(255, 107, 138, 0.12); }
+.promo-orange2 {
+  background: linear-gradient(135deg, #FFF5EB, #FFFFFF);
+  border-color: #FFE4C4;
+}
+.promo-orange2:hover { border-color: #F0A030; box-shadow: 0 8px 24px rgba(240, 160, 48, 0.12); }
+.promo-blue {
+  background: linear-gradient(135deg, #F0F7FF, #FFFFFF);
+  border-color: #C8E0F4;
+}
+.promo-blue:hover { border-color: #5BA0D9; box-shadow: 0 8px 24px rgba(91, 160, 217, 0.12); }
 
 /* ===== 倒计时条 ===== */
 .countdown-bar {
   max-width: 1200px;
   margin: 0 auto 20px;
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), #D32F2F);
   border-radius: var(--radius-md);
   overflow: hidden;
+  position: relative;
+}
+.countdown-bar::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
 }
 .countdown-content {
   display: flex;
@@ -953,6 +1004,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 24px;
   padding: 14px 20px;
+  position: relative;
+  z-index: 1;
 }
 .countdown-label { color: white; font-size: var(--text-lg); font-weight: 600; }
 .countdown-time {
@@ -963,6 +1016,9 @@ onBeforeUnmount(() => {
   background: rgba(0,0,0,0.15);
   padding: 4px 12px;
   border-radius: var(--radius-sm);
+  min-width: 120px;
+  text-align: center;
+  letter-spacing: 2px;
 }
 .countdown-more { color: rgba(255,255,255,0.9); font-size: var(--text-base); cursor: pointer; }
 .countdown-more:hover { color: white; }
@@ -977,10 +1033,23 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border-light);
 }
 .product-section h2 {
-  margin-bottom: 24px;
+  margin: 0 0 24px;
   color: var(--color-text-primary);
   font-size: var(--text-2xl);
   font-weight: 600;
+  position: relative;
+  padding-left: 14px;
+}
+.product-section h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: var(--color-primary);
+  border-radius: 2px;
 }
 .product-grid {
   display: grid;
@@ -997,6 +1066,21 @@ onBeforeUnmount(() => {
               border-color var(--duration-normal) var(--ease-in-out);
   background: var(--color-bg-white);
   box-shadow: var(--shadow-xs);
+  position: relative;
+}
+.product-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transition: transform var(--duration-normal) var(--ease-in-out);
+}
+.product-card:hover::after {
+  transform: scaleX(1);
 }
 .product-card:hover {
   transform: translateY(-4px);
@@ -1049,9 +1133,10 @@ onBeforeUnmount(() => {
 .product-price {
   font-size: var(--text-2xl);
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   line-height: 1;
+  letter-spacing: -0.5px;
 }
 .product-sales {
   font-size: var(--text-xs);
@@ -1067,11 +1152,18 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .login-dialog-content {
   background: var(--color-bg-white);
@@ -1080,6 +1172,11 @@ onBeforeUnmount(() => {
   max-width: 90%;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  animation: slideUp 0.25s var(--ease-out);
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .login-dialog-header {
   display: flex;

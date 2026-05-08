@@ -498,6 +498,8 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 1000;
 }
 
@@ -701,7 +703,7 @@ export default {
 
 .item-price {
   font-size: var(--text-lg);
-  color: #ff4757;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -772,8 +774,8 @@ export default {
 }
 
 .remove-item-btn:hover {
-  background: #FFF5F5;
-  color: #ff4757;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
   transform: scale(1.1);
 }
 
@@ -824,7 +826,7 @@ export default {
 
 .total-price {
   font-size: var(--text-xl);
-  color: #ff4757;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -856,9 +858,9 @@ export default {
 }
 
 .clear-cart-btn:hover {
-  border-color: #ff4757;
-  color: #ff4757;
-  background: #FFF5F5;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .clear-cart-btn:active {

@@ -58,4 +58,7 @@ def run_service_agent(message: str, user_id: Optional[str] = None) -> str:
 
 
 
+#print(run_service_agent("有没有好用的汽车玻璃水推荐,我所在的地方有点冷", user_id="1"))
+   
+
 

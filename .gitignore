@@ -43,6 +43,15 @@ agent/identifier.sqlite
 *.log
 .cache/
 
+# Claude Code 配置
+.claude/
+
+# Playwright MCP
+.playwright-mcp/
+
+# 技能拉取临时目录
+_tmp_skills/
+
 # OS 文件
 .DS_Store
 Thumbs.db

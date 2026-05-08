@@ -83,14 +83,67 @@
           </div>
 
           <div v-if="activeTab === 'reviews'" class="reviews-content">
+            <!-- 评价概览 -->
+            <div class="review-summary">
+              <div class="summary-score">
+                <span class="score-number">{{ averageRating }}</span>
+                <span class="score-unit">分</span>
+                <div class="score-stars">
+                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= Math.round(averageRating) }">★</span>
+                </div>
+                <span class="score-count">{{ reviewCount }} 条评价</span>
+              </div>
+              <div class="summary-distribution">
+                <div v-for="(pct, i) in ratingDistribution" :key="i" class="dist-row">
+                  <span class="dist-label">{{ 5 - i }}星</span>
+                  <div class="dist-bar"><div class="dist-fill" :style="{ width: pct + '%' }"></div></div>
+                  <span class="dist-pct">{{ pct }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 发表评论按钮 -->
+            <div class="comment-action">
+              <button class="comment-btn" @click="showCommentForm = !showCommentForm">
+                {{ showCommentForm ? '收起' : '发表评论' }}
+              </button>
+            </div>
+
+            <!-- 评论表单 -->
+            <div v-if="showCommentForm" class="comment-form">
+              <div class="form-rating">
+                <span class="rating-label">评分：</span>
+                <div class="rating-stars">
+                  <span v-for="i in 5" :key="i" class="star-select" :class="{ filled: i <= commentForm.rating }" @click="setCommentRating(i)">★</span>
+                </div>
+              </div>
+              <textarea v-model="commentForm.content" placeholder="请输入您的评论..." class="comment-textarea" rows="3"></textarea>
+              <div class="form-actions">
+                <button class="submit-btn" @click="submitComment">提交评论</button>
+              </div>
+            </div>
+
+            <!-- 评价标签筛选 -->
             <div class="review-tags">
+              <span class="review-tag active">全部</span>
               <span v-for="(tag, index) in reviewTags" :key="index" class="review-tag">{{ tag }}</span>
             </div>
+
+            <!-- 评价列表 -->
             <div class="review-list">
+              <div v-if="reviews.length === 0" class="no-reviews">暂无评价</div>
               <div v-for="(review, index) in reviews" :key="index" class="review-item">
-                <div class="reviewer-info">
-                  <span class="reviewer-name">{{ review.name }}</span>
-                  <span class="review-date">{{ review.date }}</span>
+                <div class="review-header">
+                  <div class="reviewer-avatar">{{ review.name.charAt(0) }}</div>
+                  <div class="reviewer-meta">
+                    <div class="reviewer-top">
+                      <span class="reviewer-name">{{ review.name }}</span>
+                      <div class="review-stars">
+                        <span v-for="i in 5" :key="i" class="star-sm" :class="{ filled: i <= (review.rating || 5) }">★</span>
+                      </div>
+                    </div>
+                    <span class="review-date">{{ review.date }}</span>
+                  </div>
                 </div>
                 <p class="review-content">{{ review.content }}</p>
                 <div v-if="review.image" class="review-image">
@@ -116,9 +169,7 @@
             <div class="current-price">
               <span class="price-symbol">¥</span>
               <span class="price-value">{{ product.price }}</span>
-            </div>
-            <div class="original-price">
-              <span>¥{{ (product.price * 1.3).toFixed(2) }}</span>
+              <span class="original-price">¥{{ (product.price * 1.3).toFixed(2) }}</span>
             </div>
           </div>
 
@@ -375,6 +426,7 @@ import { addFavorite, removeFavorite, isFavorite } from '../api/favorite'
 import { addToCart } from '../api/cart'
 import { createOrder } from '../api/order'
 import { getDefaultAddress } from '../api/address'
+import { addComment, getCommentList, getCommentStats } from '../api/comment'
 
 export default {
   name: 'ProductDetail',
@@ -399,13 +451,11 @@ export default {
         'https://picsum.photos/800/600?random=11',
         'https://picsum.photos/800/600?random=12'
       ],
-      reviewCount: 300,
+      reviewCount: 0,
+      averageRating: 0,
+      ratingDistribution: [0, 0, 0, 0, 0],
       reviewTags: ['整体感受好', '发货准时', '质量不错', '做工精细', '性价比高'],
-      reviews: [
-        { name: '匿名用户', date: '2024-01-15', content: '商品质量很好，做工精细，物流也很快，非常满意！', image: 'https://via.placeholder.com/200x200?text=Review' },
-        { name: 't***7', date: '2024-01-10', content: '包装很好，没有破损，东西也很不错' },
-        { name: '李***明', date: '2024-01-05', content: '第二次购买了，一如既往的好' }
-      ],
+      reviews: [],
       specs: ['经典款', '升级款', '豪华款'],
       product: {
         id: 1,
@@ -430,7 +480,14 @@ export default {
       registerUsername: '',
       registerPhone: '',
       registerPassword: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      // 评论相关
+      showCommentForm: false,
+      commentForm: {
+        rating: 5,
+        content: '',
+        images: ''
+      }
     }
   },
   mounted() {
@@ -470,6 +527,8 @@ export default {
             console.log('最终商品数据 - stock:', this.product.stock)
             // 加载收藏状态
             this.loadFavoriteStatus()
+            // 加载评论数据
+            this.loadComments()
           }
         })
         .catch(error => {
@@ -737,7 +796,7 @@ export default {
 
       const userId = localStorage.getItem('userId')
       const productId = this.product.id
-      if (!productId) return
+      if (!userId || !productId) return
 
       isFavorite(userId, productId)
         .then(response => {
@@ -748,6 +807,87 @@ export default {
         .catch(error => {
           console.error('查询收藏状态失败:', error)
         })
+    },
+
+    // 加载评论列表
+    loadComments() {
+      const productId = Number(this.product.id)
+      if (!productId || isNaN(productId)) return
+
+      // 加载评论列表
+      getCommentList(productId)
+        .then(response => {
+          if (response.code === 1) {
+            this.reviews = (response.data || []).map(c => ({
+              id: c.id,
+              name: c.username || '匿名用户',
+              date: c.createTime,
+              content: c.content,
+              rating: c.rating,
+              image: c.images || null
+            }))
+            this.reviewCount = this.reviews.length
+          }
+        })
+        .catch(error => {
+          console.error('加载评论列表失败:', error)
+        })
+
+      // 加载评论统计
+      getCommentStats(productId)
+        .then(response => {
+          if (response.code === 1 && response.data) {
+            this.averageRating = response.data[0] || 0
+            this.reviewCount = response.data[1] || 0
+          }
+        })
+        .catch(error => {
+          console.error('加载评论统计失败:', error)
+        })
+    },
+
+    // 提交评论
+    submitComment() {
+      if (!this.isLoggedIn) {
+        this.showLoginDialog = true
+        return
+      }
+
+      if (!this.commentForm.content.trim()) {
+        this.$message.warning('请输入评论内容')
+        return
+      }
+
+      const userId = parseInt(localStorage.getItem('userId'))
+      const commentData = {
+        userId,
+        productId: Number(this.product.id),
+        orderId: 0, // 临时值，实际应从订单关联获取
+        rating: this.commentForm.rating,
+        content: this.commentForm.content,
+        images: this.commentForm.images || ''
+      }
+
+      addComment(commentData)
+        .then(response => {
+          if (response.code === 1) {
+            this.$message.success('评论发表成功')
+            this.showCommentForm = false
+            this.commentForm = { rating: 5, content: '', images: '' }
+            this.loadComments()
+          } else {
+            this.$message.error(response.msg || '评论发表失败')
+          }
+        })
+        .catch(error => {
+          console.error('评论发表失败:', error)
+          this.$message.error('评论发表失败，请稍后重试')
+        })
+    },
+
+    // 设置评论评分
+    setCommentRating(rating) {
+      this.commentForm.rating = rating
     }
   }
 }
@@ -807,6 +947,7 @@ export default {
   overflow: hidden;
   background: var(--color-bg-white);
   transition: all 0.2s var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
 }
 
 .search-box:focus-within {
@@ -861,8 +1002,9 @@ export default {
   gap: 12px;
   background: var(--color-bg-white);
   padding: 20px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-xs);
 }
 
 .thumbnail-list {
@@ -901,9 +1043,10 @@ export default {
 
 .main-image-container {
   flex: 1;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .main-image {
@@ -915,24 +1058,23 @@ export default {
 /* 商品详情区域 */
 .product-detail-section {
   background: var(--color-bg-white);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 24px;
   border: 1px solid var(--color-border-light);
 }
 
 .section-tabs {
   display: flex;
-  gap: 24px;
+  gap: 0;
   border-bottom: 1px solid var(--color-border-light);
-  padding-bottom: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .tab-item {
   font-size: var(--text-md);
   color: var(--color-text-secondary);
   cursor: pointer;
-  padding: 8px 0;
+  padding: 14px 24px;
   position: relative;
   font-weight: 500;
   transition: color var(--duration-normal) var(--ease-in-out);
@@ -950,11 +1092,12 @@ export default {
 .tab-item.active::after {
   content: '';
   position: absolute;
-  bottom: -17px;
-  left: 0;
-  width: 100%;
-  height: 2px;
+  bottom: -1px;
+  left: 24px;
+  right: 24px;
+  height: 3px;
   background: var(--color-primary);
+  border-radius: 3px 3px 0 0;
 }
 
 .detail-images {
@@ -978,21 +1121,41 @@ export default {
   color: var(--color-text-primary);
   margin: 0 0 16px 0;
   font-weight: 600;
+  padding-left: 12px;
+  position: relative;
+}
+.feature-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: var(--color-primary);
+  border-radius: 2px;
 }
 
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .feature-item {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 16px;
+  padding: 18px 20px;
   background: var(--color-bg);
   border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+.feature-item:hover {
+  background: var(--color-bg-white);
+  border-color: var(--color-border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .feature-content {
@@ -1026,6 +1189,101 @@ export default {
 }
 
 /* 评价区域 */
+.review-summary {
+  display: flex;
+  gap: 32px;
+  padding: 24px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border-light);
+}
+
+.summary-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  gap: 4px;
+}
+
+.score-number {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.score-unit {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-top: -2px;
+}
+
+.score-stars {
+  display: flex;
+  gap: 2px;
+  margin: 4px 0;
+}
+
+.star {
+  font-size: 16px;
+  color: var(--color-border);
+  transition: color var(--duration-fast) var(--ease-in-out);
+}
+.star.filled {
+  color: #F59E0B;
+}
+
+.score-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.summary-distribution {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dist-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  min-width: 28px;
+  text-align: right;
+}
+
+.dist-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.dist-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--ease-out);
+}
+
+.dist-pct {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  min-width: 32px;
+}
+
 .review-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1035,19 +1293,25 @@ export default {
 
 .review-tag {
   padding: 6px 16px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: background var(--duration-normal) var(--ease-in-out),
-              color var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
+  transition: all var(--duration-normal) var(--ease-in-out);
 }
 
 .review-tag:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-lighter);
+}
+
+.review-tag.active {
   background: var(--color-primary);
   color: white;
+  border-color: var(--color-primary);
 }
 
 .review-tag:active {
@@ -1057,19 +1321,49 @@ export default {
 .review-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
 }
 
 .review-item {
-  padding: 16px;
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--duration-normal) var(--ease-in-out);
+}
+.review-item:last-child {
+  border-bottom: none;
 }
 
-.reviewer-info {
+.review-header {
   display: flex;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.reviewer-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.reviewer-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reviewer-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .reviewer-name {
@@ -1078,24 +1372,147 @@ export default {
   font-weight: 500;
 }
 
+.review-stars {
+  display: flex;
+  gap: 1px;
+}
+
+.star-sm {
+  font-size: 13px;
+  color: var(--color-border);
+}
+.star-sm.filled {
+  color: #F59E0B;
+}
+
 .review-date {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--color-text-tertiary);
 }
 
 .review-content {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: 12px;
+  line-height: 1.7;
+  margin: 0 0 12px;
 }
 
 .review-image img {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   border-radius: var(--radius-md);
   object-fit: cover;
+  border: 1px solid var(--color-border-light);
 }
+
+/* 评论相关样式 */
+.comment-action {
+  margin-bottom: 20px;
+}
+
+.comment-btn {
+  padding: 10px 24px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 500;
+  transition: background var(--duration-normal) var(--ease-in-out);
+}
+
+.comment-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.comment-form {
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border-light);
+}
+
+.form-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.rating-label {
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.star-select {
+  font-size: 24px;
+  color: var(--color-border);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-in-out);
+}
+
+.star-select.filled {
+  color: #F59E0B;
+}
+
+.star-select:hover {
+  color: #F59E0B;
+}
+
+.comment-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--duration-normal) var(--ease-in-out);
+}
+
+.comment-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.submit-btn {
+  padding: 8px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-weight: 500;
+  transition: background var(--duration-normal) var(--ease-in-out);
+}
+
+.submit-btn:hover {
+  background: var(--color-primary-dark);
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
+}
+
+
 
 /* 右侧购买面板区域 - 固定铺满 */
 .right-section {
@@ -1157,50 +1574,57 @@ export default {
 
 /* 价格面板 - 增加内边距 */
 .price-panel {
-  padding: 0 24px 16px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-primary-lighter);
+  margin: 0 -24px;
 }
 
 .current-price {
   display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-bottom: 8px;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .price-symbol {
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font-size: var(--text-xl);
+  font-weight: 700;
   color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: 2px;
 }
 
 .price-value {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
   color: var(--color-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: -1px;
+  line-height: 1;
 }
 
 .original-price {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   text-decoration: line-through;
+  margin-left: 8px;
+  line-height: 1;
 }
 
 /* 促销信息 - 增加内边距 */
 .promotion-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #fff5f5;
+  gap: 10px;
+  padding: 10px 24px;
+  background: var(--color-primary-lighter);
   border-radius: 0;
   margin: 0;
   border-bottom: 1px solid var(--color-border-light);
 }
 
 .promotion-tag {
-  padding: 3px 8px;
+  padding: 3px 10px;
   background: var(--color-primary);
   color: white;
   border-radius: var(--radius-xs, 2px);
@@ -1560,10 +1984,17 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .login-dialog-content {
@@ -1573,6 +2004,11 @@ export default {
   max-width: 90%;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  animation: slideUp 0.25s var(--ease-out);
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .login-dialog-header {

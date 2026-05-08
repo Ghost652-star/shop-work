@@ -517,7 +517,7 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
-  background: #4CAF50;
+  background: var(--color-success);
   animation: statusPulse 2s infinite ease-in-out;
 }
 
@@ -815,7 +815,7 @@ onMounted(() => {
 }
 
 .order-card.card-alt {
-  background: #FAFAFA;
+  background: var(--color-bg-stripe);
 }
 
 .order-card:hover {

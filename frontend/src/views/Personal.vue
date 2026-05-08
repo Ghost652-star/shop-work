@@ -22,6 +22,10 @@
         </div>
         
         <div class="nav-menu">
+          <div class="nav-item" :class="{ active: activeTab === 'cart' }" @click="navigateTo('cart')">
+            <span class="nav-icon">🛒</span>
+            <span>购物车</span>
+          </div>
           <div class="nav-item" :class="{ active: activeTab === 'orders' }" @click="navigateTo('orders')">
             <span class="nav-icon">📦</span>
             <span>我的订单</span>
@@ -113,6 +117,45 @@
                   <button v-if="order.status === 0 || order.status === 1 || order.status === 2" class="action-btn" @click.stop="cancelOrderAction(order.id)">取消订单</button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 购物车页面 -->
+        <div v-if="activeTab === 'cart'">
+          <div class="content-header">
+            <h2>🛒 购物车</h2>
+          </div>
+
+          <div v-if="cartItems.length === 0" class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <p>购物车空空如也，快去逛逛吧</p>
+            <button class="action-btn primary" @click="$router.push('/')" style="margin-top: 12px;">去逛逛</button>
+          </div>
+
+          <div v-else>
+            <div class="cart-list">
+              <div v-for="item in cartItems" :key="item.id" class="cart-item">
+                <div class="cart-item-image" @click="goToProduct(item.productId)">
+                  <img :src="item.mainImage" :alt="item.name" />
+                </div>
+                <div class="cart-item-info">
+                  <h4 class="cart-item-name" @click="goToProduct(item.productId)">{{ item.name }}</h4>
+                  <p class="cart-item-price">¥{{ item.price }}</p>
+                </div>
+                <div class="cart-item-qty">
+                  <button class="qty-btn" @click="updateCartQty(item, -1)" :disabled="item.quantity <= 1">−</button>
+                  <span class="qty-value">{{ item.quantity }}</span>
+                  <button class="qty-btn" @click="updateCartQty(item, 1)">+</button>
+                </div>
+                <div class="cart-item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</div>
+                <button class="cart-item-delete" @click="removeCartItem(item.id)">×</button>
+              </div>
+            </div>
+            <div class="cart-summary">
+              <span>共 {{ cartItems.length }} 件商品</span>
+              <span>合计：<strong>¥{{ cartTotalPrice }}</strong></span>
+              <button class="action-btn primary" @click="$router.push('/')">去结算</button>
             </div>
           </div>
         </div>
@@ -396,6 +439,7 @@ import { getFavoriteList, removeFavorite } from '../api/favorite'
 import { getUserCouponList } from '../api/coupon'
 import { getProductDetail } from '../api/product'
 import { getOrderList, cancelOrder as cancelOrderApi } from '../api/order'
+import { getCartList, updateQuantity as updateCartQuantityApi, deleteCart } from '../api/cart'
 import { regionOptions, getNameToCode, getCodeToName } from '../data/regions'
 
 // 路由
@@ -422,6 +466,9 @@ watch(
       }
       if (newTab === 'orders') {
         loadOrderList()
+      }
+      if (newTab === 'cart') {
+        loadCartData()
       }
     }
   }
@@ -464,6 +511,12 @@ const userCouponList = ref([]) // 用户优惠券列表
 
 const orderList = ref([])
 
+// 购物车相关数据
+const cartItems = ref([])
+const cartTotalPrice = computed(() => {
+  return cartItems.value.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0).toFixed(2)
+})
+
 // 方法
 const goBack = () => {
   router.push('/')
@@ -479,6 +532,43 @@ const navigateTo = (tab) => {
   // 其他 tab 仍在个人中心内切换
   activeTab.value = tab
   router.push({ path: '/personal', query: { tab } })
+}
+
+// 购物车方法
+const loadCartData = async () => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) { cartItems.value = []; return }
+  try {
+    const result = await getCartList(parseInt(userId))
+    if (result.code === 1) {
+      cartItems.value = result.data || []
+    }
+  } catch (e) {
+    console.error('加载购物车失败:', e)
+  }
+}
+
+const updateCartQty = async (item, delta) => {
+  const newQty = item.quantity + delta
+  if (newQty < 1) return
+  try {
+    const result = await updateCartQuantityApi({ id: item.id, quantity: newQty })
+    if (result.code === 1) { loadCartData() }
+  } catch (e) {
+    console.error('更新数量失败:', e)
+  }
+}
+
+const removeCartItem = async (id) => {
+  try {
+    const result = await deleteCart(id)
+    if (result.code === 1) {
+      ElMessage.success('已删除')
+      loadCartData()
+    }
+  } catch (e) {
+    console.error('删除失败:', e)
+  }
 }
 
 // 加载用户信息
@@ -1039,39 +1129,41 @@ const cancelOrderAction = async (orderId) => {
   }
 }
 
-        onMounted(() => {
-          // 从路由参数获取当前 tab
-          if (route.query.tab) {
-            activeTab.value = route.query.tab
-          }
+onMounted(() => {
+  // 从路由参数获取当前 tab
+  if (route.query.tab) {
+    activeTab.value = route.query.tab
+  }
 
-          // 加载基础数据
-          loadUserInfo()
+  // 加载基础数据
+  loadUserInfo()
 
-          if (activeTab.value === 'address') {
-            loadAddressList()
-          }
-          if (activeTab.value === 'favorites') {
-            loadFavoriteList()
-          }
-          if (activeTab.value === 'coupons') {
-            loadUserCouponList()
-          }
-          if (activeTab.value === 'orders') {
-            loadOrderList()
-          }
+  if (activeTab.value === 'address') {
+    loadAddressList()
+  }
+  if (activeTab.value === 'favorites') {
+    loadFavoriteList()
+  }
+  if (activeTab.value === 'coupons') {
+    loadUserCouponList()
+  }
+  if (activeTab.value === 'orders') {
+    loadOrderList()
+  }
+  if (activeTab.value === 'cart') {
+    loadCartData()
+  }
 
-          window.addEventListener('addressUpdated', loadAddressList)
-        })
+  window.addEventListener('addressUpdated', loadAddressList)
+})
 
-        onBeforeUnmount(() => {
-          window.removeEventListener('addressUpdated', loadAddressList)
-        })
+onBeforeUnmount(() => {
+  window.removeEventListener('addressUpdated', loadAddressList)
+})
+</script>
 
-        </script>
-        
-        <style scoped>
-        .personal-container {
+<style scoped>
+.personal-container {
           height: 100vh;
           background-color: var(--color-bg, #f5f5f5);
           display: flex;
@@ -1125,8 +1217,9 @@ const cancelOrderAction = async (orderId) => {
         .user-profile {
           text-align: center;
           padding: 20px 16px 16px;
-          border-bottom: 1px solid var(--color-border-light, #f2f6fc);
-          background: linear-gradient(180deg, var(--color-primary-light, #FFEBEE) 0%, var(--color-bg-white, #fff) 100%);
+          border-bottom: 1px solid var(--color-border-light);
+          background: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-bg-white) 100%);
+          position: relative;
         }
 
         .avatar {
@@ -1135,12 +1228,12 @@ const cancelOrderAction = async (orderId) => {
           border-radius: 50%;
           margin: 0 auto 8px;
           overflow: hidden;
-          background-color: var(--color-bg, #f5f5f5);
+          background-color: var(--color-bg);
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid var(--color-bg-white, #fff);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 3px solid var(--color-bg-white);
+          box-shadow: 0 2px 12px rgba(229, 57, 53, 0.15);
         }
 
         .avatar-image {
@@ -1267,17 +1360,19 @@ const cancelOrderAction = async (orderId) => {
         .stat-card {
           text-align: center;
           padding: 14px 8px;
-          background: var(--color-bg-stripe, #FAFAFA);
-          border-radius: var(--radius-md, 8px);
-          border: 1px solid var(--color-border-light, #f2f6fc);
-          transition: transform var(--duration-fast, 150ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1)),
-                      box-shadow var(--duration-normal, 200ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1));
+          background: var(--color-bg-white);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--color-border-light);
+          transition: transform var(--duration-fast) var(--ease-in-out),
+                      box-shadow var(--duration-normal) var(--ease-in-out),
+                      border-color var(--duration-normal) var(--ease-in-out);
           cursor: pointer;
         }
 
         .stat-card:hover {
           transform: translateY(-2px);
-          box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.06));
+          box-shadow: var(--shadow-sm);
+          border-color: var(--color-primary-light);
         }
 
         .stat-value {
@@ -1318,9 +1413,10 @@ const cancelOrderAction = async (orderId) => {
         }
 
         .order-tab.active {
-          background-color: var(--color-primary, #E53935);
+          background-color: var(--color-primary);
           color: white;
           font-weight: 600;
+          box-shadow: 0 2px 6px rgba(229, 57, 53, 0.2);
         }
 
         .order-list {
@@ -1330,19 +1426,37 @@ const cancelOrderAction = async (orderId) => {
         }
 
         .order-card {
-          border: 1px solid var(--color-border-light, #f2f6fc);
-          border-radius: var(--radius-md, 8px);
+          border: 1px solid var(--color-border-light);
+          border-radius: var(--radius-md);
           padding: 12px 14px;
           cursor: pointer;
-          transition: box-shadow var(--duration-normal, 200ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1)),
-                      transform var(--duration-fast, 150ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1)),
-                      border-color var(--duration-normal, 200ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1));
+          transition: box-shadow var(--duration-normal) var(--ease-in-out),
+                      transform var(--duration-fast) var(--ease-in-out),
+                      border-color var(--duration-normal) var(--ease-in-out);
+          position: relative;
+        }
+
+        .order-card::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 8px;
+          bottom: 8px;
+          width: 3px;
+          background: var(--color-primary);
+          border-radius: 2px;
+          opacity: 0;
+          transition: opacity var(--duration-normal) var(--ease-in-out);
         }
 
         .order-card:hover {
-          box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.06));
+          box-shadow: var(--shadow-sm);
           transform: translateY(-1px);
-          border-color: var(--color-border-hover, #D4D7DE);
+          border-color: var(--color-border-hover);
+        }
+
+        .order-card:hover::before {
+          opacity: 1;
         }
 
         .order-header {
@@ -2002,5 +2116,157 @@ const cancelOrderAction = async (orderId) => {
 
         .profile-dialog {
           max-width: 400px;
+        }
+
+        /* 购物车样式 */
+        .cart-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .cart-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          border: 1px solid var(--color-border-light, #f2f6fc);
+          border-radius: var(--radius-md, 8px);
+          background: var(--color-bg-white, #fff);
+          transition: box-shadow var(--duration-normal, 200ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1));
+        }
+
+        .cart-item:hover {
+          box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.06));
+        }
+
+        .cart-item-image {
+          width: 80px;
+          height: 80px;
+          border-radius: var(--radius-md, 8px);
+          overflow: hidden;
+          flex-shrink: 0;
+          cursor: pointer;
+          background: var(--color-bg, #f5f5f5);
+        }
+
+        .cart-item-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .cart-item-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .cart-item-name {
+          font-size: var(--text-base, 14px);
+          font-weight: 500;
+          color: var(--color-text-primary, #1A1A1A);
+          margin: 0 0 6px;
+          cursor: pointer;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .cart-item-name:hover {
+          color: var(--color-primary, #E53935);
+        }
+
+        .cart-item-price {
+          font-size: var(--text-lg, 16px);
+          color: var(--color-primary, #E53935);
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .cart-item-qty {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        .cart-item-qty .qty-btn {
+          width: 28px;
+          height: 28px;
+          border: 1px solid var(--color-border, #EBEEF5);
+          background: var(--color-bg-white, #fff);
+          border-radius: var(--radius-sm, 4px);
+          cursor: pointer;
+          font-size: 16px;
+          color: var(--color-text-secondary, #606266);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all var(--duration-fast, 150ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1));
+        }
+
+        .cart-item-qty .qty-btn:hover:not(:disabled) {
+          border-color: var(--color-primary, #E53935);
+          color: var(--color-primary, #E53935);
+        }
+
+        .cart-item-qty .qty-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+
+        .cart-item-qty .qty-value {
+          font-size: var(--text-base, 14px);
+          font-weight: 500;
+          min-width: 24px;
+          text-align: center;
+        }
+
+        .cart-item-subtotal {
+          font-size: var(--text-lg, 16px);
+          color: var(--color-primary, #E53935);
+          font-weight: 600;
+          min-width: 80px;
+          text-align: right;
+          flex-shrink: 0;
+        }
+
+        .cart-item-delete {
+          width: 28px;
+          height: 28px;
+          border: none;
+          background: transparent;
+          border-radius: var(--radius-full, 9999px);
+          cursor: pointer;
+          color: var(--color-text-tertiary, #909399);
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all var(--duration-fast, 150ms) var(--ease-in-out, cubic-bezier(0.4,0,0.2,1));
+          flex-shrink: 0;
+        }
+
+        .cart-item-delete:hover {
+          background: var(--color-danger-light, #FFEBEE);
+          color: var(--color-danger, #E53935);
+        }
+
+        .cart-summary {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 20px;
+          margin-top: 20px;
+          padding: 16px 0;
+          border-top: 1px solid var(--color-border-light, #f2f6fc);
+          font-size: var(--text-base, 14px);
+          color: var(--color-text-secondary, #606266);
+        }
+
+        .cart-summary strong {
+          color: var(--color-primary, #E53935);
+          font-size: var(--text-xl, 18px);
+          font-weight: 700;
         }
         </style>

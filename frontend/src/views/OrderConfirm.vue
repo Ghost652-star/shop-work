@@ -687,6 +687,7 @@ export default {
   background: var(--color-primary);
   color: white;
   border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.25);
 }
 
 .step-text {
@@ -708,6 +709,19 @@ export default {
   font-weight: 600;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border-light);
+  position: relative;
+  padding-left: 14px;
+}
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 18px;
+  background: var(--color-primary);
+  border-radius: 2px;
 }
 
 /* 收货地址 */
@@ -1100,10 +1114,13 @@ export default {
 .btn-submit {
   background: var(--color-primary);
   color: white;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
 }
 
 .btn-submit:hover:not(:disabled) {
-  opacity: 0.9;
+  background: var(--color-primary-hover);
+  box-shadow: 0 4px 14px rgba(229, 57, 53, 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-submit:disabled {

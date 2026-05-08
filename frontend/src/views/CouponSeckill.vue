@@ -611,26 +611,53 @@ export default {
 </script>
 
 <style scoped>
+@import '../styles/variables.css';
+
 .coupon-center-page {
   min-height: 100vh;
-  background: #FFF9F9;
+  background: var(--color-bg);
   padding-bottom: 40px;
 }
 
 /* 顶部横幅 */
 .header-banner {
-  background: linear-gradient(135deg, #FF3030 0%, #FF6B8A 100%);
-  padding: 24px 0;
-  box-shadow: 0 2px 8px rgba(255, 48, 48, 0.2);
+  background: var(--color-primary);
+  padding: 28px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+}
+
+.header-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -60%;
+  left: 10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
 }
 
 .banner-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .banner-left {
@@ -641,26 +668,25 @@ export default {
 
 .banner-title {
   color: white;
-  font-size: 36px;
+  font-size: 32px;
   margin: 0;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 
 .banner-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--text-base);
   margin: 0;
 }
 
 .banner-search {
   display: flex;
-  gap: 0;
   background: white;
-  border-radius: 24px;
+  border-radius: var(--radius-full);
   overflow: hidden;
   padding: 4px;
-  max-width: 400px;
+  max-width: 380px;
 }
 
 .search-input {
@@ -668,100 +694,104 @@ export default {
   padding: 10px 16px;
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: var(--text-base);
   background: transparent;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-tertiary);
 }
 
 .search-btn {
   padding: 10px 24px;
-  background: linear-gradient(135deg, #FF3030 0%, #FF6B8A 100%);
+  background: var(--color-primary-dark);
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
-  transition: all 0.2s;
+  transition: opacity var(--duration-normal) var(--ease-in-out);
 }
 
 .search-btn:hover {
   opacity: 0.9;
-  transform: scale(1.05);
 }
 
 /* 分类标签 */
 .category-tabs {
-  background: white;
+  background: var(--color-bg-white);
   padding: 16px 0;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tabs-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
-  gap: 24px;
+  gap: 8px;
 }
 
 .tab-item {
-  padding: 8px 16px;
-  color: #666;
-  font-size: 15px;
+  padding: 8px 20px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-md);
   cursor: pointer;
-  border-radius: 20px;
-  transition: all 0.2s;
+  border-radius: var(--radius-full);
+  transition: all var(--duration-normal) var(--ease-in-out);
   font-weight: 500;
 }
 
 .tab-item:hover {
-  color: #FF3030;
-  background: #FFF0F0;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .tab-item.active {
-  color: #FF3030;
-  background: linear-gradient(135deg, #FF3030 0%, #FF6B8A 100%);
   color: white;
+  background: var(--color-primary);
 }
 
 /* 优惠券列表 */
 .coupon-list {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 16px;
 }
 
 .coupon-item {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
   position: relative;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #FFE0E0;
+  transition: transform var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--color-border-light);
 }
 
 .coupon-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(255, 48, 48, 0.15);
-  border-color: #FF3030;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
 }
 
 .coupon-item.grabbed {
-  opacity: 0.7;
-  background: #FAFAFA;
+  opacity: 0.6;
+  background: var(--color-bg-stripe);
 }
 
 .coupon-image {
   width: 100px;
   flex-shrink: 0;
-  background: #FFF0F0;
+  background: var(--color-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -771,7 +801,7 @@ export default {
   width: 80px;
   height: 80px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .coupon-content {
@@ -800,24 +830,24 @@ export default {
 .price-section {
   display: flex;
   align-items: baseline;
-  color: #FF3030;
+  color: var(--color-primary);
 }
 
 .currency {
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 600;
   margin-right: 2px;
 }
 
 .price {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1;
 }
 
 .condition {
-  font-size: 12px;
-  color: #FF3030;
+  font-size: var(--text-xs);
+  color: var(--color-primary);
   margin-top: 6px;
   white-space: nowrap;
 }
@@ -830,15 +860,15 @@ export default {
 }
 
 .coupon-name {
-  font-size: 15px;
-  color: #333;
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
   margin: 0;
   font-weight: 600;
 }
 
 .coupon-range {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
   margin: 0;
   line-height: 1.4;
 }
@@ -847,12 +877,12 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
 }
 
 .divider {
-  color: #DDD;
+  color: var(--color-border);
 }
 
 .coupon-timer {
@@ -863,41 +893,47 @@ export default {
 }
 
 .timer-label {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
 }
 
 .timer-value {
-  font-size: 13px;
-  color: #FF3030;
+  font-size: var(--text-sm);
+  color: var(--color-primary);
   font-weight: 600;
-  font-family: monospace;
-  background: #FFF0F0;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  background: var(--color-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
 }
 
 .grab-button {
   width: 100%;
   padding: 10px;
   border: none;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #FF3030 0%, #FF6B8A 100%);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
   color: white;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
   margin-top: 12px;
 }
 
 .grab-button:hover:not(.disabled) {
-  opacity: 0.9;
-  transform: translateY(-2px);
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-primary);
+}
+
+.grab-button:active:not(.disabled) {
+  transform: scale(0.98);
 }
 
 .grab-button.disabled {
-  background: linear-gradient(135deg, #E0E0E0 0%, #CCCCCC 100%);
+  background: #D0D0D0;
   cursor: not-allowed;
 }
 
@@ -910,21 +946,21 @@ export default {
   position: absolute;
   top: 0;
   right: 0;
-  background: linear-gradient(135deg, #FF6B8A 0%, #FF3030 100%);
+  background: var(--color-primary);
   color: white;
   padding: 4px 20px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   transform: rotate(45deg) translate(12px, -12px);
-  border-radius: 0 0 4px 0;
+  border-radius: 0 0 var(--radius-sm) 0;
 }
 
 .empty-tip {
   grid-column: 1 / -1;
   text-align: center;
   padding: 60px 20px;
-  color: #999;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
 }
 
 /* 领取成功提示 */
@@ -933,24 +969,25 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.75);
   color: white;
   padding: 16px 32px;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
   z-index: 1000;
   animation: fadeInOut 2s ease-in-out;
+  backdrop-filter: blur(8px);
 }
 
 .toast.success {
-  background: rgba(76, 175, 80, 0.9);
+  background: rgba(67, 160, 71, 0.9);
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
 }
 
 /* 用户信息区域 */
@@ -961,30 +998,30 @@ export default {
 }
 
 .login-btn {
-  padding: 8px 16px;
-  background: white;
-  color: #FF3030;
-  border: 1px solid #FF3030;
-  border-radius: 20px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-size: var(--text-base);
+  font-weight: 500;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out);
 }
 
 .login-btn:hover {
-  background: #FF3030;
-  color: white;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .user-nickname {
   color: white;
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 500;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
 }
 
 /* 登录弹窗 */
@@ -994,7 +1031,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1002,11 +1039,11 @@ export default {
 }
 
 .login-dialog-content {
-  background: #fff;
-  border-radius: 8px;
-  width: 400px;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  width: 420px;
   max-width: 90%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -1014,61 +1051,65 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .login-dialog-header h3 {
   margin: 0;
-  color: #333;
-  font-size: 16px;
-  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: 600;
 }
 
 .close-btn {
-  font-size: 20px;
-  color: #999;
+  font-size: 24px;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   padding: 4px;
   line-height: 1;
-  transition: color 0.2s;
+  transition: color var(--duration-normal) var(--ease-in-out),
+              transform var(--duration-fast) var(--ease-in-out);
+  border-radius: var(--radius-sm);
 }
 
 .close-btn:hover {
-  color: #666;
+  color: var(--color-text-primary);
+  transform: rotate(90deg);
 }
 
 .login-dialog-body {
-  padding: 20px;
+  padding: 24px;
 }
 
 .login-tabs {
   display: flex;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 24px;
 }
 
 .login-tabs span {
   flex: 1;
   text-align: center;
-  padding: 10px 0;
+  padding: 12px 0;
   cursor: pointer;
-  color: #666;
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
+  transition: color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out);
 }
 
 .login-tabs span.active {
-  color: #e43932;
-  border-bottom-color: #e43932;
-  font-weight: 500;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .form-group {
@@ -1078,25 +1119,25 @@ export default {
 }
 
 .form-group label {
-  font-size: 14px;
-  color: #333;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .phone-input {
   display: flex;
   align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .country-code {
   padding: 10px 12px;
-  background: #f5f5f5;
-  border-right: 1px solid #ddd;
-  color: #666;
-  font-size: 14px;
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
 }
 
 .code-input {
@@ -1106,99 +1147,107 @@ export default {
 
 .form-input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
 }
 
 .form-input:focus {
-  border-color: #e43932;
+  border-color: var(--color-primary);
+  box-shadow: var(--input-focus-shadow);
 }
 
 .get-code-btn {
   padding: 0 16px;
-  background: #f5f5f5;
-  color: #e43932;
-  border: 1px solid #e43932;
-  border-radius: 4px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  font-size: var(--text-base);
+  transition: background var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out);
 }
 
 .get-code-btn:hover {
-  background: #e43932;
-  color: #fff;
+  background: var(--color-primary);
+  color: white;
 }
 
 .login-btn {
   padding: 12px;
-  background: #e43932;
-  color: #fff;
+  background: var(--color-primary);
+  color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-size: var(--text-lg);
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
 }
 
 .login-btn:hover {
-  background: #c81623;
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-primary);
 }
 
 .other-login {
   text-align: center;
-  padding: 16px 0;
-  border-top: 1px solid #eee;
+  padding: 20px 0;
+  border-top: 1px solid var(--color-border-light);
   margin-top: 8px;
 }
 
 .other-login p {
   margin: 0 0 12px 0;
-  color: #999;
-  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-base);
 }
 
 .login-icons {
   display: flex;
   justify-content: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .login-icon {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  transition: all 0.2s;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out),
+              background var(--duration-normal) var(--ease-in-out);
 }
 
 .login-icon:hover {
-  color: #e43932;
-  border-color: #e43932;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .login-tip {
   text-align: center;
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
   margin: 8px 0 0 0;
 }
 
 .register-link {
-  color: #e43932;
+  color: var(--color-primary);
   cursor: pointer;
   font-weight: 500;
-  transition: color 0.2s;
+  transition: color var(--duration-normal) var(--ease-in-out);
 }
 
 .register-link:hover {
-  color: #c81623;
+  color: var(--color-primary-dark);
 }
 </style>
