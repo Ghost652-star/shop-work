@@ -312,6 +312,21 @@ npm run dev
 ```
 `data[0]` 为平均评分，`data[1]` 为评论总数。
 
+### 售后模块 `/after-sale`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/after-sale` | 提交售后申请 |
+| GET | `/after-sale/list?userId=` | 用户售后列表 |
+| GET | `/after-sale/detail?id=` | 售后单详情 |
+| PUT | `/after-sale/cancel?id=&userId=` | 取消售后 |
+
+### 订单模块（补充）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| PUT | `/order/confirm?orderId=&userId=` | 确认收货 |
+
 ### 智能客服模块 `/shop/customer-service`
 
 | 方法 | 路径 | 说明 |
