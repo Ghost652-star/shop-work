@@ -25,6 +25,9 @@ backend/target/
 .env.*
 !.env.example
 
+# 文档
+*.md
+
 # Python
 **/__pycache__/
 *.pyc
