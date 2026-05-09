@@ -83,11 +83,21 @@ Traework/
 │
 ├── agent/                       # AI 客服服务
 │   ├── app/
-│   │   ├── config.py            # 配置 (系统提示词/模型/数据库)
-│   │   ├── serviceClient.py     # Agent 入口
-│   │   ├── utils.py             # 8 个工具函数
+│   │   ├── serviceClient.py     # Agent 核心
 │   │   ├── callbacks.py         # 调试回调
 │   │   └── connect.py           # FastAPI 路由
+│   ├── config/                  # 配置模块
+│   │   ├── settings.py          # 统一配置管理
+│   │   └── database.py          # 数据库连接池
+│   ├── rag/                     # RAG 模块
+│   │   ├── vector_store.py      # 向量存储服务
+│   │   └── rag_service.py       # RAG 检索服务
+│   ├── tools/                   # 工具模块
+│   │   ├── order_tools.py       # 订单工具 (2 个)
+│   │   ├── user_tools.py        # 用户工具 (4 个)
+│   │   └── product_tools.py     # 商品工具 (2 个)
+│   ├── prompts/                 # 提示词目录
+│   │   └── system_prompt.txt    # 系统提示词
 │   ├── data/product.csv         # 商品种子数据 (47 条)
 │   ├── chroma_data/             # ChromaDB 持久化
 │   ├── requirements.txt         # Python 依赖
@@ -349,7 +359,7 @@ Agent 服务基于 **LangChain ReAct Agent** 模式，LLM 自主决策调用哪�
 | `get_user_addresses` | 查询用户收货地址 | MySQL |
 | `get_user_favorites` | 查询用户收藏 | MySQL |
 | `get_user_cart` | 查询用户购物车 | MySQL |
-| `get_recommend_product` | 语义搜索推荐商品 | ChromaDB (RAG) |
+| `search_products` | 语义搜索推荐商品 | ChromaDB (RAG) |
 | `get_product_detail` | 查询商品详情 | MySQL |
 
 ### RAG 流程
@@ -407,11 +417,14 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=db_aps
+LLM_API_KEY=your_llm_api_key
+ZHIPUAI_API_KEY=your_zhipuai_api_key
 ```
 
-Agent 还需要在 `app/config.py` 中配置：
-- **LLM API Key** (通义千问 / MiniMax-M2.5)
-- **ZhipuAI API Key** (Embedding 模型)
+Agent 配置文件位于 `config/settings.py`，包含：
+- **LLM 配置** — 模型名称、API Key
+- **Embedding 配置** — 模型名称、向量库参数
+- **数据库配置** — 连接池参数
 
 ### 前端代理 (`vite.config.js`)
 
