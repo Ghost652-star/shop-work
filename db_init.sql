@@ -283,3 +283,25 @@ CREATE TABLE `after_sale_item` (
   PRIMARY KEY (`id`),
   KEY `idx_after_sale_id` (`after_sale_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='售后商品明细表';
+
+-- -----------------------------------------------------------
+-- 15. 商家表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `merchant`;
+CREATE TABLE `merchant` (
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '商家 ID',
+  `name`         VARCHAR(100) NOT NULL                 COMMENT '商家名称',
+  `phone`        VARCHAR(20)  NULL                     COMMENT '联系电话',
+  `description`  TEXT         NULL                     COMMENT '商家描述',
+  `logo`         VARCHAR(500) NULL                     COMMENT 'Logo URL',
+  `status`       TINYINT      DEFAULT 1                COMMENT '0=禁用 1=启用',
+  `create_time`  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time`  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商家表';
+
+-- -----------------------------------------------------------
+-- 16. 默认商家数据
+-- -----------------------------------------------------------
+INSERT INTO `merchant` (`name`, `phone`, `description`, `logo`, `status`) VALUES
+('FlowShop 官方旗舰店', '400-888-8888', 'FlowShop 官方自营店铺', 'https://via.placeholder.com/100', 1);
