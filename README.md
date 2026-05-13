@@ -1,4 +1,4 @@
-# Traework - AI 电商平台
+# FlowShop - AI 电商平台
 
 一个基于前后端分离 + AI 智能客服的全栈电商平台，采用 **Vue 3 + Spring Boot + Python FastAPI** 三层架构，集成 LangChain + RAG 实现智能客服问答。
 
@@ -52,7 +52,7 @@
 ## 目录结构
 
 ```
-Traework/
+FlowShop/
 ├── user-frontend/               # 用户端前端项目
 │   ├── src/
 │   │   ├── api/                 # API 接口模块 (9 个)
