@@ -53,7 +53,7 @@
 
 ```
 Traework/
-├── frontend/                    # 前端项目
+├── user-frontend/               # 用户端前端项目
 │   ├── src/
 │   │   ├── api/                 # API 接口模块 (9 个)
 │   │   ├── assets/              # 静态资源
@@ -166,7 +166,7 @@ Agent 服务启动后监听 `http://127.0.0.1:8000`。
 ### 4. 启动前端
 
 ```bash
-cd frontend
+cd user-frontend
 
 # 安装依赖
 npm install
