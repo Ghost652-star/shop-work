@@ -6,14 +6,20 @@ import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.Shop.DashboardService;
+import com.ecommerce.vo.ShopOrderStatusVO;
+import com.ecommerce.vo.ShopSalesTrendVO;
+import com.ecommerce.vo.ShopTopProductVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,9 +35,9 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public Map<String, Object> getSalesTrend() {
+    public ShopSalesTrendVO getSalesTrend() {
         List<String> dates = new ArrayList<>();
-        List<java.math.BigDecimal> amounts = new ArrayList<>();
+        List<BigDecimal> amounts = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
 
         for (int i = 6; i >= 0; i--) {
@@ -46,48 +52,47 @@ public class DashboardServiceImpl implements DashboardService {
                    .in("status", 1, 2, 3);
 
             List<Order> orders = orderMapper.selectList(wrapper);
-            java.math.BigDecimal total = orders.stream()
+            BigDecimal total = orders.stream()
                     .map(Order::getPayAmount)
                     .filter(Objects::nonNull)
-                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             amounts.add(total);
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("dates", dates);
-        result.put("amounts", amounts);
-        return result;
+        return ShopSalesTrendVO.builder()
+                .dates(dates)
+                .amounts(amounts)
+                .build();
     }
 
     @Override
-    public List<Map<String, Object>> getOrderStatus() {
+    public List<ShopOrderStatusVO> getOrderStatus() {
         String[] statusNames = {"待付款", "待发货", "待收货", "已完成", "已取消"};
-        List<Map<String, Object>> result = new ArrayList<>();
+        List<ShopOrderStatusVO> result = new ArrayList<>();
 
         for (int i = 0; i < statusNames.length; i++) {
             QueryWrapper<Order> wrapper = new QueryWrapper<>();
             wrapper.eq("status", i);
             long count = orderMapper.selectCount(wrapper);
 
-            Map<String, Object> item = new HashMap<>();
-            item.put("name", statusNames[i]);
-            item.put("value", count);
-            result.add(item);
+            result.add(ShopOrderStatusVO.builder()
+                    .name(statusNames[i])
+                    .value(count)
+                    .build());
         }
         return result;
     }
 
     @Override
-    public List<Map<String, Object>> getTopProducts() {
+    public List<ShopTopProductVO> getTopProducts() {
         QueryWrapper<Product> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("sales").last("LIMIT 10");
         List<Product> products = productMapper.selectList(wrapper);
 
-        return products.stream().map(p -> {
-            Map<String, Object> item = new HashMap<>();
-            item.put("name", p.getName());
-            item.put("sales", p.getSales());
-            return item;
-        }).collect(Collectors.toList());
+        return products.stream().map(p -> ShopTopProductVO.builder()
+                .name(p.getName())
+                .sales(p.getSales())
+                .build()
+        ).collect(Collectors.toList());
     }
 }

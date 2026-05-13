@@ -1,14 +1,13 @@
 package com.ecommerce.Controller.Shop;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ecommerce.entity.Product;
+import com.ecommerce.dto.ShopProductStatusDTO;
+import com.ecommerce.dto.ShopProductStockDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.Shop.ShopProductService;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopProductVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -22,32 +21,24 @@ public class ShopProductController {
     }
 
     @GetMapping("/list")
-    public Result<Map<String, Object>> list(
+    public Result<PageResultVO<ShopProductVO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Integer categoryId) {
-
-        Page<Product> result = shopProductService.listProducts(page, size, name, status, categoryId);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("records", result.getRecords());
-        data.put("total", result.getTotal());
-        data.put("page", result.getCurrent());
-        data.put("size", result.getSize());
-        return Result.success(data);
+        return Result.success(shopProductService.listProducts(page, size, name, status, categoryId));
     }
 
     @PutMapping("/status")
-    public Result<Void> updateStatus(@RequestBody Map<String, Integer> params) {
-        shopProductService.updateStatus(params.get("productId"), params.get("status"));
+    public Result<Void> updateStatus(@RequestBody ShopProductStatusDTO dto) {
+        shopProductService.updateStatus(dto.getProductId(), dto.getStatus());
         return Result.success();
     }
 
     @PutMapping("/stock")
-    public Result<Void> updateStock(@RequestBody Map<String, Integer> params) {
-        shopProductService.updateStock(params.get("productId"), params.get("stock"));
+    public Result<Void> updateStock(@RequestBody ShopProductStockDTO dto) {
+        shopProductService.updateStock(dto.getProductId(), dto.getStock());
         return Result.success();
     }
 }

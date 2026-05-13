@@ -9,6 +9,10 @@ import com.ecommerce.mapper.OrderItemMapper;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.Shop.ShopOrderService;
+import com.ecommerce.vo.OrderItemVO;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopOrderDetailVO;
+import com.ecommerce.vo.ShopOrderVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -31,8 +35,12 @@ public class ShopOrderServiceImpl implements ShopOrderService {
 
     private static final String[] STATUS_TEXT = {"待付款", "待发货", "待收货", "已完成", "已取消"};
 
+    private String getStatusText(int status) {
+        return status >= 0 && status < STATUS_TEXT.length ? STATUS_TEXT[status] : "未知";
+    }
+
     @Override
-    public Page<Map<String, Object>> listOrders(int page, int size, Integer status) {
+    public PageResultVO<ShopOrderVO> listOrders(int page, int size, Integer status) {
         Page<Order> pageParam = new Page<>(page, size);
         QueryWrapper<Order> wrapper = new QueryWrapper<>();
 
@@ -55,27 +63,28 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         }
 
         Map<Long, String> finalUserMap = userMap;
-        List<Map<String, Object>> records = orderPage.getRecords().stream().map(order -> {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", order.getId());
-            item.put("orderNo", order.getOrderNo());
-            item.put("userName", finalUserMap.getOrDefault(order.getUserId(), "未知用户"));
-            item.put("totalAmount", order.getTotalAmount());
-            item.put("payAmount", order.getPayAmount());
-            item.put("status", order.getStatus());
-            item.put("statusText", STATUS_TEXT[order.getStatus()]);
-            item.put("createTime", order.getCreateTime());
-            return item;
-        }).collect(Collectors.toList());
+        List<ShopOrderVO> voList = orderPage.getRecords().stream().map(order -> ShopOrderVO.builder()
+                .id(order.getId())
+                .orderNo(order.getOrderNo())
+                .userName(finalUserMap.getOrDefault(order.getUserId(), "未知用户"))
+                .totalAmount(order.getTotalAmount())
+                .payAmount(order.getPayAmount())
+                .status(order.getStatus())
+                .statusText(getStatusText(order.getStatus()))
+                .createTime(order.getCreateTime())
+                .build()
+        ).collect(Collectors.toList());
 
-        Page<Map<String, Object>> result = new Page<>(page, size);
-        result.setRecords(records);
-        result.setTotal(orderPage.getTotal());
-        return result;
+        return PageResultVO.<ShopOrderVO>builder()
+                .records(voList)
+                .total(orderPage.getTotal())
+                .page(orderPage.getCurrent())
+                .size(orderPage.getSize())
+                .build();
     }
 
     @Override
-    public Map<String, Object> getOrderDetail(Long orderId) {
+    public ShopOrderDetailVO getOrderDetail(Long orderId) {
         Order order = orderMapper.selectById(orderId);
         if (order == null) return null;
 
@@ -83,23 +92,34 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         List<OrderItem> items = orderItemMapper.selectList(
                 new QueryWrapper<OrderItem>().eq("order_id", orderId));
 
-        Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("id", order.getId());
-        detail.put("orderNo", order.getOrderNo());
-        detail.put("userName", user != null ? user.getNickname() : "未知用户");
-        detail.put("totalAmount", order.getTotalAmount());
-        detail.put("payAmount", order.getPayAmount());
-        detail.put("status", order.getStatus());
-        detail.put("statusText", STATUS_TEXT[order.getStatus()]);
-        detail.put("createTime", order.getCreateTime());
-        detail.put("receiverName", order.getReceiverName());
-        detail.put("receiverPhone", order.getReceiverPhone());
-        detail.put("receiverAddress",
-                order.getReceiverProvince() + order.getReceiverCity()
-                        + order.getReceiverDistrict() + order.getReceiverDetailAddress());
-        detail.put("remark", order.getRemark());
-        detail.put("items", items);
-        return detail;
+        List<OrderItemVO> itemVOs = items.stream().map(item -> OrderItemVO.builder()
+                .id(item.getId())
+                .productId(item.getProductId())
+                .productName(item.getProductName())
+                .productImage(item.getProductImage())
+                .price(item.getPrice())
+                .quantity(item.getQuantity())
+                .totalPrice(item.getTotalPrice())
+                .build()
+        ).collect(Collectors.toList());
+
+        return ShopOrderDetailVO.builder()
+                .id(order.getId())
+                .orderNo(order.getOrderNo())
+                .userName(user != null ? user.getNickname() : "未知用户")
+                .totalAmount(order.getTotalAmount())
+                .payAmount(order.getPayAmount())
+                .status(order.getStatus())
+                .statusText(getStatusText(order.getStatus()))
+                .createTime(order.getCreateTime())
+                .receiverName(order.getReceiverName())
+                .receiverPhone(order.getReceiverPhone())
+                .receiverAddress(
+                        order.getReceiverProvince() + order.getReceiverCity()
+                                + order.getReceiverDistrict() + order.getReceiverDetailAddress())
+                .remark(order.getRemark())
+                .items(itemVOs)
+                .build();
     }
 
     @Override

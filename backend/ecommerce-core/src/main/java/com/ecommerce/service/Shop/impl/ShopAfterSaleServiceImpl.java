@@ -9,6 +9,8 @@ import com.ecommerce.mapper.AfterSaleMapper;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.Shop.ShopAfterSaleService;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopAfterSaleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +34,7 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
     private static final String[] STATUS_TEXT = {"待处理", "已通过", "已驳回"};
 
     @Override
-    public Page<Map<String, Object>> listAfterSales(int page, int size, Integer status) {
+    public PageResultVO<ShopAfterSaleVO> listAfterSales(int page, int size, Integer status) {
         Page<AfterSale> pageParam = new Page<>(page, size);
         QueryWrapper<AfterSale> wrapper = new QueryWrapper<>();
 
@@ -62,24 +64,27 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
 
         Map<Long, Order> finalOrderMap = orderMap;
         Map<Long, String> finalUserMap = userMap;
-        List<Map<String, Object>> records = afterSalePage.getRecords().stream().map(as -> {
+        List<ShopAfterSaleVO> voList = afterSalePage.getRecords().stream().map(as -> {
             Order order = finalOrderMap.get(as.getOrderId());
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", as.getId());
-            item.put("orderNo", order != null ? order.getOrderNo() : "未知");
-            item.put("userName", finalUserMap.getOrDefault(as.getUserId(), "未知用户"));
-            item.put("reason", as.getReason());
-            item.put("refundAmount", as.getRefundAmount());
-            item.put("status", as.getStatus());
-            item.put("statusText", as.getStatus() < STATUS_TEXT.length ? STATUS_TEXT[as.getStatus()] : "未知");
-            item.put("createTime", as.getCreateTime());
-            return item;
+            String statusText = as.getStatus() < STATUS_TEXT.length ? STATUS_TEXT[as.getStatus()] : "未知";
+            return ShopAfterSaleVO.builder()
+                    .id(as.getId())
+                    .orderNo(order != null ? order.getOrderNo() : "未知")
+                    .userName(finalUserMap.getOrDefault(as.getUserId(), "未知用户"))
+                    .reason(as.getReason())
+                    .refundAmount(as.getRefundAmount())
+                    .status(as.getStatus())
+                    .statusText(statusText)
+                    .createTime(as.getCreateTime())
+                    .build();
         }).collect(Collectors.toList());
 
-        Page<Map<String, Object>> result = new Page<>(page, size);
-        result.setRecords(records);
-        result.setTotal(afterSalePage.getTotal());
-        return result;
+        return PageResultVO.<ShopAfterSaleVO>builder()
+                .records(voList)
+                .total(afterSalePage.getTotal())
+                .page(afterSalePage.getCurrent())
+                .size(afterSalePage.getSize())
+                .build();
     }
 
     @Override

@@ -1,10 +1,9 @@
 package com.ecommerce.service.Shop;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
-import java.util.Map;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopAfterSaleVO;
 
 public interface ShopAfterSaleService {
-    Page<Map<String, Object>> listAfterSales(int page, int size, Integer status);
+    PageResultVO<ShopAfterSaleVO> listAfterSales(int page, int size, Integer status);
     void handleAfterSale(Long afterSaleId, Integer status, String adminRemark);
 }

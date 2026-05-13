@@ -1,10 +1,13 @@
 package com.ecommerce.service.Shop;
 
+import com.ecommerce.vo.ShopOrderStatusVO;
+import com.ecommerce.vo.ShopSalesTrendVO;
+import com.ecommerce.vo.ShopTopProductVO;
+
 import java.util.List;
-import java.util.Map;
 
 public interface DashboardService {
-    Map<String, Object> getSalesTrend();
-    List<Map<String, Object>> getOrderStatus();
-    List<Map<String, Object>> getTopProducts();
+    ShopSalesTrendVO getSalesTrend();
+    List<ShopOrderStatusVO> getOrderStatus();
+    List<ShopTopProductVO> getTopProducts();
 }

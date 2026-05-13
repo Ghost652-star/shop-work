@@ -1,13 +1,12 @@
 package com.ecommerce.Controller.Shop;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ecommerce.dto.ShopAfterSaleHandleDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.Shop.ShopAfterSaleService;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopAfterSaleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -21,27 +20,16 @@ public class ShopAfterSaleController {
     }
 
     @GetMapping("/list")
-    public Result<Map<String, Object>> list(
+    public Result<PageResultVO<ShopAfterSaleVO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Integer status) {
-
-        Page<Map<String, Object>> result = shopAfterSaleService.listAfterSales(page, size, status);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("records", result.getRecords());
-        data.put("total", result.getTotal());
-        data.put("page", result.getCurrent());
-        data.put("size", result.getSize());
-        return Result.success(data);
+        return Result.success(shopAfterSaleService.listAfterSales(page, size, status));
     }
 
     @PutMapping("/handle")
-    public Result<Void> handle(@RequestBody Map<String, Object> params) {
-        Long afterSaleId = Long.valueOf(params.get("afterSaleId").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String adminRemark = (String) params.get("adminRemark");
-        shopAfterSaleService.handleAfterSale(afterSaleId, status, adminRemark);
+    public Result<Void> handle(@RequestBody ShopAfterSaleHandleDTO dto) {
+        shopAfterSaleService.handleAfterSale(dto.getAfterSaleId(), dto.getStatus(), dto.getAdminRemark());
         return Result.success();
     }
 }

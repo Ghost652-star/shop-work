@@ -1,10 +1,11 @@
 package com.ecommerce.service.Shop;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import java.util.Map;
+import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopOrderDetailVO;
+import com.ecommerce.vo.ShopOrderVO;
 
 public interface ShopOrderService {
-    Page<Map<String, Object>> listOrders(int page, int size, Integer status);
-    Map<String, Object> getOrderDetail(Long orderId);
+    PageResultVO<ShopOrderVO> listOrders(int page, int size, Integer status);
+    ShopOrderDetailVO getOrderDetail(Long orderId);
     void markShipped(Long orderId);
 }
