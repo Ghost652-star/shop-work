@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/admin/after-sale")
+@RequestMapping("/shop/after-sale")
 public class ShopAfterSaleController {
 
     private final ShopAfterSaleService shopAfterSaleService;

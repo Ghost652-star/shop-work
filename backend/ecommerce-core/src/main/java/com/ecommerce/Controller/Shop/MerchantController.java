@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/admin/merchant")
+@RequestMapping("/shop/merchant")
 public class MerchantController {
 
     private final MerchantService merchantService;

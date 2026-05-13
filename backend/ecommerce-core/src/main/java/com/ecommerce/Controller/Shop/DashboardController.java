@@ -14,7 +14,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/admin/dashboard")
+@RequestMapping("/shop/dashboard")
 public class DashboardController {
 
     private final DashboardService dashboardService;

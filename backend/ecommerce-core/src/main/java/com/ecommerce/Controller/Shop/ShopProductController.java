@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/admin/product")
+@RequestMapping("/shop/product")
 public class ShopProductController {
 
     private final ShopProductService shopProductService;
