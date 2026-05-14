@@ -443,7 +443,8 @@ const buyNow = async (product) => {
   if (!isLoggedIn.value) { showLoginDialog.value = true; return }
 
   try {
-    const userId = parseInt(localStorage.getItem('userId'))
+    const loginUser = JSON.parse(localStorage.getItem('loginUser'))
+    const userId = loginUser.user.id
     const addressResult = await getDefaultAddress(userId)
 
     if (addressResult.code !== 1 || !addressResult.data) {
