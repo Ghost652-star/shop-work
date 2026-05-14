@@ -24,8 +24,8 @@ logging:
   level:
     # 设置mybatis-plus的SQL日志级别
     com.baomidou.mybatisplus: DEBUG
-    # 设置你的项目包的日志级别
-#    com.ecommerce: DEBUG
+    # 认证拦截器日志
+    com.ecommerce.interceptor: DEBUG
     # 设置SQL执行日志
     org.apache.ibatis: DEBUG
     org.mybatis.spring: DEBUG
