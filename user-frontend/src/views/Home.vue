@@ -397,12 +397,10 @@ const handleLogin = async () => {
       result = await login({ username: phone.value, password: verificationCode.value })
     }
     if (result.code === 1) {
-      const user = result.data
+      const loginUser = result.data
       isLoggedIn.value = true
-      userNickname.value = user.nickname
-      localStorage.setItem('isLoggedIn', 'true')
-      localStorage.setItem('userNickname', user.nickname)
-      localStorage.setItem('userId', user.id)
+      userNickname.value = loginUser.user.nickname
+      localStorage.setItem('loginUser', JSON.stringify(loginUser))
       showLoginDialog.value = false
       ElMessage.success('登录成功')
     } else {
@@ -431,7 +429,7 @@ const handleLogout = async () => {
     const result = await logout()
     if (result.code === 1) {
       isLoggedIn.value = false; userNickname.value = '用户'
-      localStorage.removeItem('isLoggedIn'); localStorage.removeItem('userNickname'); localStorage.removeItem('userId')
+      localStorage.removeItem('loginUser')
       ElMessage.success('退出登录成功')
     } else { ElMessage.error(result.msg || '退出登录失败') }
   } catch (error) { ElMessage.error('退出登录失败') }
@@ -506,9 +504,11 @@ const startPlaceholderAutoplay = () => {
 
 onMounted(() => {
   loadCategoryList(); loadProductList(); loadHotSales()
-  const savedLoginState = localStorage.getItem('isLoggedIn')
-  const savedNickname = localStorage.getItem('userNickname')
-  if (savedLoginState === 'true') { isLoggedIn.value = true; userNickname.value = savedNickname || '用户' }
+  const savedLoginUser = JSON.parse(localStorage.getItem('loginUser'))
+  if (savedLoginUser && savedLoginUser.user) {
+    isLoggedIn.value = true
+    userNickname.value = savedLoginUser.user.nickname
+  }
   startSeckillCountdown(); startAutoplay(); startPlaceholderAutoplay()
   window.addEventListener('scroll', handleScroll)
 })
