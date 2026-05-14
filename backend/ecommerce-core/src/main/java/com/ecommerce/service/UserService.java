@@ -5,6 +5,7 @@ import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
 import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
+import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;
 
 /**
@@ -14,9 +15,9 @@ public interface UserService extends IService<User> {
     /**
      * 用户登录
      * @param loginDTO 登录请求DTO
-     * @return 用户信息
+     * @return 登录结果（用户信息 + token）
      */
-    UserVO login(LoginDTO loginDTO);
+    LoginVO login(LoginDTO loginDTO);
     
     /**
      * 用户注册

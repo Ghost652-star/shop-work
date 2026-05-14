@@ -8,6 +8,8 @@ import com.ecommerce.entity.User;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.UserService;
+import com.ecommerce.utils.JwtUtils;
+import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,13 +23,19 @@ import java.util.Random;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
+    private final JwtUtils jwtUtils;
+
+    public UserServiceImpl(JwtUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+    }
+
     /**
      * 用户登录
      * @param loginDTO 登录请求 DTO
-     * @return 用户信息
+     * @return 登录结果（用户信息 + token）
      */
     @Override
-    public UserVO login(LoginDTO loginDTO) {
+    public LoginVO login(LoginDTO loginDTO) {
         log.debug("开始处理用户登录: username={}", loginDTO.getUsername());
         
         // 根据用户名查询用户
@@ -50,8 +58,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         
         log.debug("用户登录验证通过: userId={}", user.getId());
-        // 转换为 UserVO
-        return convertToVO(user);
+        // 转换为 UserVO 并生成 token
+        UserVO userVO = convertToVO(user);
+        String token = jwtUtils.generateToken(user.getId());
+        return LoginVO.builder().user(userVO).token(token).build();
     }
     
     /**

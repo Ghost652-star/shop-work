@@ -5,6 +5,7 @@ import com.ecommerce.dto.RegisterDTO;
 import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.UserService;
+import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,14 +33,14 @@ public class UserController {
     /**
      * 用户登录
      * @param loginDTO 登录请求DTO
-     * @return 登录结果
+     * @return 登录结果（用户信息 + token）
      */
     @PostMapping("/login")
-    public Result<UserVO> login(@RequestBody LoginDTO loginDTO) {
+    public Result<LoginVO> login(@RequestBody LoginDTO loginDTO) {
         log.info("用户登录请求: username={}", loginDTO.getUsername());
-        UserVO user = userService.login(loginDTO);
-        log.info("用户登录成功: userId={}, username={}", user.getId(), user.getUsername());
-        return Result.success(user);
+        LoginVO loginVO = userService.login(loginDTO);
+        log.info("用户登录成功: userId={}, username={}", loginVO.getUser().getId(), loginVO.getUser().getUsername());
+        return Result.success(loginVO);
     }
 
     /**
