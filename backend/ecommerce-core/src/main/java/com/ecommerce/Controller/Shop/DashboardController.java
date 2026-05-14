@@ -25,16 +25,19 @@ public class DashboardController {
 
     @GetMapping("/sales-trend")
     public Result<ShopSalesTrendVO> salesTrend() {
+        log.debug("查询销售趋势数据");
         return Result.success(dashboardService.getSalesTrend());
     }
 
     @GetMapping("/order-status")
     public Result<List<ShopOrderStatusVO>> orderStatus() {
+        log.debug("查询订单状态分布");
         return Result.success(dashboardService.getOrderStatus());
     }
 
     @GetMapping("/top-products")
     public Result<List<ShopTopProductVO>> topProducts() {
+        log.debug("查询热销商品排行");
         return Result.success(dashboardService.getTopProducts());
     }
 }

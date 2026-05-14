@@ -22,11 +22,13 @@ public class ShopAfterSaleController {
 
     @GetMapping("/list")
     public Result<PageResultVO<ShopAfterSaleVO>> list(ShopAfterSaleQueryDTO query) {
+        log.debug("查询售后列表: page={}, size={}, status={}", query.getPage(), query.getSize(), query.getStatus());
         return Result.success(shopAfterSaleService.listAfterSales(query));
     }
 
     @PutMapping("/handle")
     public Result<Void> handle(@RequestBody ShopAfterSaleHandleDTO dto) {
+        log.info("处理售后申请: afterSaleId={}, status={}, remark={}", dto.getAfterSaleId(), dto.getStatus(), dto.getAdminRemark());
         shopAfterSaleService.handleAfterSale(dto.getAfterSaleId(), dto.getStatus(), dto.getAdminRemark());
         return Result.success();
     }

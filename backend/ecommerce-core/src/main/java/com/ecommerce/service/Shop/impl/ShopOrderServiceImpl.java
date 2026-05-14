@@ -51,6 +51,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         wrapper.orderByDesc("id");
 
         Page<Order> orderPage = orderMapper.selectPage(pageParam, wrapper);
+        log.debug("订单列表查询完成: total={}, page={}, size={}", orderPage.getTotal(), orderPage.getCurrent(), orderPage.getSize());
 
         // batch fetch user names
         Set<Long> userIds = orderPage.getRecords().stream()
@@ -87,7 +88,10 @@ public class ShopOrderServiceImpl implements ShopOrderService {
     @Override
     public ShopOrderDetailVO getOrderDetail(Long orderId) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) return null;
+        if (order == null) {
+            log.warn("订单不存在: orderId={}", orderId);
+            return null;
+        }
 
         User user = userMapper.selectById(order.getUserId());
         List<OrderItem> items = orderItemMapper.selectList(
@@ -129,5 +133,6 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         order.setId(orderId);
         order.setStatus(2);
         orderMapper.updateById(order);
+        log.info("订单发货成功: orderId={}", orderId);
     }
 }

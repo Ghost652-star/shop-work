@@ -23,6 +23,8 @@
 
 **数据流：** 用户请求 → Vue 前端 → Spring Boot 后端 → (需要 AI 时) → Python Agent → LLM + 工具调用 → 返回结果
 
+**商家端：** Vue 3 商家管理后台 → Spring Boot 商家 API → MySQL（数据总览、商品管理、订单管理、售后管理）
+
 ---
 
 ## 技术栈
@@ -67,14 +69,27 @@ FlowShop/
 │   ├── package.json
 │   └── vite.config.js
 │
+├── shop-frontend/               # 商家端管理后台
+│   ├── src/
+│   │   ├── api/                 # API 接口模块 (5 个)
+│   │   ├── components/          # 布局组件 (ShopLayout)
+│   │   ├── views/               # 页面组件 (4 个)
+│   │   ├── router/              # 路由配置
+│   │   └── utils/               # 工具 (Axios 封装)
+│   ├── package.json
+│   └── vite.config.js           # 端口 5174
+│
 ├── backend/                     # 后端项目 (Maven 多模块)
 │   ├── pom.xml                  # 父 POM
 │   ├── ecommerce-pojo/          # 数据模型层 (Entity/DTO/VO)
 │   ├── ecommerce-common/        # 公共层 (异常处理)
 │   └── ecommerce-core/          # 核心业务层
 │       └── src/main/java/com/ecommerce/
-│           ├── Controller/      # 控制器 (11 个)
-│           ├── service/         # 服务接口 (9 个)
+│           ├── Controller/      # 控制器
+│           │   ├── Shop/        # 商家端控制器 (5 个)
+│           │   └── ...          # 用户端控制器 (11 个)
+│           ├── service/         # 服务接口
+│           │   ├── Shop/        # 商家端服务 (5 个)
 │           │   └── impl/        # 服务实现
 │           ├── mapper/          # 数据访问层 (11 个)
 │           ├── entity/          # 实体类
@@ -177,11 +192,25 @@ npm run dev
 
 前端启动后访问 `http://localhost:5173`。
 
+### 5. 启动商家端前端
+
+```bash
+cd shop-frontend
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+```
+
+商家端启动后访问 `http://localhost:5174`。
+
 ---
 
 ## 数据库设计
 
-数据库名 `db_aps`，共 12 张表：
+数据库名 `db_aps`，共 13 张表：
 
 | 表名 | 说明 | 核心字段 |
 |------|------|----------|
@@ -197,6 +226,7 @@ npm run dev
 | `address` | 收货地址表 | userId, name, phone, 省市区, detailAddress, isDefault |
 | `favorite` | 收藏表 | userId, productId |
 | `comment` | 商品评论表 | userId, productId, orderId, rating, content |
+| `merchant` | 商家表 | name, phone, description, logo, status |
 
 **订单状态流转：**
 ```
@@ -343,6 +373,45 @@ npm run dev
 |------|------|------|
 | POST | `/shop/customer-service/process` | 发送消息给 AI 客服 |
 
+### 商家端 API
+
+#### 商家信息 `/shop/merchant`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/shop/merchant/info` | 获取商家信息 |
+
+#### 数据总览 `/shop/dashboard`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/shop/dashboard/sales-trend` | 近 7 天销售趋势 |
+| GET | `/shop/dashboard/order-status` | 订单状态分布统计 |
+| GET | `/shop/dashboard/top-products` | 热销商品 TOP10 |
+
+#### 商品管理 `/shop/product`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/shop/product/list` | 商品列表（支持分页、搜索、筛选） |
+| PUT | `/shop/product/status` | 上下架商品 |
+| PUT | `/shop/product/stock` | 修改库存 |
+
+#### 订单管理 `/shop/order`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/shop/order/list` | 订单列表（支持分页、状态筛选） |
+| GET | `/shop/order/detail?orderId=` | 订单详情 |
+| PUT | `/shop/order/ship` | 订单发货 |
+
+#### 售后管理 `/shop/after-sale`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/shop/after-sale/list` | 售后列表（支持分页、状态筛选） |
+| PUT | `/shop/after-sale/handle` | 处理售后（同意/拒绝 + 备注） |
+
 ---
 
 ## AI 智能客服
@@ -393,6 +462,15 @@ curl -X POST http://127.0.0.1:8000/process \
 | 优惠券中心 | `/coupon-seckill` | 分类标签、优惠券列表、领取按钮 |
 | 智能客服 | `/customer-service` | 联系人列表、消息对话框、实时问答 |
 
+### 商家端页面（端口 5174）
+
+| 页面 | 路由 | 功能 |
+|------|------|------|
+| 数据总览 | `/` | ECharts 图表（销售趋势、订单分布、热销排行） |
+| 商品管理 | `/product` | 商品列表、搜索筛选、上下架、库存管理 |
+| 订单管理 | `/order` | 订单列表、状态筛选、详情查看、发货操作 |
+| 售后管理 | `/after-sale` | 售后列表、状态筛选、同意/拒绝处理 |
+
 ---
 
 ## 配置说明
@@ -442,7 +520,9 @@ proxy: {
 ## 开发说明
 
 - 后端遵循 **Controller → Service → Mapper** 三层架构
+- 接口使用 **DTO 接收参数、VO 返回数据**，禁止使用 `Map<String, Object>`
 - 前端 API 封装在 `src/utils/request.js`，基于 Axios 拦截器统一处理响应
 - 设计令牌定义在 `src/styles/variables.css`，主色调为 `#E53935`（红色系）
 - 组件库使用 Element Plus，其余 UI 自定义实现
 - 用户认证通过 localStorage 存储 `userId`，无 JWT/Session 机制
+- 商家端使用 SLF4J 日志，查询类 `debug`，状态变更 `info`，异常 `warn`

@@ -45,6 +45,7 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
         wrapper.orderByDesc("id");
 
         Page<AfterSale> afterSalePage = afterSaleMapper.selectPage(pageParam, wrapper);
+        log.debug("售后列表查询完成: total={}, page={}, size={}", afterSalePage.getTotal(), afterSalePage.getCurrent(), afterSalePage.getSize());
 
         // batch fetch related data
         Set<Long> orderIds = afterSalePage.getRecords().stream()
@@ -95,5 +96,6 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
         afterSale.setStatus(status);
         afterSale.setAdminRemark(adminRemark);
         afterSaleMapper.updateById(afterSale);
+        log.info("售后处理完成: afterSaleId={}, newStatus={}, remark={}", afterSaleId, status, adminRemark);
     }
 }

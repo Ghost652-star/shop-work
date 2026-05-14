@@ -48,6 +48,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         wrapper.orderByDesc("id");
 
         Page<Product> result = productMapper.selectPage(pageParam, wrapper);
+        log.debug("商品列表查询完成: total={}, page={}, size={}", result.getTotal(), result.getCurrent(), result.getSize());
 
         // batch fetch category names
         Set<Integer> categoryIds = result.getRecords().stream()
@@ -87,6 +88,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setId(productId);
         product.setStatus(status);
         productMapper.updateById(product);
+        log.info("商品状态更新成功: productId={}, newStatus={}", productId, status);
     }
 
     @Override
@@ -95,5 +97,6 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setId(productId);
         product.setStock(stock);
         productMapper.updateById(product);
+        log.info("商品库存更新成功: productId={}, newStock={}", productId, stock);
     }
 }

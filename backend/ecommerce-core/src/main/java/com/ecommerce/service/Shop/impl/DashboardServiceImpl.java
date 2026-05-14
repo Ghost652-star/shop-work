@@ -59,10 +59,12 @@ public class DashboardServiceImpl implements DashboardService {
             amounts.add(total);
         }
 
-        return ShopSalesTrendVO.builder()
+        ShopSalesTrendVO result = ShopSalesTrendVO.builder()
                 .dates(dates)
                 .amounts(amounts)
                 .build();
+        log.debug("销售趋势查询完成: days={}, totalAmount={}", dates.size(), amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+        return result;
     }
 
     @Override
@@ -80,6 +82,7 @@ public class DashboardServiceImpl implements DashboardService {
                     .value(count)
                     .build());
         }
+        log.debug("订单状态分布查询完成: {}", result);
         return result;
     }
 
@@ -89,10 +92,12 @@ public class DashboardServiceImpl implements DashboardService {
         wrapper.orderByDesc("sales").last("LIMIT 10");
         List<Product> products = productMapper.selectList(wrapper);
 
-        return products.stream().map(p -> ShopTopProductVO.builder()
+        List<ShopTopProductVO> topProducts = products.stream().map(p -> ShopTopProductVO.builder()
                 .name(p.getName())
                 .sales(p.getSales())
                 .build()
         ).collect(Collectors.toList());
+        log.debug("热销商品排行查询完成: count={}", topProducts.size());
+        return topProducts;
     }
 }

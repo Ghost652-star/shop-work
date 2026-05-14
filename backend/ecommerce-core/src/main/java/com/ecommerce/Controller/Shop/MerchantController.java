@@ -21,6 +21,7 @@ public class MerchantController {
 
     @GetMapping("/info")
     public Result<Merchant> info() {
+        log.debug("查询商家信息");
         return Result.success(merchantService.getMerchantInfo());
     }
 }

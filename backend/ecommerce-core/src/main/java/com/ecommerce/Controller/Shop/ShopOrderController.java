@@ -23,16 +23,19 @@ public class ShopOrderController {
 
     @GetMapping("/list")
     public Result<PageResultVO<ShopOrderVO>> list(ShopOrderQueryDTO query) {
+        log.debug("查询订单列表: page={}, size={}, status={}", query.getPage(), query.getSize(), query.getStatus());
         return Result.success(shopOrderService.listOrders(query));
     }
 
     @GetMapping("/detail")
     public Result<ShopOrderDetailVO> detail(@RequestParam Long orderId) {
+        log.debug("查询订单详情: orderId={}", orderId);
         return Result.success(shopOrderService.getOrderDetail(orderId));
     }
 
     @PutMapping("/ship")
     public Result<Void> ship(@RequestBody ShopOrderShipDTO dto) {
+        log.info("订单发货: orderId={}", dto.getOrderId());
         shopOrderService.markShipped(dto.getOrderId());
         return Result.success();
     }
