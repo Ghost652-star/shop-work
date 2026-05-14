@@ -481,6 +481,12 @@ import { getAfterSaleList } from '../api/afterSale'
 import { getCartList, updateQuantity as updateCartQuantityApi, deleteCart } from '../api/cart'
 import { regionOptions, getNameToCode, getCodeToName } from '../data/regions'
 
+// 获取当前登录用户ID
+const getUserId = () => {
+  const loginUser = JSON.parse(localStorage.getItem('loginUser'))
+  return loginUser?.user?.id
+}
+
 // 路由
 const router = useRouter()
 const route = useRoute()
@@ -579,7 +585,7 @@ const navigateTo = (tab) => {
 
 // 购物车方法
 const loadCartData = async () => {
-  const userId = localStorage.getItem('userId')
+  const userId = getUserId()
   if (!userId) { cartItems.value = []; return }
   try {
     const result = await getCartList(parseInt(userId))
@@ -617,7 +623,7 @@ const removeCartItem = async (id) => {
 // 加载用户信息
 const loadUserInfo = async () => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (userId) {
       const result = await getUserInfo(userId)
       if (result.code === 1) {
@@ -632,7 +638,7 @@ const loadUserInfo = async () => {
 // 加载用户优惠券列表
 const loadUserCouponList = async () => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       ElMessage.warning('请先登录')
       return
@@ -671,7 +677,7 @@ const formatDate = (date) => {
 // 加载地址列表
 const loadAddressList = async () => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     console.log('当前 userId:', userId)
     if (!userId) {
       ElMessage.warning('请先登录')
@@ -701,7 +707,7 @@ const formatPhone = (phone) => {
 // 设为默认地址
 const setDefaultAddress = async (addressId) => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       ElMessage.warning('请先登录')
       return
@@ -727,7 +733,7 @@ const setDefaultAddress = async (addressId) => {
 const editAddress = (address) => {
   addressForm.value = { 
     ...address,
-    userId: parseInt(localStorage.getItem('userId')),
+    userId: getUserId(),
     isDefault: address.isDefault === 1  // 整数转布尔值,用于 checkbox
   }
   if (address.province && address.city && address.district) {
@@ -798,7 +804,7 @@ const submitAddress = async () => {
     // 准备提交数据,确保类型正确
     const submitData = {
       ...addressForm.value,
-      userId: parseInt(localStorage.getItem('userId')),  // 转换为数字
+      userId: getUserId(),  // 转换为数字
       isDefault: addressForm.value.isDefault ? 1 : 0     // 布尔值转整数
     }
     
@@ -908,7 +914,7 @@ const submitProfile = async () => {
   }
   
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       ElMessage.warning('请先登录')
       return
@@ -948,9 +954,7 @@ const handleLogout = async () => {
     
     const result = await logout()
     if (result.code === 1) {
-      localStorage.removeItem('isLoggedIn')
-      localStorage.removeItem('userNickname')
-      localStorage.removeItem('userId')
+      localStorage.removeItem('loginUser')
       ElMessage.success('退出登录成功')
       router.push('/')
     } else {
@@ -969,7 +973,7 @@ const handleLogout = async () => {
 // 加载收藏列表
 const loadFavoriteList = async () => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) return
     
     const result = await getFavoriteList(userId)
@@ -1004,7 +1008,7 @@ const loadFavoriteProductDetails = async () => {
 // 取消收藏
 const cancelFavorite = async (productId) => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       ElMessage.warning('请先登录')
       return
@@ -1045,7 +1049,7 @@ const goToProduct = (productId) => {
 // 加载订单列表
 const loadOrderList = async () => {
   try {
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       orderList.value = []
       return
@@ -1155,7 +1159,7 @@ const cancelOrderAction = async (orderId) => {
       type: 'warning'
     })
 
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     if (!userId) {
       ElMessage.warning('请先登录')
       return
@@ -1177,7 +1181,7 @@ const cancelOrderAction = async (orderId) => {
 }
 
 const loadAfterSaleList = async () => {
-  const userId = localStorage.getItem('userId')
+  const userId = getUserId()
   if (!userId) return
   try {
     const result = await getAfterSaleList(parseInt(userId))
@@ -1211,7 +1215,7 @@ const goToAfterSale = (orderId) => {
 }
 
 const goToAfterSaleDetail = async (orderId) => {
-  const userId = localStorage.getItem('userId')
+  const userId = getUserId()
   if (!userId) return
   try {
     const result = await getAfterSaleList(parseInt(userId))
@@ -1237,7 +1241,7 @@ const confirmOrderAction = async (orderId) => {
       cancelButtonText: '取消',
       type: 'info'
     })
-    const userId = localStorage.getItem('userId')
+    const userId = getUserId()
     const result = await confirmOrderApi(orderId, parseInt(userId))
     if (result.code === 1) {
       ElMessage.success('已确认收货')
