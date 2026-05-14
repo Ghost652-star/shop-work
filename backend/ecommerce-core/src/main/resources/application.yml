@@ -31,3 +31,7 @@ logging:
     org.mybatis.spring: DEBUG
     # 显示SQL语句
     com.ecommerce.mapper: DEBUG
+
+jwt:
+  secret: TraeworkShopSecretKey2026
+  expiration: 86400000
