@@ -33,5 +33,5 @@ logging:
     com.ecommerce.mapper: DEBUG
 
 jwt:
-  secret: TraeworkShopSecretKey2026
+  secret: ${JWT_SECRET:TraeworkShopSecretKey2026}
   expiration: 86400000
