@@ -2,6 +2,8 @@ package com.ecommerce.interceptor;
 
 import com.ecommerce.utils.JwtUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -12,6 +14,8 @@ import java.util.Map;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthInterceptor.class);
 
     private final JwtUtils jwtUtils;
     private final ObjectMapper objectMapper;
@@ -25,6 +29,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("请求缺少Token: {}", request.getRequestURI());
             send401(response);
             return false;
         }
@@ -33,8 +38,10 @@ public class AuthInterceptor implements HandlerInterceptor {
         try {
             Integer userId = jwtUtils.parseToken(token);
             request.setAttribute("userId", userId);
+            log.debug("Token验证成功: userId={}, uri={}", userId, request.getRequestURI());
             return true;
         } catch (Exception e) {
+            log.warn("Token验证失败: uri={}, error={}", request.getRequestURI(), e.getMessage());
             send401(response);
             return false;
         }
