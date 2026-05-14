@@ -1,5 +1,6 @@
 package com.ecommerce.Controller.Shop;
 
+import com.ecommerce.dto.ShopOrderQueryDTO;
 import com.ecommerce.dto.ShopOrderShipDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.Shop.ShopOrderService;
@@ -21,11 +22,9 @@ public class ShopOrderController {
     }
 
     @GetMapping("/list")
-    public Result<PageResultVO<ShopOrderVO>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Integer status) {
-        return Result.success(shopOrderService.listOrders(page, size, status));
+    public Result<PageResultVO<ShopOrderVO>> list(ShopOrderQueryDTO query) {
+        return Result.success(shopOrderService.listOrders(
+                query.getPage(), query.getSize(), query.getStatus()));
     }
 
     @GetMapping("/detail")

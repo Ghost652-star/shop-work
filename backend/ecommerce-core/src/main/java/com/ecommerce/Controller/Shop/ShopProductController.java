@@ -1,5 +1,6 @@
 package com.ecommerce.Controller.Shop;
 
+import com.ecommerce.dto.ShopProductQueryDTO;
 import com.ecommerce.dto.ShopProductStatusDTO;
 import com.ecommerce.dto.ShopProductStockDTO;
 import com.ecommerce.result.Result;
@@ -21,13 +22,10 @@ public class ShopProductController {
     }
 
     @GetMapping("/list")
-    public Result<PageResultVO<ShopProductVO>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) Integer categoryId) {
-        return Result.success(shopProductService.listProducts(page, size, name, status, categoryId));
+    public Result<PageResultVO<ShopProductVO>> list(ShopProductQueryDTO query) {
+        return Result.success(shopProductService.listProducts(
+                query.getPage(), query.getSize(), query.getName(),
+                query.getStatus(), query.getCategoryId()));
     }
 
     @PutMapping("/status")

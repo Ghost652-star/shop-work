@@ -1,6 +1,7 @@
 package com.ecommerce.Controller.Shop;
 
 import com.ecommerce.dto.ShopAfterSaleHandleDTO;
+import com.ecommerce.dto.ShopAfterSaleQueryDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.Shop.ShopAfterSaleService;
 import com.ecommerce.vo.PageResultVO;
@@ -20,11 +21,9 @@ public class ShopAfterSaleController {
     }
 
     @GetMapping("/list")
-    public Result<PageResultVO<ShopAfterSaleVO>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Integer status) {
-        return Result.success(shopAfterSaleService.listAfterSales(page, size, status));
+    public Result<PageResultVO<ShopAfterSaleVO>> list(ShopAfterSaleQueryDTO query) {
+        return Result.success(shopAfterSaleService.listAfterSales(
+                query.getPage(), query.getSize(), query.getStatus()));
     }
 
     @PutMapping("/handle")
