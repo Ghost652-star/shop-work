@@ -394,6 +394,10 @@ npm run dev
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/shop/product/list` | 商品列表（支持分页、搜索、筛选） |
+| GET | `/shop/product/detail?productId=` | 商品详情 |
+| POST | `/shop/product/add` | 新增商品 |
+| PUT | `/shop/product/update` | 修改商品信息 |
+| DELETE | `/shop/product/delete?productId=` | 删除商品 |
 | PUT | `/shop/product/status` | 上下架商品 |
 | PUT | `/shop/product/stock` | 修改库存 |
 

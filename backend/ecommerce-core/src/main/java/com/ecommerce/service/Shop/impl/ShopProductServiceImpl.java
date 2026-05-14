@@ -7,8 +7,10 @@ import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.CategoryMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.dto.ShopProductQueryDTO;
+import com.ecommerce.dto.ShopProductSaveDTO;
 import com.ecommerce.service.Shop.ShopProductService;
 import com.ecommerce.vo.PageResultVO;
+import com.ecommerce.vo.ShopProductDetailVO;
 import com.ecommerce.vo.ShopProductVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -98,5 +100,62 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setStock(stock);
         productMapper.updateById(product);
         log.info("商品库存更新成功: productId={}, newStock={}", productId, stock);
+    }
+
+    @Override
+    public ShopProductDetailVO getProductDetail(Integer productId) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) return null;
+
+        Category category = categoryMapper.selectById(product.getCategoryId());
+        log.debug("商品详情查询完成: productId={}, name={}", productId, product.getName());
+
+        return ShopProductDetailVO.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getStock())
+                .sales(product.getSales())
+                .categoryId(product.getCategoryId())
+                .categoryName(category != null ? category.getName() : "")
+                .mainImage(product.getMainImage())
+                .status(product.getStatus())
+                .build();
+    }
+
+    @Override
+    public void addProduct(ShopProductSaveDTO dto) {
+        Product product = new Product();
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setPrice(dto.getPrice());
+        product.setStock(dto.getStock());
+        product.setCategoryId(dto.getCategoryId());
+        product.setMainImage(dto.getMainImage());
+        product.setStatus(0);
+        product.setSales(0);
+        productMapper.insert(product);
+        log.info("新增商品成功: productId={}, name={}", product.getId(), dto.getName());
+    }
+
+    @Override
+    public void updateProduct(ShopProductSaveDTO dto) {
+        Product product = new Product();
+        product.setId(dto.getId());
+        product.setName(dto.getName());
+        product.setDescription(dto.getDescription());
+        product.setPrice(dto.getPrice());
+        product.setStock(dto.getStock());
+        product.setCategoryId(dto.getCategoryId());
+        product.setMainImage(dto.getMainImage());
+        productMapper.updateById(product);
+        log.info("修改商品信息成功: productId={}, name={}", dto.getId(), dto.getName());
+    }
+
+    @Override
+    public void deleteProduct(Integer productId) {
+        productMapper.deleteById(productId);
+        log.info("删除商品成功: productId={}", productId);
     }
 }
