@@ -6,6 +6,7 @@ import com.ecommerce.entity.Category;
 import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.CategoryMapper;
 import com.ecommerce.mapper.ProductMapper;
+import com.ecommerce.dto.ShopProductQueryDTO;
 import com.ecommerce.service.Shop.ShopProductService;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopProductVO;
@@ -31,18 +32,18 @@ public class ShopProductServiceImpl implements ShopProductService {
     }
 
     @Override
-    public PageResultVO<ShopProductVO> listProducts(int page, int size, String name, Integer status, Integer categoryId) {
-        Page<Product> pageParam = new Page<>(page, size);
+    public PageResultVO<ShopProductVO> listProducts(ShopProductQueryDTO query) {
+        Page<Product> pageParam = new Page<>(query.getPage(), query.getSize());
         QueryWrapper<Product> wrapper = new QueryWrapper<>();
 
-        if (StringUtils.hasText(name)) {
-            wrapper.like("name", name);
+        if (StringUtils.hasText(query.getName())) {
+            wrapper.like("name", query.getName());
         }
-        if (status != null) {
-            wrapper.eq("status", status);
+        if (query.getStatus() != null) {
+            wrapper.eq("status", query.getStatus());
         }
-        if (categoryId != null) {
-            wrapper.eq("category_id", categoryId);
+        if (query.getCategoryId() != null) {
+            wrapper.eq("category_id", query.getCategoryId());
         }
         wrapper.orderByDesc("id");
 

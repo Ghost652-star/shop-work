@@ -23,9 +23,7 @@ public class ShopProductController {
 
     @GetMapping("/list")
     public Result<PageResultVO<ShopProductVO>> list(ShopProductQueryDTO query) {
-        return Result.success(shopProductService.listProducts(
-                query.getPage(), query.getSize(), query.getName(),
-                query.getStatus(), query.getCategoryId()));
+        return Result.success(shopProductService.listProducts(query));
     }
 
     @PutMapping("/status")

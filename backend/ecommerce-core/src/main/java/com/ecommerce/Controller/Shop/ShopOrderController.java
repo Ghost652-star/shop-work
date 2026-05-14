@@ -23,8 +23,7 @@ public class ShopOrderController {
 
     @GetMapping("/list")
     public Result<PageResultVO<ShopOrderVO>> list(ShopOrderQueryDTO query) {
-        return Result.success(shopOrderService.listOrders(
-                query.getPage(), query.getSize(), query.getStatus()));
+        return Result.success(shopOrderService.listOrders(query));
     }
 
     @GetMapping("/detail")

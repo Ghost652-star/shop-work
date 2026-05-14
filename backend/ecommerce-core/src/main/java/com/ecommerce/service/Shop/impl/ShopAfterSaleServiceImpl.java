@@ -8,6 +8,7 @@ import com.ecommerce.entity.User;
 import com.ecommerce.mapper.AfterSaleMapper;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.UserMapper;
+import com.ecommerce.dto.ShopAfterSaleQueryDTO;
 import com.ecommerce.service.Shop.ShopAfterSaleService;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopAfterSaleVO;
@@ -34,12 +35,12 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
     private static final String[] STATUS_TEXT = {"待处理", "已通过", "已驳回"};
 
     @Override
-    public PageResultVO<ShopAfterSaleVO> listAfterSales(int page, int size, Integer status) {
-        Page<AfterSale> pageParam = new Page<>(page, size);
+    public PageResultVO<ShopAfterSaleVO> listAfterSales(ShopAfterSaleQueryDTO query) {
+        Page<AfterSale> pageParam = new Page<>(query.getPage(), query.getSize());
         QueryWrapper<AfterSale> wrapper = new QueryWrapper<>();
 
-        if (status != null) {
-            wrapper.eq("status", status);
+        if (query.getStatus() != null) {
+            wrapper.eq("status", query.getStatus());
         }
         wrapper.orderByDesc("id");
 

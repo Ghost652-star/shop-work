@@ -8,6 +8,7 @@ import com.ecommerce.entity.User;
 import com.ecommerce.mapper.OrderItemMapper;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.UserMapper;
+import com.ecommerce.dto.ShopOrderQueryDTO;
 import com.ecommerce.service.Shop.ShopOrderService;
 import com.ecommerce.vo.OrderItemVO;
 import com.ecommerce.vo.PageResultVO;
@@ -40,12 +41,12 @@ public class ShopOrderServiceImpl implements ShopOrderService {
     }
 
     @Override
-    public PageResultVO<ShopOrderVO> listOrders(int page, int size, Integer status) {
-        Page<Order> pageParam = new Page<>(page, size);
+    public PageResultVO<ShopOrderVO> listOrders(ShopOrderQueryDTO query) {
+        Page<Order> pageParam = new Page<>(query.getPage(), query.getSize());
         QueryWrapper<Order> wrapper = new QueryWrapper<>();
 
-        if (status != null) {
-            wrapper.eq("status", status);
+        if (query.getStatus() != null) {
+            wrapper.eq("status", query.getStatus());
         }
         wrapper.orderByDesc("id");
 

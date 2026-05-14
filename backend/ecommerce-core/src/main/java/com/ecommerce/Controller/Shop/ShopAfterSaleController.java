@@ -22,8 +22,7 @@ public class ShopAfterSaleController {
 
     @GetMapping("/list")
     public Result<PageResultVO<ShopAfterSaleVO>> list(ShopAfterSaleQueryDTO query) {
-        return Result.success(shopAfterSaleService.listAfterSales(
-                query.getPage(), query.getSize(), query.getStatus()));
+        return Result.success(shopAfterSaleService.listAfterSales(query));
     }
 
     @PutMapping("/handle")
