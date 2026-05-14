@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * 用户控制器
  */
@@ -67,7 +69,20 @@ public class UserController {
         UserVO user = userService.getUserById(userId);
         return Result.success(user);
     }
-    
+
+    /**
+     * 获取当前登录用户信息
+     * @param request HTTP请求（由AuthInterceptor注入userId属性）
+     * @return 当前用户信息
+     */
+    @GetMapping("/current")
+    public Result<UserVO> getCurrentUser(HttpServletRequest request) {
+        Integer userId = (Integer) request.getAttribute("userId");
+        log.debug("获取当前登录用户: userId={}", userId);
+        UserVO user = userService.getUserById(userId);
+        return Result.success(user);
+    }
+
     /**
      * 用户退出登录
      * @return 退出结果
