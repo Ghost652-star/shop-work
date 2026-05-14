@@ -247,9 +247,10 @@ npm run dev
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/user/login` | 用户登录 |
+| POST | `/user/login` | 用户登录（返回 JWT token） |
 | POST | `/user/register` | 用户注册 |
 | GET | `/user/info?userId=` | 获取用户信息 |
+| GET | `/user/current` | 获取当前登录用户（需 Bearer token） |
 | POST | `/user/logout` | 退出登录 |
 | PUT | `/user/update` | 更新用户资料 |
 
@@ -528,5 +529,6 @@ proxy: {
 - 前端 API 封装在 `src/utils/request.js`，基于 Axios 拦截器统一处理响应
 - 设计令牌定义在 `src/styles/variables.css`，主色调为 `#E53935`（红色系）
 - 组件库使用 Element Plus，其余 UI 自定义实现
-- 用户认证通过 localStorage 存储 `userId`，无 JWT/Session 机制
+- 用户认证使用 JWT（jjwt 0.9.1），token 存储在 localStorage 的 `loginUser` 对象中，通过 Axios 拦截器自动携带 `Authorization: Bearer <token>`
+- Spring MVC 拦截器（`AuthInterceptor`）验证 token，白名单配置在 `WebMvcConfig`
 - 商家端使用 SLF4J 日志，查询类 `debug`，状态变更 `info`，异常 `warn`
