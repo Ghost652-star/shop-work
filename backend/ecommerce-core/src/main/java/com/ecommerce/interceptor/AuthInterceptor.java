@@ -27,9 +27,20 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String uri = request.getRequestURI();
+        log.debug("拦截器检查: uri={}", uri);
+
+        // Swagger 路径直接放行
+        if (uri.startsWith("/swagger-ui") || uri.startsWith("/v2/api-docs") || uri.startsWith("/v3/api-docs")
+                || uri.startsWith("/webjars/") || uri.startsWith("/swagger-resources")
+                || uri.contains("swagger") || uri.contains("api-docs")) {
+            log.debug("Swagger路径放行: uri={}", uri);
+            return true;
+        }
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("请求缺少Token: {}", request.getRequestURI());
+            log.warn("请求缺少Token: {}", uri);
             send401(response);
             return false;
         }

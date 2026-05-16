@@ -41,6 +41,7 @@
 | | MyBatis-Plus | 3.5.3.2 | ORM 框架 |
 | | Maven | - | 多模块构建工具 |
 | | Spring WebFlux | 2.7.15 | WebClient 调用 Agent 服务 |
+| | Springdoc OpenAPI | 1.6.15 | API 文档自动生成 (Swagger UI) |
 | **Agent** | Python | 3.8+ | 编程语言 |
 | | FastAPI | 0.115+ | Web 框架 |
 | | LangChain | 0.3.7+ | AI Agent 框架 |
@@ -242,6 +243,15 @@ npm run dev
 ## API 接口
 
 所有接口返回统一格式：`{ code: 1, msg: "success", data: {...} }`
+
+### Swagger 文档
+
+项目集成了 Springdoc OpenAPI，启动后端后访问以下地址查看自动生成的接口文档：
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
+
+Swagger UI 支持在线调试，可以直接在页面上测试 API 接口。
 
 ### 用户模块 `/user`
 
