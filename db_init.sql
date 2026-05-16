@@ -305,3 +305,5 @@ CREATE TABLE `merchant` (
 -- -----------------------------------------------------------
 INSERT INTO `merchant` (`name`, `phone`, `description`, `logo`, `status`) VALUES
 ('FlowShop 官方旗舰店', '400-888-8888', 'FlowShop 官方自营店铺', 'https://via.placeholder.com/100', 1);
+
+kkkkkkkkkk
