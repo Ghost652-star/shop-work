@@ -8,6 +8,7 @@ import com.ecommerce.mapper.CategoryMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.dto.ShopProductQueryDTO;
 import com.ecommerce.dto.ShopProductSaveDTO;
+import com.ecommerce.service.ProductService;
 import com.ecommerce.service.Shop.ShopProductService;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopProductDetailVO;
@@ -27,10 +28,13 @@ public class ShopProductServiceImpl implements ShopProductService {
 
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
+    private final com.ecommerce.service.impl.ProductServiceImpl productService;
 
-    public ShopProductServiceImpl(ProductMapper productMapper, CategoryMapper categoryMapper) {
+    public ShopProductServiceImpl(ProductMapper productMapper, CategoryMapper categoryMapper,
+                                  com.ecommerce.service.impl.ProductServiceImpl productService) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
+        this.productService = productService;
     }
 
     @Override
@@ -150,12 +154,16 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setCategoryId(dto.getCategoryId());
         product.setMainImage(dto.getMainImage());
         productMapper.updateById(product);
+        // 清除该商品的缓存
+        productService.clearProductCache(dto.getId());
         log.info("修改商品信息成功: productId={}, name={}", dto.getId(), dto.getName());
     }
 
     @Override
     public void deleteProduct(Integer productId) {
         productMapper.deleteById(productId);
+        // 清除该商品的缓存
+        productService.clearProductCache(productId);
         log.info("删除商品成功: productId={}", productId);
     }
 }
