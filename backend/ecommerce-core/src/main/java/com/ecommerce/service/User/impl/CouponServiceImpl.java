@@ -1,10 +1,10 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.entity.Coupon;
 import com.ecommerce.mapper.CouponMapper;
-import com.ecommerce.service.CouponService;
-import com.ecommerce.service.CategoryService;
+import com.ecommerce.service.User.CouponService;
+import com.ecommerce.service.User.UserCategoryService;
 import com.ecommerce.vo.CouponVO;
 import com.ecommerce.vo.CategoryVO;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements CouponService {
     
     @Autowired
-    private CategoryService categoryService;
+    private UserCategoryService categoryService;
 
     /**
      * 查询优惠券列表

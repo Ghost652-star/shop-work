@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CartDTO;
@@ -7,7 +7,7 @@ import com.ecommerce.entity.Product;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.CartMapper;
 import com.ecommerce.mapper.ProductMapper;
-import com.ecommerce.service.CartService;
+import com.ecommerce.service.User.CartService;
 import com.ecommerce.vo.CartVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

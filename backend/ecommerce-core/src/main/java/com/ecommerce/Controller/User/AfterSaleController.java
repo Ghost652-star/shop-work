@@ -2,7 +2,7 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.AfterSaleDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.AfterSaleService;
+import com.ecommerce.service.User.AfterSaleService;
 import com.ecommerce.vo.AfterSaleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

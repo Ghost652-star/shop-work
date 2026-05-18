@@ -4,7 +4,7 @@ import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
 import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.UserService;
+import com.ecommerce.service.User.UserService;
 import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;

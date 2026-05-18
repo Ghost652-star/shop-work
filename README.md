@@ -535,6 +535,7 @@ proxy: {
 ## 开发说明
 
 - 后端遵循 **Controller → Service → Mapper** 三层架构
+- Service 层按角色分包：`service/User/`（用户端，只读）、`service/Shop/`（商家端，可修改）
 - 接口使用 **DTO 接收参数、VO 返回数据**，禁止使用 `Map<String, Object>`
 - 前端 API 封装在 `src/utils/request.js`，基于 Axios 拦截器统一处理响应
 - 设计令牌定义在 `src/styles/variables.css`，主色调为 `#E53935`（红色系）
@@ -542,3 +543,27 @@ proxy: {
 - 用户认证使用 JWT（jjwt 0.9.1），token 存储在 localStorage 的 `loginUser` 对象中，通过 Axios 拦截器自动携带 `Authorization: Bearer <token>`
 - Spring MVC 拦截器（`AuthInterceptor`）验证 token，白名单配置在 `WebMvcConfig`
 - 商家端使用 SLF4J 日志，查询类 `debug`，状态变更 `info`，异常 `warn`
+
+### Redis 缓存策略
+
+| 缓存位置 | Key | TTL | 说明 |
+|----------|-----|-----|------|
+| `UserProductServiceImpl.listProducts()` | `products:all` | 5 分钟 | 商品列表 |
+| `UserProductServiceImpl.getProductById()` | `product:{id}` | 5 分钟 | 商品详情 |
+| `UserCategoryServiceImpl.listCategories()` | `categories:all` | 30 分钟 | 分类列表 |
+
+缓存清除由商家端在修改/删除数据时主动调用：
+- `UserProductServiceImpl.clearProductListCache()` — 新增/修改/删除商品时
+- `UserProductServiceImpl.clearProductCache(id)` — 商品修改/删除时
+- `UserCategoryServiceImpl.clearCategoryCache()` — 分类修改时
+
+缓存 Key 常量定义在 `ecommerce-common` 模块的 `RedisKeys` 类中。
+
+### 单元测试
+
+```bash
+cd backend/ecommerce-core
+$env:JAVA_HOME="E:\jdk1.8"
+$env:PATH="E:\jdk1.8\bin;" + $env:PATH
+mvn test "-Dtest=com.ecommerce.CacheIntegrationTest"
+```

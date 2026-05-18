@@ -1,54 +1,55 @@
-package com.ecommerce.service.impl;
-
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ecommerce.common.RedisKeys;
 import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.ProductMapper;
-import com.ecommerce.service.ProductService;
+import com.ecommerce.common.RedisKeys;
+import com.ecommerce.service.User.UserProductService;
 import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.ProductVO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * 商品服务实现类
+ * 用户端商品服务实现类（只读）
  */
 @Slf4j
 @Service
-public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
+public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements UserProductService {
 
     private final RedisCacheUtil redisCacheUtil;
 
-    public ProductServiceImpl(RedisCacheUtil redisCacheUtil) {
+    public UserProductServiceImpl(RedisCacheUtil redisCacheUtil) {
         this.redisCacheUtil = redisCacheUtil;
     }
 
-    /**
-     * 查询商品列表
-     * @return 商品列表
-     */
     @Override
     public List<ProductVO> listProducts() {
-        log.debug("查询所有商品列表");
+        log.debug("用户端查询商品列表");
+        List<ProductVO> cached = redisCacheUtil.get(RedisKeys.PRODUCT_LIST_ALL,
+                new TypeReference<List<ProductVO>>() {});
+        if (cached != null) {
+            log.debug("商品列表缓存命中");
+            return cached;
+        }
+
         List<Product> products = query().list();
         log.debug("查询到商品数量: {}", products.size());
-        return products.stream()
+        List<ProductVO> result = products.stream()
                 .map(this::convertToVO)
-                .collect(Collectors.toList());
+                .collect(java.util.stream.Collectors.toList());
+
+        redisCacheUtil.set(RedisKeys.PRODUCT_LIST_ALL, result, 5);
+        log.debug("商品列表已缓存");
+        return result;
     }
 
-    /**
-     * 根据ID查询商品详情（带缓存）
-     * @param id 商品ID
-     * @return 商品详情
-     */
     @Override
     public ProductVO getProductById(Integer id) {
-        // 1. 先从 Redis 获取
+        log.debug("用户端查询商品详情: productId={}", id);
         String cacheKey = RedisKeys.PRODUCT_PREFIX + id;
         ProductVO cached = redisCacheUtil.get(cacheKey, ProductVO.class);
         if (cached != null) {
@@ -56,8 +57,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return cached;
         }
 
-        // 2. 缓存没有，查数据库
-        log.debug("查询商品详情: productId={}", id);
         Product product = query().eq("id", id).one();
         if (product == null) {
             log.warn("商品不存在: productId={}", id);
@@ -65,32 +64,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
 
         ProductVO result = convertToVO(product);
-
-        // 3. 存入 Redis，缓存 5 分钟
         redisCacheUtil.set(cacheKey, result, 5);
         log.debug("商品详情已缓存: productId={}", id);
 
         return result;
     }
 
-    /**
-     * 根据分类ID查询商品列表
-     * @param categoryId 分类ID
-     * @return 商品列表
-     */
     @Override
     public List<ProductVO> listProductsByCategoryId(Integer categoryId) {
-        log.debug("根据分类查询商品: categoryId={}", categoryId);
+        log.debug("用户端根据分类查询商品: categoryId={}", categoryId);
         List<Product> products = query().eq("category_id", categoryId).list();
         log.debug("分类{}下查询到商品数量: {}", categoryId, products.size());
         return products.stream()
                 .map(this::convertToVO)
-                .collect(Collectors.toList());
+                .collect(java.util.stream.Collectors.toList());
     }
 
     /**
-     * 清除商品缓存（商品变更时调用）
-     * @param id 商品ID
+     * 清除商品缓存（商家端修改/删除商品时调用）
      */
     public void clearProductCache(Integer id) {
         String cacheKey = RedisKeys.PRODUCT_PREFIX + id;
@@ -99,10 +90,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
-     * 将 Product 实体转换为 ProductVO
-     * @param product 商品实体
-     * @return 商品视图对象
+     * 清除商品列表缓存（商家端新增/修改/删除商品时调用）
      */
+    public void clearProductListCache() {
+        redisCacheUtil.delete(RedisKeys.PRODUCT_LIST_ALL);
+        log.debug("商品列表缓存已清除");
+    }
+
     private ProductVO convertToVO(Product product) {
         if (product == null) {
             return null;

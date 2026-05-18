@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.UserCouponDTO;
@@ -7,7 +7,7 @@ import com.ecommerce.entity.UserCoupon;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.CouponMapper;
 import com.ecommerce.mapper.UserCouponMapper;
-import com.ecommerce.service.UserCouponService;
+import com.ecommerce.service.User.UserCouponService;
 import com.ecommerce.vo.UserCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -6,7 +6,7 @@ import com.ecommerce.dto.FavoriteDTO;
 import com.ecommerce.entity.Favorite;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.FavoriteMapper;
-import com.ecommerce.service.FavoriteService;
+import com.ecommerce.service.User.FavoriteService;
 import com.ecommerce.vo.FavoriteVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

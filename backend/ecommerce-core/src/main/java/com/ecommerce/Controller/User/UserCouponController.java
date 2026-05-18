@@ -2,7 +2,7 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.UserCouponDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.UserCouponService;
+import com.ecommerce.service.User.UserCouponService;
 import com.ecommerce.vo.UserCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

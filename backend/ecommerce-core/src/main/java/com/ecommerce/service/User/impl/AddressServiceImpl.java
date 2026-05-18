@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -6,7 +6,7 @@ import com.ecommerce.dto.AddressDTO;
 import com.ecommerce.entity.Address;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.AddressMapper;
-import com.ecommerce.service.AddressService;
+import com.ecommerce.service.User.AddressService;
 import com.ecommerce.vo.AddressVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

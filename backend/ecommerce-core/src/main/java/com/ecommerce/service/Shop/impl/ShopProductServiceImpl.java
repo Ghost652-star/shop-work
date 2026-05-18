@@ -8,8 +8,10 @@ import com.ecommerce.mapper.CategoryMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.dto.ShopProductQueryDTO;
 import com.ecommerce.dto.ShopProductSaveDTO;
-import com.ecommerce.service.ProductService;
 import com.ecommerce.service.Shop.ShopProductService;
+import com.ecommerce.service.User.impl.UserProductServiceImpl;
+import com.ecommerce.common.RedisKeys;
+import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopProductDetailVO;
 import com.ecommerce.vo.ShopProductVO;
@@ -28,13 +30,15 @@ public class ShopProductServiceImpl implements ShopProductService {
 
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
-    private final com.ecommerce.service.impl.ProductServiceImpl productService;
+    private final RedisCacheUtil redisCacheUtil;
+    private final UserProductServiceImpl userProductService;
 
     public ShopProductServiceImpl(ProductMapper productMapper, CategoryMapper categoryMapper,
-                                  com.ecommerce.service.impl.ProductServiceImpl productService) {
+                                  RedisCacheUtil redisCacheUtil, UserProductServiceImpl userProductService) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
-        this.productService = productService;
+        this.redisCacheUtil = redisCacheUtil;
+        this.userProductService = userProductService;
     }
 
     @Override
@@ -94,6 +98,8 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setId(productId);
         product.setStatus(status);
         productMapper.updateById(product);
+        userProductService.clearProductCache(productId);
+        userProductService.clearProductListCache();
         log.info("商品状态更新成功: productId={}, newStatus={}", productId, status);
     }
 
@@ -103,6 +109,8 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setId(productId);
         product.setStock(stock);
         productMapper.updateById(product);
+        userProductService.clearProductCache(productId);
+        userProductService.clearProductListCache();
         log.info("商品库存更新成功: productId={}, newStock={}", productId, stock);
     }
 
@@ -140,6 +148,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setStatus(0);
         product.setSales(0);
         productMapper.insert(product);
+        userProductService.clearProductListCache();
         log.info("新增商品成功: productId={}, name={}", product.getId(), dto.getName());
     }
 
@@ -155,7 +164,8 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setMainImage(dto.getMainImage());
         productMapper.updateById(product);
         // 清除该商品的缓存
-        productService.clearProductCache(dto.getId());
+        userProductService.clearProductCache(dto.getId());
+        userProductService.clearProductListCache();
         log.info("修改商品信息成功: productId={}, name={}", dto.getId(), dto.getName());
     }
 
@@ -163,7 +173,8 @@ public class ShopProductServiceImpl implements ShopProductService {
     public void deleteProduct(Integer productId) {
         productMapper.deleteById(productId);
         // 清除该商品的缓存
-        productService.clearProductCache(productId);
+        userProductService.clearProductCache(productId);
+        userProductService.clearProductListCache();
         log.info("删除商品成功: productId={}", productId);
     }
 }

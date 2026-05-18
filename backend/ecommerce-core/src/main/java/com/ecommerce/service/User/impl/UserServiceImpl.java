@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.LoginDTO;
@@ -7,7 +7,7 @@ import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.UserMapper;
-import com.ecommerce.service.UserService;
+import com.ecommerce.service.User.UserService;
 import com.ecommerce.utils.JwtUtils;
 import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;

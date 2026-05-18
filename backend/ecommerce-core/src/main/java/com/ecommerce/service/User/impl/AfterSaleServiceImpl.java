@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -12,7 +12,7 @@ import com.ecommerce.mapper.AfterSaleItemMapper;
 import com.ecommerce.mapper.AfterSaleMapper;
 import com.ecommerce.mapper.OrderItemMapper;
 import com.ecommerce.mapper.OrderMapper;
-import com.ecommerce.service.AfterSaleService;
+import com.ecommerce.service.User.AfterSaleService;
 import com.ecommerce.vo.AfterSaleItemVO;
 import com.ecommerce.vo.AfterSaleVO;
 import lombok.extern.slf4j.Slf4j;

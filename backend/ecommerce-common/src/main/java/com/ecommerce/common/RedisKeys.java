@@ -6,11 +6,13 @@ package com.ecommerce.common;
 public class RedisKeys {
 
     private RedisKeys() {} 
+    
 
     // ==================== 分类 ====================
     public static final String CATEGORIES_ALL = "categories:all";
 
     // ==================== 商品 ====================
+    public static final String PRODUCT_LIST_ALL = "products:all";
     public static final String PRODUCT_PREFIX = "product:";
 
     // ==================== 优惠券 ====================

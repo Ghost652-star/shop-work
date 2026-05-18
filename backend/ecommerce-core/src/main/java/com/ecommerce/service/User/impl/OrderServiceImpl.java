@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -8,7 +8,7 @@ import com.ecommerce.dto.OrderItemDTO;
 import com.ecommerce.entity.*;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.*;
-import com.ecommerce.service.OrderService;
+import com.ecommerce.service.User.OrderService;
 import com.ecommerce.vo.OrderVO;
 import com.ecommerce.vo.AvailableCouponVO;
 import com.ecommerce.vo.OrderItemVO;

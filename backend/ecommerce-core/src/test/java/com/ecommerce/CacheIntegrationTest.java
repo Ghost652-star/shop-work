@@ -3,8 +3,8 @@ package com.ecommerce;
 import com.ecommerce.common.RedisKeys;
 import com.ecommerce.service.User.UserCategoryService;
 import com.ecommerce.service.User.UserProductService;
-import com.ecommerce.service.impl.CategoryServiceImpl;
-import com.ecommerce.service.impl.ProductServiceImpl;
+import com.ecommerce.service.User.impl.UserCategoryServiceImpl;
+import com.ecommerce.service.User.impl.UserProductServiceImpl;
 import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.CategoryVO;
 import com.ecommerce.vo.ProductVO;
@@ -26,10 +26,10 @@ class CacheIntegrationTest {
     private UserCategoryService userCategoryService;
 
     @Autowired
-    private ProductServiceImpl productService;
+    private UserProductServiceImpl userProductServiceImpl;
 
     @Autowired
-    private CategoryServiceImpl categoryService;
+    private UserCategoryServiceImpl userCategoryServiceImpl;
 
     @Autowired
     private RedisCacheUtil redisCacheUtil;
@@ -59,7 +59,7 @@ class CacheIntegrationTest {
         System.out.println("用户端第二次查询走缓存，验证通过");
 
         // 4. 清除缓存（模拟商家端操作）
-        productService.clearProductCache(productId);
+        userProductServiceImpl.clearProductCache(productId);
         ProductVO afterClear = redisCacheUtil.get(cacheKey, ProductVO.class);
         assertNull(afterClear, "缓存应该已清除");
         System.out.println("商品缓存清除验证通过");
@@ -85,7 +85,7 @@ class CacheIntegrationTest {
         System.out.println("用户端第二次查询走缓存，验证通过");
 
         // 4. 清除缓存（模拟商家端操作）
-        categoryService.clearCategoryCache();
+        userCategoryServiceImpl.clearCategoryCache();
         List<CategoryVO> afterClear = redisCacheUtil.get(RedisKeys.CATEGORIES_ALL,
                 new com.fasterxml.jackson.core.type.TypeReference<List<CategoryVO>>() {});
         assertNull(afterClear, "缓存应该已清除");

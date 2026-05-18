@@ -2,7 +2,7 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.CommentDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.CommentService;
+import com.ecommerce.service.User.CommentService;
 import com.ecommerce.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

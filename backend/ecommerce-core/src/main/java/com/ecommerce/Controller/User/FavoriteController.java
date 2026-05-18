@@ -2,7 +2,7 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.FavoriteDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.FavoriteService;
+import com.ecommerce.service.User.FavoriteService;
 import com.ecommerce.vo.FavoriteVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

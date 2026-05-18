@@ -1,4 +1,4 @@
-package com.ecommerce.service;
+package com.ecommerce.service.User;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ecommerce.dto.AddressDTO;

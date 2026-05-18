@@ -2,7 +2,7 @@ package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.CartDTO;
 import com.ecommerce.result.Result;
-import com.ecommerce.service.CartService;
+import com.ecommerce.service.User.CartService;
 import com.ecommerce.vo.CartVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

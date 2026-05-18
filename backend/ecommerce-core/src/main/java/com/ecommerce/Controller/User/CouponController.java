@@ -1,7 +1,7 @@
 package com.ecommerce.Controller.User;
 
 import com.ecommerce.result.Result;
-import com.ecommerce.service.CouponService;
+import com.ecommerce.service.User.CouponService;
 import com.ecommerce.vo.CouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

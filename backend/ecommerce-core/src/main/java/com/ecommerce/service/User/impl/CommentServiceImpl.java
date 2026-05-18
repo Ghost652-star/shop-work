@@ -1,4 +1,4 @@
-package com.ecommerce.service.impl;
+package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -8,7 +8,7 @@ import com.ecommerce.entity.User;
 import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.CommentMapper;
 import com.ecommerce.mapper.UserMapper;
-import com.ecommerce.service.CommentService;
+import com.ecommerce.service.User.CommentService;
 import com.ecommerce.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
