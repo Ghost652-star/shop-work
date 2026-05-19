@@ -75,6 +75,16 @@
         </div>
 
         <div class="input-area">
+          <div class="quick-tags">
+            <span class="quick-tag" :class="{ active: selectedService === '订单咨询' }" @click="openOrderSelect">📦 订单咨询</span>
+            <span class="quick-tag" :class="{ active: selectedService === '售后服务' }" @click="selectService('售后服务')">🔄 售后服务</span>
+            <span class="quick-tag" :class="{ active: selectedService === '优惠券咨询' }" @click="selectService('优惠券咨询')">🎫 优惠券</span>
+            <span class="quick-tag" :class="{ active: selectedService === '商品咨询' }" @click="selectService('商品咨询')">🔍 商品咨询</span>
+          </div>
+          <div v-if="selectedOrder" class="selected-order-tag">
+            <span>已选：{{ selectedOrder.orderNo }}</span>
+            <span class="tag-close" @click="selectedOrder = null">×</span>
+          </div>
           <div class="input-wrapper">
             <input
               ref="inputRef"
@@ -177,6 +187,30 @@
 
     </div>
   </div>
+
+  <el-dialog v-model="showOrderDialog" title="选择订单咨询" width="520px" :close-on-click-modal="true">
+    <div v-if="orders.length === 0" class="empty-tip">
+      <span>暂无订单数据</span>
+    </div>
+    <div v-else class="order-select-list">
+      <div
+        v-for="order in orders"
+        :key="order.id"
+        class="order-select-item"
+        @click="selectOrder(order)"
+      >
+        <div class="select-item-left">
+          <span class="select-order-no">{{ order.orderNo }}</span>
+          <span class="select-status" :class="'status-' + order.status">{{ order.statusText }}</span>
+        </div>
+        <div class="select-item-center">
+          <span class="select-product-name">{{ order.items && order.items[0] ? order.items[0].productName : '' }}</span>
+          <span v-if="order.items && order.items.length > 1" class="select-more">等{{ order.items.length }}件</span>
+        </div>
+        <span class="select-price">¥{{ order.payAmount }}</span>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -196,6 +230,9 @@ const activeTab = ref('orders')
 const msgIdCounter = ref(0)
 const orders = ref([])
 const cartItems = ref([])
+const selectedOrder = ref(null)
+const selectedService = ref(null)
+const showOrderDialog = ref(false)
 
 const now = new Date()
 const currentTime = ref(
@@ -246,6 +283,22 @@ const loadCartItems = async () => {
   }
 }
 
+const openOrderSelect = () => {
+  if (orders.value.length === 0) loadOrders()
+  showOrderDialog.value = true
+}
+
+const selectOrder = (order) => {
+  selectedOrder.value = order
+  selectedService.value = '订单咨询'
+  showOrderDialog.value = false
+}
+
+const selectService = (service) => {
+  selectedService.value = selectedService.value === service ? null : service
+  inputRef.value?.focus()
+}
+
 watch(activeTab, (tab) => {
   if (tab === 'orders') loadOrders()
   else if (tab === 'cart') loadCartItems()
@@ -278,13 +331,23 @@ const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text) return
 
+  const orderNo = selectedOrder.value ? selectedOrder.value.orderNo : null
+  const service = selectedService.value
+
+  const displayParts = []
+  if (service) displayParts.push(`[${service}]`)
+  if (orderNo) displayParts.push(`[订单 ${orderNo}]`)
+  displayParts.push(text)
+
   messages.value.push({
     id: ++msgIdCounter.value,
     role: 'user',
-    content: text
+    content: displayParts.join(' ')
   })
 
   inputText.value = ''
+  selectedOrder.value = null
+  selectedService.value = null
   scrollToBottom()
 
   const userId = localStorage.getItem('userId')
@@ -302,7 +365,7 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    const res = await processMessage(text, userId)
+    const res = await processMessage(text, userId, orderNo)
     isTyping.value = false
 
     if (res.code === 1 && res.data && res.data.processed_message) {
@@ -636,6 +699,131 @@ onMounted(() => {
 .input-area {
   padding: 12px 24px 16px;
   border-top: 1px solid var(--color-border-light);
+  flex-shrink: 0;
+}
+
+.quick-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.quick-tag {
+  padding: 5px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-in-out);
+  white-space: nowrap;
+}
+
+.quick-tag:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.quick-tag.active {
+  color: #fff;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.selected-order-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+}
+
+.tag-close {
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast);
+}
+
+.tag-close:hover {
+  opacity: 1;
+}
+
+.order-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-select-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-in-out);
+}
+
+.order-select-item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.select-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.select-order-no {
+  font-size: var(--text-xs);
+  color: var(--color-text-primary);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+}
+
+.select-status {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.select-item-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.select-product-name {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-more {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.select-price {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  font-weight: 600;
   flex-shrink: 0;
 }
 

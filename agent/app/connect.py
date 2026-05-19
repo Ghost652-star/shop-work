@@ -12,13 +12,18 @@ app = FastAPI(title="ShopChat API", description="简单的请求处理API")
 class RequestData(BaseModel):
     message: str
     user_id: Optional[str] = None
+    order_no: Optional[str] = None
 
 
 # POST 请求处理端点
 @app.post("/process")
 def process_request(data: RequestData):
     # 把 FastAPI 收到的输入交给你的 service agent 处理
-    processed_msg = run_service_agent(message=data.message, user_id=data.user_id)
+    processed_msg = run_service_agent(
+        message=data.message,
+        user_id=data.user_id,
+        order_no=data.order_no
+    )
 
     # 返回处理结果
     return {
@@ -26,7 +31,8 @@ def process_request(data: RequestData):
         "processed_message": processed_msg,
         "original_data": {
             "message": data.message,
-            "user_id": data.user_id
+            "user_id": data.user_id,
+            "order_no": data.order_no
         }
     }
 

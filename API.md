@@ -779,10 +779,13 @@
 **请求体：**
 ```json
 {
-  "message": "帮我查一下我的订单状态",
-  "user_id": "1"
+  "message": "帮我查一下这个订单到哪了",
+  "user_id": "1",
+  "order_no": "ORD20260519100000123"
 }
 ```
+
+- `order_no` 可选，前端选择订单后自动携带，LLM 会直接用该订单号调用工具查询
 
 **响应：**
 ```json
@@ -790,8 +793,9 @@
   "code": 1,
   "msg": "success",
   "data": {
-    "reply": "您有一笔待付款订单...",
-    "tool_calls": [...]
+    "status": "success",
+    "processed_message": "您的订单 ORD20260519100000123 当前状态为待收货...",
+    "original_data": { "message": "...", "user_id": "1", "order_no": "..." }
   }
 }
 ```

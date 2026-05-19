@@ -22,12 +22,15 @@ public class FastAPIWebClient {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> sendProcessRequest(String message, String userId) {
-        log.info("准备发送POST请求 - message: {}, userId: {}", message, userId);
+    public Map<String, Object> sendProcessRequest(String message, String userId, String orderNo) {
+        log.info("准备发送POST请求 - message: {}, userId: {}, orderNo: {}", message, userId, orderNo);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("message", message);
         requestBody.put("user_id", userId);
+        if (orderNo != null && !orderNo.isEmpty()) {
+            requestBody.put("order_no", orderNo);
+        }
 
         Map<String, Object> response = webClient.post()
                 .uri("/process")

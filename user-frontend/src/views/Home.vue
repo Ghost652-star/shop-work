@@ -72,10 +72,12 @@
           <span class="hot-sales-subtitle">热销商品 TOP10</span>
         </div>
         <div class="hot-sales-list">
-          <div v-for="(item, index) in hotSales" :key="index" class="hot-sales-item">
+          <div v-for="(item, index) in hotSales" :key="index" class="hot-sales-item" @click="goToProduct(item.productId)">
             <div class="item-rank" :class="{ 'top-3': index < 3 }">{{ item.rank }}</div>
             <div class="item-info">
-              <span class="item-name">{{ item.name }}</span>
+              <el-tooltip :content="item.name" placement="top" :show-after="300">
+                <span class="item-name">{{ item.name }}</span>
+              </el-tooltip>
             </div>
             <span class="item-sales">{{ item.sales }}</span>
           </div>
@@ -349,7 +351,8 @@ const loadHotSales = async () => {
     if (result.code === 1) {
       hotSales.value = (result.data || []).map(item => ({
         rank: item.rank,
-        name: item.name.substring(0, 8),
+        productId: item.productId,
+        name: item.name,
         sales: item.sales > 1000 ? (item.sales / 1000).toFixed(1) + 'k+' : item.sales + '+'
       }))
     }
@@ -357,6 +360,10 @@ const loadHotSales = async () => {
 }
 
 const selectCategory = (categoryId) => { activeCategoryId.value = categoryId }
+
+const goToProduct = (productId) => {
+  router.push(`/product?id=${productId}`)
+}
 
 const startSeckillCountdown = () => {
   const endTime = new Date().getTime() + 7200000
@@ -761,9 +768,19 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   padding: 20px;
   height: 400px;
-  overflow: hidden;
+  overflow-y: auto;
   border: 1px solid var(--color-border-light);
   position: relative;
+}
+.hot-sales::-webkit-scrollbar {
+  width: 4px;
+}
+.hot-sales::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.hot-sales::-webkit-scrollbar-track {
+  background: transparent;
 }
 .hot-sales::before {
   content: '';
@@ -775,7 +792,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
-.hot-sales-header { margin-bottom: 16px; }
+.hot-sales-header { margin-bottom: 12px; }
 .hot-sales-header h3 {
   margin: 0 0 4px 0;
   color: var(--color-primary);
@@ -783,12 +800,12 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 .hot-sales-subtitle { font-size: var(--text-xs); color: var(--color-text-tertiary); }
-.hot-sales-list { display: flex; flex-direction: column; gap: 4px; }
+.hot-sales-list { display: flex; flex-direction: column; gap: 2px; }
 .hot-sales-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--duration-normal) var(--ease-in-out),

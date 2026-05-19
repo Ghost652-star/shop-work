@@ -21,6 +21,7 @@ public class CustomerServiceController {
 
         String message = requestData.get("message");
         String userId = requestData.get("user_id");
+        String orderNo = requestData.get("order_no");
 
         if (message == null || message.isEmpty()) {
             return Result.error("消息内容不能为空");
@@ -31,7 +32,7 @@ public class CustomerServiceController {
         }
 
         try {
-            Map<String, Object> response = fastAPIWebClient.sendProcessRequest(message, userId);
+            Map<String, Object> response = fastAPIWebClient.sendProcessRequest(message, userId, orderNo);
             return Result.success(response);
         } catch (Exception e) {
             log.error("调用Python服务失败", e);

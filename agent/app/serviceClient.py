@@ -53,11 +53,13 @@ service_agent = create_agent(
 )
 
 
-def run_service_agent(message: str, user_id: Optional[str] = None) -> str:
+def run_service_agent(message: str, user_id: Optional[str] = None, order_no: Optional[str] = None) -> str:
     """同步调用 agent，返回最终回复文本。"""
     content = message
     if user_id:
-        content = f"user_id为{user_id},{message}"
+        content = f"user_id为{user_id},{content}"
+    if order_no:
+        content = f"order_no为{order_no},{content}"
 
     result: Dict[str, Any] = service_agent.invoke(
         {"messages": [{"role": "user", "content": content}]},
