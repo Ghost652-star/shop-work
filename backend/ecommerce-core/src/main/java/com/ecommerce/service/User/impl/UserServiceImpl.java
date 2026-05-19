@@ -119,7 +119,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 检查缓存
         String cacheKey = RedisKeys.USER_PREFIX + userId;
-        UserVO cached = redisCacheUtil.get(cacheKey, UserVO.class);
+        UserVO cached = redisCacheUtil.valueOps.get(cacheKey, UserVO.class);
         if (cached != null) {
             log.debug("用户信息缓存命中: userId={}", userId);
             return cached;
@@ -132,7 +132,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         UserVO result = convertToVO(user);
-        redisCacheUtil.set(cacheKey, result, 3);
+        redisCacheUtil.valueOps.set(cacheKey, result, 3);
         log.debug("用户信息已缓存: userId={}", userId);
         return result;
     }
@@ -194,7 +194,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     public void clearUserCache(Integer userId) {
         String cacheKey = RedisKeys.USER_PREFIX + userId;
-        redisCacheUtil.delete(cacheKey);
+        redisCacheUtil.valueOps.delete(cacheKey);
         log.debug("用户信息缓存已清除: userId={}", userId);
     }
     

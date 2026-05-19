@@ -29,7 +29,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
     @Override
     public List<ProductVO> listProducts() {
         log.debug("用户端查询商品列表");
-        List<ProductVO> cached = redisCacheUtil.get(RedisKeys.PRODUCT_LIST_ALL,
+        List<ProductVO> cached = redisCacheUtil.valueOps.get(RedisKeys.PRODUCT_LIST_ALL,
                 new TypeReference<List<ProductVO>>() {});
         if (cached != null) {
             log.debug("商品列表缓存命中");
@@ -42,7 +42,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
                 .map(this::convertToVO)
                 .collect(java.util.stream.Collectors.toList());
 
-        redisCacheUtil.set(RedisKeys.PRODUCT_LIST_ALL, result, 5);
+        redisCacheUtil.valueOps.set(RedisKeys.PRODUCT_LIST_ALL, result, 5);
         log.debug("商品列表已缓存");
         return result;
     }
@@ -51,7 +51,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
     public ProductVO getProductById(Integer id) {
         log.debug("用户端查询商品详情: productId={}", id);
         String cacheKey = RedisKeys.PRODUCT_PREFIX + id;
-        ProductVO cached = redisCacheUtil.get(cacheKey, ProductVO.class);
+        ProductVO cached = redisCacheUtil.valueOps.get(cacheKey, ProductVO.class);
         if (cached != null) {
             log.debug("商品详情缓存命中: productId={}", id);
             return cached;
@@ -64,7 +64,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
         }
 
         ProductVO result = convertToVO(product);
-        redisCacheUtil.set(cacheKey, result, 5);
+        redisCacheUtil.valueOps.set(cacheKey, result, 5);
         log.debug("商品详情已缓存: productId={}", id);
 
         return result;
@@ -85,7 +85,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
      */
     public void clearProductCache(Integer id) {
         String cacheKey = RedisKeys.PRODUCT_PREFIX + id;
-        redisCacheUtil.delete(cacheKey);
+        redisCacheUtil.valueOps.delete(cacheKey);
         log.debug("商品缓存已清除: productId={}", id);
     }
 
@@ -93,7 +93,7 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
      * 清除商品列表缓存（商家端新增/修改/删除商品时调用）
      */
     public void clearProductListCache() {
-        redisCacheUtil.delete(RedisKeys.PRODUCT_LIST_ALL);
+        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_LIST_ALL);
         log.debug("商品列表缓存已清除");
     }
 

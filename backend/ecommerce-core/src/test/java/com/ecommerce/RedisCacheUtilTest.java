@@ -29,10 +29,10 @@ class RedisCacheUtilTest {
         product.setStock(100);
 
         // 存入 Redis
-        redisCacheUtil.set("test:product:1", product, 5);
+        redisCacheUtil.valueOps.set("test:product:1", product, 5);
 
         // 读取出来
-        Product cached = redisCacheUtil.get("test:product:1", Product.class);
+        Product cached = redisCacheUtil.valueOps.get("test:product:1", Product.class);
 
         // 验证
         assertNotNull(cached);
@@ -58,10 +58,10 @@ class RedisCacheUtilTest {
         List<Product> productList = Arrays.asList(p1, p2);
 
         // 存入 Redis（List 类型）
-        redisCacheUtil.set("test:product:list", productList, 5);
+        redisCacheUtil.valueOps.set("test:product:list", productList, 5);
 
         // 使用 TypeReference 读取 List
-        List<Product> cachedList = redisCacheUtil.get("test:product:list",
+        List<Product> cachedList = redisCacheUtil.valueOps.get("test:product:list",
                 new TypeReference<List<Product>>() {});
 
         // 验证
@@ -76,7 +76,7 @@ class RedisCacheUtilTest {
     @Test
     void testGetNonExistentKey() {
         // 读取不存在的 key
-        Product result = redisCacheUtil.get("test:notexist", Product.class);
+        Product result = redisCacheUtil.valueOps.get("test:notexist", Product.class);
 
         // 应该返回 null
         assertNull(result);

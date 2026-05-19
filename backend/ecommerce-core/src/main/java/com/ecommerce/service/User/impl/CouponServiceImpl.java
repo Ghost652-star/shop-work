@@ -45,7 +45,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         log.debug("查询启用状态的优惠券列表");
 
         // 检查缓存
-        List<CouponVO> cached = redisCacheUtil.get(RedisKeys.COUPONS_ACTIVE,
+        List<CouponVO> cached = redisCacheUtil.valueOps.get(RedisKeys.COUPONS_ACTIVE,
                 new TypeReference<List<CouponVO>>() {});
         if (cached != null) {
             log.debug("优惠券列表缓存命中");
@@ -66,7 +66,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .map(coupon -> convertToVO(coupon, categoryMap))
                 .collect(Collectors.toList());
 
-        redisCacheUtil.set(RedisKeys.COUPONS_ACTIVE, result, 10);
+        redisCacheUtil.valueOps.set(RedisKeys.COUPONS_ACTIVE, result, 10);
         log.debug("优惠券列表已缓存");
         return result;
     }
@@ -75,7 +75,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
      * 清除优惠券缓存（商家端修改优惠券时调用）
      */
     public void clearCouponCache() {
-        redisCacheUtil.delete(RedisKeys.COUPONS_ACTIVE);
+        redisCacheUtil.valueOps.delete(RedisKeys.COUPONS_ACTIVE);
         log.debug("优惠券缓存已清除");
     }
     

@@ -29,7 +29,7 @@ public class UserCategoryServiceImpl extends ServiceImpl<CategoryMapper, Categor
     @Override
     public List<CategoryVO> listCategories() {
         log.debug("用户端查询分类列表");
-        List<CategoryVO> cached = redisCacheUtil.get(RedisKeys.CATEGORIES_ALL,
+        List<CategoryVO> cached = redisCacheUtil.valueOps.get(RedisKeys.CATEGORIES_ALL,
                 new TypeReference<List<CategoryVO>>() {});
         if (cached != null) {
             log.debug("分类列表缓存命中");
@@ -43,7 +43,7 @@ public class UserCategoryServiceImpl extends ServiceImpl<CategoryMapper, Categor
                 .map(this::convertToVO)
                 .collect(java.util.stream.Collectors.toList());
 
-        redisCacheUtil.set(RedisKeys.CATEGORIES_ALL, result, 30);
+        redisCacheUtil.valueOps.set(RedisKeys.CATEGORIES_ALL, result, 30);
         log.debug("分类列表已缓存");
 
         return result;
@@ -53,7 +53,7 @@ public class UserCategoryServiceImpl extends ServiceImpl<CategoryMapper, Categor
      * 清除分类缓存（商家端修改分类时调用）
      */
     public void clearCategoryCache() {
-        redisCacheUtil.delete(RedisKeys.CATEGORIES_ALL);
+        redisCacheUtil.valueOps.delete(RedisKeys.CATEGORIES_ALL);
         log.debug("分类缓存已清除");
     }
 
