@@ -3,6 +3,7 @@ package com.ecommerce.runner;
 import com.ecommerce.common.RedisKeys;
 import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.ProductMapper;
+import com.ecommerce.utils.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,18 +19,21 @@ import java.util.List;
 public class SalesRankInitRunner implements CommandLineRunner {
 
     private final ProductMapper productMapper;
-    private final StringRedisTemplate redisTemplate;
+    private final RedisCacheUtil redisCacheUtil;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public SalesRankInitRunner(ProductMapper productMapper, StringRedisTemplate redisTemplate) {
+    public SalesRankInitRunner(ProductMapper productMapper, RedisCacheUtil redisCacheUtil,
+                               StringRedisTemplate stringRedisTemplate) {
         this.productMapper = productMapper;
-        this.redisTemplate = redisTemplate;
+        this.redisCacheUtil = redisCacheUtil;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
     public void run(String... args) {
         log.info("开始预热销榜单数据...");
 
-        // 1. 查询所有有销量的商品
+        // 1. 查询所有商品
         List<Product> products = productMapper.selectList(null);
         if (products.isEmpty()) {
             log.info("没有商品数据，跳过预热");
@@ -37,21 +41,28 @@ public class SalesRankInitRunner implements CommandLineRunner {
         }
 
         // 2. 清空旧数据，重新加载
-        redisTemplate.delete(RedisKeys.SALES_RANK);
+        redisCacheUtil.valueOps.delete(RedisKeys.SALES_RANK);
 
-        // 3. 批量写入 ZSet
+        // 3. 批量写入 ZSet + 构建商品名映射
         int count = 0;
         for (Product p : products) {
+            // 写入销量 ZSet
             if (p.getSales() != null && p.getSales() > 0) {
-                redisTemplate.opsForZSet().add(
+                redisCacheUtil.zSetOps.incrementScore(
                         RedisKeys.SALES_RANK,
                         p.getId().toString(),
                         p.getSales()
                 );
                 count++;
             }
+            // 写入商品名映射 Hash
+            stringRedisTemplate.opsForHash().put(
+                    RedisKeys.PRODUCT_NAME_MAP,
+                    p.getId().toString(),
+                    p.getName()
+            );
         }
 
-        log.info("热销榜单预热完成，共加载 {} 个商品", count);
+        log.info("热销榜单预热完成，共加载 {} 个商品，商品名映射 {} 条", count, products.size());
     }
 }

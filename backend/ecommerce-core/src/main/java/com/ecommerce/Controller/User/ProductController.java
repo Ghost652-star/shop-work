@@ -3,14 +3,15 @@ package com.ecommerce.Controller.User;
 import com.ecommerce.common.RedisKeys;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.User.UserProductService;
+import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.ProductVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -20,11 +21,11 @@ import java.util.Map;
 public class ProductController {
 
     private final UserProductService userProductService;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisCacheUtil redisCacheUtil;
 
-    ProductController(UserProductService userProductService, StringRedisTemplate stringRedisTemplate) {
+    ProductController(UserProductService userProductService, RedisCacheUtil redisCacheUtil) {
         this.userProductService = userProductService;
-        this.stringRedisTemplate = stringRedisTemplate;
+        this.redisCacheUtil = redisCacheUtil;
     }
 
     @GetMapping("/list")
@@ -53,19 +54,14 @@ public class ProductController {
     @GetMapping("/hot-sales")
     public Result<List<Map<String, Object>>> hotSales() {
         log.debug("查询热销榜单");
-        String json = stringRedisTemplate.opsForValue().get(RedisKeys.HOT_SALES_CACHE);
-        if (json == null || json.isEmpty()) {
+        List<Map<String, Object>> list = redisCacheUtil.valueOps.get(
+                RedisKeys.HOT_SALES_CACHE,
+                new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+        );
+        if (list == null) {
             log.debug("热销榜单缓存为空");
-            return Result.success(java.util.Collections.emptyList());
+            return Result.success(Collections.emptyList());
         }
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            List<Map<String, Object>> list = mapper.readValue(json,
-                    new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
-            return Result.success(list);
-        } catch (Exception e) {
-            log.error("解析热销榜单缓存失败", e);
-            return Result.success(java.util.Collections.emptyList());
-        }
+        return Result.success(list);
     }
 }

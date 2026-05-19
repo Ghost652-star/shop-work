@@ -18,7 +18,7 @@ import com.ecommerce.vo.CouponInfoVO;
 import com.ecommerce.vo.UnavailableCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.ecommerce.utils.RedisCacheUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +59,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private CouponMapper couponMapper;
 
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisCacheUtil redisCacheUtil;
 
     @Override
     @Transactional
@@ -611,7 +611,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      */
     private void updateSalesRank(Long productId, int delta) {
         try {
-            stringRedisTemplate.opsForZSet().incrementScore(
+            redisCacheUtil.zSetOps.incrementScore(
                     RedisKeys.SALES_RANK,
                     productId.toString(),
                     delta

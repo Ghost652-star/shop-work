@@ -149,6 +149,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setSales(0);
         productMapper.insert(product);
         userProductService.clearProductListCache();
+        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
         log.info("新增商品成功: productId={}, name={}", product.getId(), dto.getName());
     }
 
@@ -166,6 +167,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         // 清除该商品的缓存
         userProductService.clearProductCache(dto.getId());
         userProductService.clearProductListCache();
+        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
         log.info("修改商品信息成功: productId={}, name={}", dto.getId(), dto.getName());
     }
 
@@ -175,6 +177,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         // 清除该商品的缓存
         userProductService.clearProductCache(productId);
         userProductService.clearProductListCache();
+        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
         log.info("删除商品成功: productId={}", productId);
     }
 }

@@ -18,7 +18,7 @@ import com.ecommerce.service.Shop.ShopAfterSaleService;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopAfterSaleVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.ecommerce.utils.RedisCacheUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -33,17 +33,17 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
     private final OrderItemMapper orderItemMapper;
     private final UserMapper userMapper;
     private final ProductMapper productMapper;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisCacheUtil redisCacheUtil;
 
     public ShopAfterSaleServiceImpl(AfterSaleMapper afterSaleMapper, OrderMapper orderMapper,
                                      OrderItemMapper orderItemMapper, UserMapper userMapper,
-                                     ProductMapper productMapper, StringRedisTemplate stringRedisTemplate) {
+                                     ProductMapper productMapper, RedisCacheUtil redisCacheUtil) {
         this.afterSaleMapper = afterSaleMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.userMapper = userMapper;
         this.productMapper = productMapper;
-        this.stringRedisTemplate = stringRedisTemplate;
+        this.redisCacheUtil = redisCacheUtil;
     }
 
     private static final String[] STATUS_TEXT = {"待处理", "已通过", "已驳回"};
@@ -139,7 +139,7 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
                 productMapper.updateById(product);
 
                 // 更新热销榜单 ZSet
-                stringRedisTemplate.opsForZSet().incrementScore(
+                redisCacheUtil.zSetOps.incrementScore(
                         RedisKeys.SALES_RANK,
                         product.getId().toString(),
                         -item.getQuantity()
