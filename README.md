@@ -110,13 +110,6 @@ npm run dev    # http://localhost:5174
 
 ---
 
-## 核心亮点
-
-- **AI 智能客服** — 基于 LangChain ReAct Agent + ChromaDB RAG，支持语义搜索商品、查询订单/优惠券/购物车等 8 个工具
-- **Redis 多级缓存** — 商品列表/详情/分类/优惠券/用户信息 TTL 缓存 + 热销榜单 ZSet 实时排行 + 商品名映射 Hash cache-aside 自愈
-- **JWT 认证** — jjwt 签发 token，Axios 拦截器自动携带，Spring MVC 拦截器校验
-- **业务异常体系** — 9 种业务域异常分类，GlobalExceptionHandler 统一拦截，日志自动分类
-
 ---
 
 ## 项目页面
