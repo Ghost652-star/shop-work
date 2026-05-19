@@ -149,5 +149,5 @@ npm run dev    # http://localhost:5174
 
 | 文档 | 说明 |
 |------|------|
-| [API 接口文档](docs/API.md) | 所有 REST API 接口、请求/响应示例、数据库设计 |
-| [开发指南](docs/DEV_GUIDE.md) | 配置说明、代码规范、异常体系、Redis 缓存策略、单元测试 |
+| [API 接口文档](API.md) | 所有 REST API 接口、请求/响应示例、数据库设计 |
+| [开发指南](DEV_GUIDE.md) | 配置说明、代码规范、异常体系、Redis 缓存策略、单元测试 |
