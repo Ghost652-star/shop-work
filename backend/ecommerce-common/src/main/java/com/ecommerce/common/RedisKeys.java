@@ -17,6 +17,7 @@ public class RedisKeys {
 
     // ==================== 优惠券 ====================
     public static final String COUPONS_ACTIVE = "coupons:active";
+    public static final String USER_PREFIX = "user:";
 
     // ==================== Dashboard ====================
     public static final String DASHBOARD_SALES_TREND = "dashboard:salesTrend";

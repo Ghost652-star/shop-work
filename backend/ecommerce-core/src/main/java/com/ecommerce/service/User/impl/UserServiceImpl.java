@@ -9,6 +9,8 @@ import com.ecommerce.exception.BaseException;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.UserService;
 import com.ecommerce.utils.JwtUtils;
+import com.ecommerce.utils.RedisCacheUtil;
+import com.ecommerce.common.RedisKeys;
 import com.ecommerce.vo.LoginVO;
 import com.ecommerce.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +26,11 @@ import java.util.Random;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final JwtUtils jwtUtils;
+    private final RedisCacheUtil redisCacheUtil;
 
-    public UserServiceImpl(JwtUtils jwtUtils) {
+    public UserServiceImpl(JwtUtils jwtUtils, RedisCacheUtil redisCacheUtil) {
         this.jwtUtils = jwtUtils;
+        this.redisCacheUtil = redisCacheUtil;
     }
 
     /**
@@ -112,12 +116,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public UserVO getUserById(Integer userId) {
         log.debug("查询用户详情: userId={}", userId);
+
+        // 检查缓存
+        String cacheKey = RedisKeys.USER_PREFIX + userId;
+        UserVO cached = redisCacheUtil.get(cacheKey, UserVO.class);
+        if (cached != null) {
+            log.debug("用户信息缓存命中: userId={}", userId);
+            return cached;
+        }
+
         User user = getById(userId);
         if (user == null) {
             log.warn("用户不存在: userId={}", userId);
             throw new BaseException("用户不存在");
         }
-        return convertToVO(user);
+
+        UserVO result = convertToVO(user);
+        redisCacheUtil.set(cacheKey, result, 3);
+        log.debug("用户信息已缓存: userId={}", userId);
+        return result;
     }
     
     /**
@@ -128,14 +145,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public UserVO updateUser(UpdateUserDTO updateUserDTO) {
         log.debug("开始更新用户信息: userId={}", updateUserDTO.getId());
-        
+
         // 查询用户是否存在
         User user = getById(updateUserDTO.getId());
         if (user == null) {
             log.warn("更新用户信息失败: 用户不存在, userId={}", updateUserDTO.getId());
             throw new BaseException("用户不存在");
         }
-        
+
         // 检查手机号是否被其他用户使用
         if (updateUserDTO.getPhone() != null && !updateUserDTO.getPhone().equals(user.getPhone())) {
             User existingUser = findByPhone(updateUserDTO.getPhone());
@@ -144,7 +161,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 throw new BaseException("手机号已被其他用户使用");
             }
         }
-        
+
         // 更新用户信息
         if (updateUserDTO.getNickname() != null) {
             user.setNickname(updateUserDTO.getNickname());
@@ -161,12 +178,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (updateUserDTO.getGender() != null) {
             user.setGender(updateUserDTO.getGender());
         }
-        
+
         // 保存更新
         updateById(user);
+        // 清除用户信息缓存
+        clearUserCache(user.getId());
         log.info("用户信息更新成功: userId={}", user.getId());
-        
+
         return convertToVO(user);
+    }
+
+    /**
+     * 清除用户信息缓存
+     * @param userId 用户ID
+     */
+    public void clearUserCache(Integer userId) {
+        String cacheKey = RedisKeys.USER_PREFIX + userId;
+        redisCacheUtil.delete(cacheKey);
+        log.debug("用户信息缓存已清除: userId={}", userId);
     }
     
     /**

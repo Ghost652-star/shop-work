@@ -551,11 +551,15 @@ proxy: {
 | `UserProductServiceImpl.listProducts()` | `products:all` | 5 分钟 | 商品列表 |
 | `UserProductServiceImpl.getProductById()` | `product:{id}` | 5 分钟 | 商品详情 |
 | `UserCategoryServiceImpl.listCategories()` | `categories:all` | 30 分钟 | 分类列表 |
+| `CouponServiceImpl.listCoupons()` | `coupons:active` | 10 分钟 | 优惠券列表 |
+| `UserServiceImpl.getUserById()` | `user:{id}` | 3 分钟 | 用户信息 |
 
 缓存清除由商家端在修改/删除数据时主动调用：
 - `UserProductServiceImpl.clearProductListCache()` — 新增/修改/删除商品时
 - `UserProductServiceImpl.clearProductCache(id)` — 商品修改/删除时
 - `UserCategoryServiceImpl.clearCategoryCache()` — 分类修改时
+- `CouponServiceImpl.clearCouponCache()` — 优惠券修改时
+- `UserServiceImpl.clearUserCache(id)` — 用户信息更新时
 
 缓存 Key 常量定义在 `ecommerce-common` 模块的 `RedisKeys` 类中。
 

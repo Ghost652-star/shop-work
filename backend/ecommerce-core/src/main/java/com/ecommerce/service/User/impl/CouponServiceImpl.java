@@ -5,8 +5,11 @@ import com.ecommerce.entity.Coupon;
 import com.ecommerce.mapper.CouponMapper;
 import com.ecommerce.service.User.CouponService;
 import com.ecommerce.service.User.UserCategoryService;
+import com.ecommerce.common.RedisKeys;
+import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.CouponVO;
 import com.ecommerce.vo.CategoryVO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,9 +26,15 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements CouponService {
-    
+
     @Autowired
     private UserCategoryService categoryService;
+
+    private final RedisCacheUtil redisCacheUtil;
+
+    public CouponServiceImpl(RedisCacheUtil redisCacheUtil) {
+        this.redisCacheUtil = redisCacheUtil;
+    }
 
     /**
      * 查询优惠券列表
@@ -34,20 +43,40 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     @Override
     public List<CouponVO> listCoupons() {
         log.debug("查询启用状态的优惠券列表");
-        
+
+        // 检查缓存
+        List<CouponVO> cached = redisCacheUtil.get(RedisKeys.COUPONS_ACTIVE,
+                new TypeReference<List<CouponVO>>() {});
+        if (cached != null) {
+            log.debug("优惠券列表缓存命中");
+            return cached;
+        }
+
         // 查询所有启用状态的优惠券
         List<Coupon> coupons = query().eq("status", 1).list();
         log.debug("查询到优惠券数量: {}", coupons.size());
-        
+
         // 查询所有分类，用于关联分类名称
         List<CategoryVO> categoryVOs = categoryService.listCategories();
         Map<Integer, String> categoryMap = categoryVOs.stream()
                 .collect(Collectors.toMap(CategoryVO::getId, CategoryVO::getName));
-        
+
         // 转换为 CouponVO 并计算倒计时
-        return coupons.stream()
+        List<CouponVO> result = coupons.stream()
                 .map(coupon -> convertToVO(coupon, categoryMap))
                 .collect(Collectors.toList());
+
+        redisCacheUtil.set(RedisKeys.COUPONS_ACTIVE, result, 10);
+        log.debug("优惠券列表已缓存");
+        return result;
+    }
+
+    /**
+     * 清除优惠券缓存（商家端修改优惠券时调用）
+     */
+    public void clearCouponCache() {
+        redisCacheUtil.delete(RedisKeys.COUPONS_ACTIVE);
+        log.debug("优惠券缓存已清除");
     }
     
     /**
