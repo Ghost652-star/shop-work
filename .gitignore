@@ -30,6 +30,8 @@ backend/target/
 # 文档
 *.md
 !README.md
+!API.md
+!DEV_GUIDE.md
 docs/
 
 # Python
