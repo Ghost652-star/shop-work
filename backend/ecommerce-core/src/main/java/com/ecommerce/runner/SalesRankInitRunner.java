@@ -52,7 +52,7 @@ public class SalesRankInitRunner implements CommandLineRunner {
             }
         }
 
-        // 商品名映射 Hash 由 SalesRankCacheTask 的 cache-aside 按需从 MySQL 回填
+        
         log.info("热销榜单预热完成，共加载 {} 个商品", count);
     }
 }
