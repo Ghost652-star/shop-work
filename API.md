@@ -1,121 +1,701 @@
 # API 接口文档
 
-所有接口返回统一格式：`{ code: 1, msg: "success", data: {...} }`
+## 统一响应格式
+
+所有接口返回：
+
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": { ... }
+}
+```
+
+- `code` = 1 表示成功，0 表示失败
+- 失败时 `data` 为 null，`msg` 包含错误信息
+
+---
 
 ## Swagger 文档
 
-项目集成了 Springdoc OpenAPI，启动后端后访问以下地址查看自动生成的接口文档：
-
+启动后端后访问：
 - **Swagger UI**: `http://localhost:8080/swagger-ui.html`
 - **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
-
-Swagger UI 支持在线调试，可以直接在页面上测试 API 接口。
 
 ---
 
 ## 用户模块 `/user`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/user/login` | 用户登录（返回 JWT token） |
-| POST | `/user/register` | 用户注册 |
-| GET | `/user/info?userId=` | 获取用户信息 |
-| GET | `/user/current` | 获取当前登录用户（需 Bearer token） |
-| POST | `/user/logout` | 退出登录 |
-| PUT | `/user/update` | 更新用户资料 |
+### POST `/user/login` — 用户登录
+
+**请求体：**
+```json
+{
+  "username": "zhangsan",
+  "password": "123456"
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "user": {
+      "id": 1,
+      "username": "zhangsan",
+      "nickname": "zhangsan",
+      "phone": "138****1234",
+      "avatar": "https://picsum.photos/100/100?random=1",
+      "gender": 0
+    },
+    "token": "eyJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
+### POST `/user/register` — 用户注册
+
+**请求体：**
+```json
+{
+  "username": "zhangsan",
+  "password": "123456",
+  "phone": "13800138000"
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "username": "zhangsan",
+    "nickname": "zhangsanaaa",
+    "phone": "13800138000",
+    "avatar": "https://picsum.photos/100/100?random=567",
+    "gender": 0
+  }
+}
+```
+
+### GET `/user/info?userId=1` — 获取用户信息
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "username": "zhangsan",
+    "nickname": "zhangsanaaa",
+    "phone": "138****8000",
+    "avatar": "https://picsum.photos/100/100?random=567",
+    "gender": 0
+  }
+}
+```
+
+### GET `/user/current` — 获取当前登录用户
+
+需 Header: `Authorization: Bearer <token>`
+
+**响应：** 同 `/user/info`
+
+### POST `/user/logout` — 退出登录
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": null }
+```
+
+### PUT `/user/update` — 更新用户资料
+
+**请求体：**
+```json
+{
+  "id": 1,
+  "nickname": "新昵称",
+  "phone": "13900139000",
+  "email": "zhangsan@example.com",
+  "avatar": "https://example.com/avatar.jpg",
+  "gender": 1
+}
+```
+
+**响应：** 返回更新后的 UserVO
+
+---
 
 ## 商品模块 `/product`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/product/list` | 商品列表 |
-| GET | `/product/{id}` | 商品详情 |
-| GET | `/product/category/{categoryId}` | 按分类查询 |
-| GET | `/product/hot-sales` | 热销榜单 TOP10 |
+### GET `/product/list` — 商品列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "无线蓝牙耳机",
+      "description": "高品质降噪耳机",
+      "price": 199.00,
+      "sales": 520,
+      "mainImage": "https://example.com/product1.jpg",
+      "categoryId": 1
+    }
+  ]
+}
+```
+
+### GET `/product/{id}` — 商品详情
+
+**响应：** 单个 ProductVO（同上结构）
+
+### GET `/product/category/{categoryId}` — 按分类查询
+
+**响应：** `List<ProductVO>`
+
+### GET `/product/hot-sales` — 热销榜单 TOP10
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "rank": 1,
+      "productId": 3,
+      "name": "无线蓝牙耳机",
+      "sales": 520
+    },
+    {
+      "rank": 2,
+      "productId": 7,
+      "name": "机械键盘",
+      "sales": 380
+    }
+  ]
+}
+```
+
+---
 
 ## 分类模块 `/category`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/category/list` | 分类列表 |
+### GET `/category/list` — 分类列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    { "id": 1, "name": "电子产品" },
+    { "id": 2, "name": "服装" }
+  ]
+}
+```
+
+---
 
 ## 购物车模块 `/cart`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/cart/add` | 加入购物车 |
-| GET | `/cart/list?userId=` | 购物车列表 |
-| PUT | `/cart/update` | 更新数量 |
-| DELETE | `/cart/delete?id=` | 删除单项 |
-| DELETE | `/cart/batch-delete` | 批量删除 |
-| PUT | `/cart/check` | 勾选/取消勾选 |
-| PUT | `/cart/check-all` | 全选/取消全选 |
-| GET | `/cart/count?userId=` | 购物车数量 |
+### POST `/cart/add` — 加入购物车
 
-## 订单模块 `/order`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/order/create` | 创建订单 |
-| GET | `/order/list?userId=&status=` | 订单列表 |
-| GET | `/order/detail?orderId=&userId=` | 订单详情 |
-| PUT | `/order/cancel?orderId=&userId=` | 取消订单 |
-| POST | `/order/pay` | 模拟支付 |
-| POST | `/order/coupons/available` | 查询可用优惠券 |
-| PUT | `/order/confirm?orderId=&userId=` | 确认收货 |
-
-## 优惠券模块 `/coupon` & `/userCoupon`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/coupon/list` | 优惠券列表 |
-| POST | `/userCoupon/receive` | 领取优惠券 |
-| GET | `/userCoupon/list?userId=` | 我的优惠券 |
-
-## 收藏模块 `/favorite`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/favorite` | 收藏商品 |
-| DELETE | `/favorite?userId=&productId=` | 取消收藏 |
-| GET | `/favorite/list?userId=` | 收藏列表 |
-| GET | `/favorite/check?userId=&productId=` | 检查是否收藏 |
-
-## 地址模块 `/address`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/address/list?userId=` | 地址列表 |
-| GET | `/address/default?userId=` | 默认地址 |
-| GET | `/address/{id}` | 地址详情 |
-| POST | `/address` | 新增地址 |
-| PUT | `/address` | 更新地址 |
-| PUT | `/address/default/{id}?userId=` | 设为默认 |
-| DELETE | `/address/{id}` | 删除地址 |
-
-## 评论模块 `/comment`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/comment` | 发表评论 |
-| DELETE | `/comment?id=&userId=` | 删除评论 |
-| GET | `/comment/list?productId=` | 商品评论列表 |
-| GET | `/comment/user?userId=` | 用户评论列表 |
-| GET | `/comment/stats?productId=` | 商品评论统计（平均分、评论数） |
-
-**发表评论请求体：**
+**请求体：**
 ```json
 {
   "userId": 1,
-  "productId": 2,
-  "orderId": 5,
+  "productId": 3,
+  "quantity": 1
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "userId": 1,
+    "productId": 3,
+    "productName": "无线蓝牙耳机",
+    "productImage": "https://example.com/product1.jpg",
+    "price": 199.00,
+    "quantity": 1,
+    "isChecked": 1,
+    "createTime": "2026-05-19T10:00:00",
+    "updateTime": "2026-05-19T10:00:00",
+    "subtotal": 199.00
+  }
+}
+```
+
+### GET `/cart/list?userId=1` — 购物车列表
+
+**响应：** `List<CartVO>`（结构同上）
+
+### PUT `/cart/update` — 更新数量
+
+**请求体：**
+```json
+{
+  "id": 1,
+  "quantity": 3
+}
+```
+
+**响应：** 返回更新后的 CartVO
+
+### DELETE `/cart/delete?id=1` — 删除单项
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### DELETE `/cart/batch-delete` — 批量删除
+
+**请求体：**
+```json
+{
+  "ids": [1, 2, 3]
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/cart/check` — 勾选/取消勾选
+
+**请求体：**
+```json
+{
+  "id": 1,
+  "isChecked": 0
+}
+```
+
+**响应：** 返回更新后的 CartVO
+
+### PUT `/cart/check-all` — 全选/取消全选
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "isChecked": 1
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/cart/count?userId=1` — 购物车数量
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": 5 }
+```
+
+---
+
+## 订单模块 `/order`
+
+### POST `/order/create` — 创建订单
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "addressId": 1,
+  "couponIds": [1],
+  "remark": "请尽快发货",
+  "cartItemIds": [1, 2],
+  "items": [
+    {
+      "productId": 3,
+      "quantity": 1
+    }
+  ]
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "orderNo": "ORD20260519100000123",
+    "userId": 1,
+    "status": 0,
+    "statusText": "待付款",
+    "totalAmount": 199.00,
+    "freightAmount": 5.00,
+    "couponAmount": 20.00,
+    "payAmount": 184.00,
+    "paymentType": null,
+    "paymentTime": null,
+    "receiverName": "张三",
+    "receiverPhone": "13800138000",
+    "receiverAddress": "广东省深圳市南山区xxx",
+    "remark": "请尽快发货",
+    "afterSaleStatus": 0,
+    "createTime": "2026-05-19T10:00:00",
+    "items": [
+      {
+        "id": 1,
+        "productId": 3,
+        "productName": "无线蓝牙耳机",
+        "productImage": "https://example.com/product1.jpg",
+        "categoryId": 1,
+        "price": 199.00,
+        "quantity": 1,
+        "totalPrice": 199.00
+      }
+    ],
+    "coupons": [
+      {
+        "id": 1,
+        "couponId": 1,
+        "description": "满100减20",
+        "categoryId": null,
+        "discountAmount": 20.00
+      }
+    ]
+  }
+}
+```
+
+### GET `/order/list?userId=1&status=0` — 订单列表
+
+`status` 可选：0=待付款, 1=待发货, 2=待收货, 3=已完成, 4=已取消
+
+**响应：** `List<OrderVO>`（结构同上）
+
+### GET `/order/detail?orderId=1&userId=1` — 订单详情
+
+**响应：** 单个 OrderVO
+
+### PUT `/order/cancel?orderId=1&userId=1` — 取消订单
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": true }
+```
+
+### POST `/order/pay` — 模拟支付
+
+**请求体：**
+```json
+{
+  "orderId": 1,
+  "userId": 1,
+  "paymentType": "alipay"
+}
+```
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": true }
+```
+
+### POST `/order/coupons/available` — 查询可用优惠券
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "items": [
+    {
+      "productId": 3,
+      "categoryId": 1,
+      "price": 199.00,
+      "quantity": 1
+    }
+  ]
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "available": [
+      {
+        "userCouponId": 1,
+        "couponId": 1,
+        "description": "满100减20",
+        "minSpend": 100.00,
+        "discountAmount": 20.00,
+        "categoryId": null,
+        "expireTime": "2026-06-19T00:00:00",
+        "actualDiscount": 20.00
+      }
+    ],
+    "unavailable": [
+      {
+        "userCouponId": 2,
+        "description": "满500减100",
+        "reason": "金额不满足最低消费"
+      }
+    ],
+    "totalAmount": 199.00,
+    "maxDiscount": 20.00
+  }
+}
+```
+
+### PUT `/order/confirm?orderId=1&userId=1` — 确认收货
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": true }
+```
+
+---
+
+## 优惠券模块 `/coupon` & `/userCoupon`
+
+### GET `/coupon/list` — 优惠券列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "description": "满100减20",
+      "categoryId": null,
+      "categoryName": null,
+      "minSpend": 100.00,
+      "discountAmount": 20.00,
+      "startTime": "2026-05-01T00:00:00",
+      "endTime": "2026-06-01T00:00:00",
+      "validPeriod": 30,
+      "stock": 100,
+      "image": "https://example.com/coupon.png",
+      "status": 1,
+      "countdown": "12:30:45"
+    }
+  ]
+}
+```
+
+### POST `/userCoupon/receive` — 领取优惠券
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "couponId": 1
+}
+```
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "userId": 1,
+    "couponId": 1,
+    "description": "满100减20",
+    "minSpend": 100.00,
+    "discountAmount": 20.00,
+    "status": 0,
+    "orderId": null,
+    "getTime": "2026-05-19T10:00:00",
+    "useTime": null,
+    "expireTime": "2026-06-18T10:00:00"
+  }
+}
+```
+
+### GET `/userCoupon/list?userId=1` — 我的优惠券
+
+**响应：** `List<UserCouponVO>`（结构同上）
+
+---
+
+## 收藏模块 `/favorite`
+
+### POST `/favorite` — 收藏商品
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "productId": 3
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### DELETE `/favorite?userId=1&productId=3` — 取消收藏
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/favorite/list?userId=1` — 收藏列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "productId": 3,
+      "createTime": "2026-05-19 10:00:00"
+    }
+  ]
+}
+```
+
+### GET `/favorite/check?userId=1&productId=3` — 检查是否收藏
+
+**响应：**
+```json
+{ "code": 1, "msg": "success", "data": true }
+```
+
+---
+
+## 地址模块 `/address`
+
+### GET `/address/list?userId=1` — 地址列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "name": "张三",
+      "phone": "13800138000",
+      "province": "广东省",
+      "city": "深圳市",
+      "district": "南山区",
+      "detailAddress": "科技园路1号",
+      "isDefault": 1,
+      "createTime": "2026-05-19T10:00:00",
+      "updateTime": "2026-05-19T10:00:00"
+    }
+  ]
+}
+```
+
+### GET `/address/default?userId=1` — 默认地址
+
+**响应：** 单个 AddressVO
+
+### GET `/address/{id}` — 地址详情
+
+**响应：** 单个 AddressVO
+
+### POST `/address` — 新增地址
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "name": "张三",
+  "phone": "13800138000",
+  "province": "广东省",
+  "city": "深圳市",
+  "district": "南山区",
+  "detailAddress": "科技园路1号",
+  "isDefault": 0
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/address` — 更新地址
+
+**请求体：** 同 POST，需包含 `id`
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/address/default/{id}?userId=1` — 设为默认
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### DELETE `/address/{id}` — 删除地址
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+---
+
+## 评论模块 `/comment`
+
+### POST `/comment` — 发表评论
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "productId": 3,
+  "orderId": 1,
   "rating": 5,
   "content": "商品质量很好，非常满意！",
   "images": "https://example.com/img1.jpg,https://example.com/img2.jpg"
 }
 ```
 
-**评论统计响应：**
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### DELETE `/comment?id=1&userId=1` — 删除评论
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/comment/list?productId=3` — 商品评论列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "username": "zhangsan",
+      "productId": 3,
+      "orderId": 1,
+      "rating": 5,
+      "content": "商品质量很好，非常满意！",
+      "images": "https://example.com/img1.jpg,https://example.com/img2.jpg",
+      "createTime": "2026-05-19 10:00:00"
+    }
+  ]
+}
+```
+
+### GET `/comment/user?userId=1` — 用户评论列表
+
+**响应：** `List<CommentVO>`（同上）
+
+### GET `/comment/stats?productId=3` — 商品评论统计
+
+**响应：**
 ```json
 {
   "code": 1,
@@ -123,28 +703,100 @@ Swagger UI 支持在线调试，可以直接在页面上测试 API 接口。
   "data": [4.8, 120]
 }
 ```
-`data[0]` 为平均评分，`data[1]` 为评论总数。
+
+`data[0]` = 平均评分，`data[1]` = 评论总数
+
+---
 
 ## 售后模块 `/after-sale`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/after-sale` | 提交售后申请 |
-| GET | `/after-sale/list?userId=` | 用户售后列表 |
-| GET | `/after-sale/detail?id=` | 售后单详情 |
-| PUT | `/after-sale/cancel?id=&userId=` | 取消售后 |
+### POST `/after-sale` — 提交售后申请
+
+**请求体：**
+```json
+{
+  "userId": 1,
+  "orderId": 1,
+  "reason": "质量问题",
+  "description": "耳机有杂音",
+  "images": "https://example.com/defect1.jpg",
+  "orderItemIds": [1]
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/after-sale/list?userId=1` — 用户售后列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    {
+      "id": 1,
+      "orderNo": "ORD20260519100000123",
+      "orderId": 1,
+      "reason": "质量问题",
+      "description": "耳机有杂音",
+      "images": "https://example.com/defect1.jpg",
+      "refundAmount": 199.00,
+      "status": 0,
+      "statusText": "待处理",
+      "adminRemark": null,
+      "createTime": "2026-05-19 10:00:00",
+      "items": [
+        {
+          "orderItemId": 1,
+          "productId": 3,
+          "productName": "无线蓝牙耳机",
+          "productImage": "https://example.com/product1.jpg",
+          "price": 199.00,
+          "quantity": 1,
+          "totalPrice": 199.00
+        }
+      ]
+    }
+  ]
+}
+```
+
+### GET `/after-sale/detail?id=1` — 售后单详情
+
+**响应：** 单个 AfterSaleVO
+
+### PUT `/after-sale/cancel?id=1&userId=1` — 取消售后
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
 
 ---
 
 ## 智能客服模块 `/shop/customer-service`
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/shop/customer-service/process` | 发送消息给 AI 客服 |
+### POST `/shop/customer-service/process` — 发送消息给 AI 客服
 
-Agent 服务基于 **LangChain ReAct Agent** 模式，LLM 自主决策调用工具回答用户问题。
+**请求体：**
+```json
+{
+  "message": "帮我查一下我的订单状态",
+  "user_id": "1"
+}
+```
 
-### 工具列表
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "reply": "您有一笔待付款订单...",
+    "tool_calls": [...]
+  }
+}
+```
+
+### Agent 工具列表
 
 | 工具 | 功能 | 数据源 |
 |------|------|--------|
@@ -157,57 +809,291 @@ Agent 服务基于 **LangChain ReAct Agent** 模式，LLM 自主决策调用工�
 | `search_products` | 语义搜索推荐商品 | ChromaDB (RAG) |
 | `get_product_detail` | 查询商品详情 | MySQL |
 
-### RAG 流程
-
-```
-用户提问 → ZhipuAI Embedding 向量化 → ChromaDB 语义检索 (top-K=5, threshold=0.4)
-    → 返回匹配商品 → MySQL 查询商品详情 → LLM 生成回答
-```
-
 ---
 
 ## 商家端 API
 
-### 商家信息 `/shop/merchant`
+### GET `/shop/merchant/info` — 获取商家信息
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/merchant/info` | 获取商家信息 |
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "name": "FlowShop旗舰店",
+    "phone": "13800138000",
+    "description": "官方旗舰店",
+    "logo": "https://example.com/logo.png",
+    "status": 1,
+    "createTime": "2026-05-01T00:00:00",
+    "updateTime": "2026-05-19T00:00:00"
+  }
+}
+```
 
-### 数据总览 `/shop/dashboard`
+### GET `/shop/dashboard/sales-trend` — 近7天销售趋势
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/dashboard/sales-trend` | 近 7 天销售趋势 |
-| GET | `/shop/dashboard/order-status` | 订单状态分布统计 |
-| GET | `/shop/dashboard/top-products` | 热销商品 TOP10 |
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "dates": ["05-13", "05-14", "05-15", "05-16", "05-17", "05-18", "05-19"],
+    "amounts": [1200.00, 890.00, 2100.00, 1500.00, 3200.00, 2800.00, 1900.00]
+  }
+}
+```
 
-### 商品管理 `/shop/product`
+### GET `/shop/dashboard/order-status` — 订单状态分布
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/product/list` | 商品列表（支持分页、搜索、筛选） |
-| GET | `/shop/product/detail?productId=` | 商品详情 |
-| POST | `/shop/product/add` | 新增商品 |
-| PUT | `/shop/product/update` | 修改商品信息 |
-| DELETE | `/shop/product/delete?productId=` | 删除商品 |
-| PUT | `/shop/product/status` | 上下架商品 |
-| PUT | `/shop/product/stock` | 修改库存 |
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    { "name": "待付款", "value": 5 },
+    { "name": "待发货", "value": 12 },
+    { "name": "待收货", "value": 8 },
+    { "name": "已完成", "value": 45 },
+    { "name": "已取消", "value": 3 }
+  ]
+}
+```
 
-### 订单管理 `/shop/order`
+### GET `/shop/dashboard/top-products` — 热销商品 TOP10
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/order/list` | 订单列表（支持分页、状态筛选） |
-| GET | `/shop/order/detail?orderId=` | 订单详情 |
-| PUT | `/shop/order/ship` | 订单发货 |
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": [
+    { "name": "无线蓝牙耳机", "sales": 520 },
+    { "name": "机械键盘", "sales": 380 }
+  ]
+}
+```
 
-### 售后管理 `/shop/after-sale`
+### GET `/shop/product/list?page=1&size=10&name=&status=&categoryId=` — 商品列表
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/after-sale/list` | 售后列表（支持分页、状态筛选） |
-| PUT | `/shop/after-sale/handle` | 处理售后（同意/拒绝 + 备注） |
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "name": "无线蓝牙耳机",
+        "price": 199.00,
+        "stock": 200,
+        "sales": 520,
+        "categoryName": "电子产品",
+        "mainImage": "https://example.com/product1.jpg",
+        "status": 1
+      }
+    ],
+    "total": 47,
+    "page": 1,
+    "size": 10
+  }
+}
+```
+
+### GET `/shop/product/detail?productId=1` — 商品详情
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "name": "无线蓝牙耳机",
+    "description": "高品质降噪耳机",
+    "price": 199.00,
+    "stock": 200,
+    "sales": 520,
+    "categoryId": 1,
+    "categoryName": "电子产品",
+    "mainImage": "https://example.com/product1.jpg",
+    "status": 1
+  }
+}
+```
+
+### POST `/shop/product/add` — 新增商品
+
+**请求体：**
+```json
+{
+  "name": "新商品",
+  "description": "商品描述",
+  "price": 99.00,
+  "stock": 100,
+  "categoryId": 1,
+  "mainImage": "https://example.com/new.jpg"
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/shop/product/update` — 修改商品
+
+**请求体：** 同 POST，需包含 `id`
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### DELETE `/shop/product/delete?productId=1` — 删除商品
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/shop/product/status` — 上下架
+
+**请求体：**
+```json
+{
+  "productId": 1,
+  "status": 1
+}
+```
+
+`status`: 0=下架, 1=上架
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### PUT `/shop/product/stock` — 修改库存
+
+**请求体：**
+```json
+{
+  "productId": 1,
+  "stock": 300
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/shop/order/list?page=1&size=10&status=` — 订单列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "orderNo": "ORD20260519100000123",
+        "userName": "zhangsan",
+        "totalAmount": 199.00,
+        "payAmount": 184.00,
+        "status": 0,
+        "statusText": "待付款",
+        "createTime": "2026-05-19T10:00:00"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "size": 10
+  }
+}
+```
+
+### GET `/shop/order/detail?orderId=1` — 订单详情
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "id": 1,
+    "orderNo": "ORD20260519100000123",
+    "userName": "zhangsan",
+    "totalAmount": 199.00,
+    "payAmount": 184.00,
+    "status": 0,
+    "statusText": "待付款",
+    "createTime": "2026-05-19T10:00:00",
+    "receiverName": "张三",
+    "receiverPhone": "13800138000",
+    "receiverAddress": "广东省深圳市南山区xxx",
+    "remark": "请尽快发货",
+    "items": [
+      {
+        "id": 1,
+        "productId": 3,
+        "productName": "无线蓝牙耳机",
+        "productImage": "https://example.com/product1.jpg",
+        "categoryId": 1,
+        "price": 199.00,
+        "quantity": 1,
+        "totalPrice": 199.00
+      }
+    ]
+  }
+}
+```
+
+### PUT `/shop/order/ship` — 订单发货
+
+**请求体：**
+```json
+{
+  "orderId": 1
+}
+```
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
+
+### GET `/shop/after-sale/list?page=1&size=10&status=` — 售后列表
+
+**响应：**
+```json
+{
+  "code": 1,
+  "msg": "success",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "orderNo": "ORD20260519100000123",
+        "userName": "zhangsan",
+        "reason": "质量问题",
+        "refundAmount": 199.00,
+        "status": 0,
+        "statusText": "待处理",
+        "createTime": "2026-05-19T10:00:00"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "size": 10
+  }
+}
+```
+
+### PUT `/shop/after-sale/handle` — 处理售后
+
+**请求体：**
+```json
+{
+  "afterSaleId": 1,
+  "status": 1,
+  "adminRemark": "同意退款，已处理"
+}
+```
+
+`status`: 1=通过, 2=驳回
+
+**响应：** `{ "code": 1, "msg": "success", "data": null }`
 
 ---
 
