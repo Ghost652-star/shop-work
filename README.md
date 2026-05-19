@@ -49,80 +49,7 @@
 | | ChromaDB | - | 向量数据库 (RAG) |
 | | ZhipuAI Embedding | embedding-3 | 文本向量化 |
 | | MiniMax-M2.5 | - | 大语言模型 |
-| **数据库** | MySQL | 8.0+ | 主数据库 (12 张表) |
-
----
-
-## 目录结构
-
-```
-FlowShop/
-├── user-frontend/               # 用户端前端项目
-│   ├── src/
-│   │   ├── api/                 # API 接口模块 (9 个)
-│   │   ├── assets/              # 静态资源
-│   │   ├── components/          # 公共组件 (CartSidebar)
-│   │   ├── data/                # 数据文件 (省市区)
-│   │   ├── router/              # 路由配置
-│   │   ├── styles/              # 样式 (CSS 变量/设计令牌)
-│   │   ├── utils/               # 工具 (Axios 封装)
-│   │   └── views/               # 页面组件 (8 个)
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-├── shop-frontend/               # 商家端管理后台
-│   ├── src/
-│   │   ├── api/                 # API 接口模块 (5 个)
-│   │   ├── components/          # 布局组件 (ShopLayout)
-│   │   ├── views/               # 页面组件 (4 个)
-│   │   ├── router/              # 路由配置
-│   │   └── utils/               # 工具 (Axios 封装)
-│   ├── package.json
-│   └── vite.config.js           # 端口 5174
-│
-├── backend/                     # 后端项目 (Maven 多模块)
-│   ├── pom.xml                  # 父 POM
-│   ├── ecommerce-pojo/          # 数据模型层 (Entity/DTO/VO)
-│   ├── ecommerce-common/        # 公共层 (异常处理)
-│   └── ecommerce-core/          # 核心业务层
-│       └── src/main/java/com/ecommerce/
-│           ├── Controller/      # 控制器
-│           │   ├── Shop/        # 商家端控制器 (5 个)
-│           │   └── ...          # 用户端控制器 (11 个)
-│           ├── service/         # 服务接口
-│           │   ├── Shop/        # 商家端服务 (5 个)
-│           │   └── impl/        # 服务实现
-│           ├── mapper/          # 数据访问层 (11 个)
-│           ├── entity/          # 实体类
-│           ├── config/          # 配置类
-│           ├── runner/          # 启动任务 & 定时任务
-│           └── exception/       # 自定义异常（按业务域分类）
-│
-├── agent/                       # AI 客服服务
-│   ├── app/
-│   │   ├── serviceClient.py     # Agent 核心
-│   │   ├── callbacks.py         # 调试回调
-│   │   └── connect.py           # FastAPI 路由
-│   ├── config/                  # 配置模块
-│   │   ├── settings.py          # 统一配置管理
-│   │   └── database.py          # 数据库连接池
-│   ├── rag/                     # RAG 模块
-│   │   ├── vector_store.py      # 向量存储服务
-│   │   └── rag_service.py       # RAG 检索服务
-│   ├── tools/                   # 工具模块
-│   │   ├── order_tools.py       # 订单工具 (2 个)
-│   │   ├── user_tools.py        # 用户工具 (4 个)
-│   │   └── product_tools.py     # 商品工具 (2 个)
-│   ├── prompts/                 # 提示词目录
-│   │   └── system_prompt.txt    # 系统提示词
-│   ├── data/product.csv         # 商品种子数据 (47 条)
-│   ├── chroma_data/             # ChromaDB 持久化
-│   ├── requirements.txt         # Python 依赖
-│   └── .env                     # 环境变量
-│
-└── db_init.sql                  # 数据库初始化脚本
-```
+| **数据库** | MySQL | 8.0+ | 主数据库 (13 张表) |
 
 ---
 
@@ -141,18 +68,13 @@ FlowShop/
 mysql -u root -p < db_init.sql
 ```
 
-这会创建 `db_aps` 数据库及全部 12 张表。
-
 ### 2. 启动后端
 
 ```bash
 cd backend
-
-# 修改数据库配置 (如有需要)
-# ecommerce-core/src/main/resources/application.yml
-
-# 编译并运行
-mvn clean package -DskipTests
+$env:JAVA_HOME="E:\jdk1.8"
+$env:PATH="E:\jdk1.8\bin;" + $env:PATH
+mvn clean install -DskipTests
 cd ecommerce-core
 mvn spring-boot:run
 ```
@@ -163,316 +85,48 @@ mvn spring-boot:run
 
 ```bash
 cd agent
-
-# 创建虚拟环境
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
-
-# 安装依赖
 pip install -r requirements.txt
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 填入 MySQL 连接信息
-
-# 启动服务
+cp .env.example .env       # 编辑 .env 填入 MySQL 连接信息
 uvicorn app.connect:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Agent 服务启动后监听 `http://127.0.0.1:8000`。
-
-### 4. 启动前端
+### 4. 启动用户端前端
 
 ```bash
 cd user-frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
-npm run dev
+npm run dev    # http://localhost:5173
 ```
-
-前端启动后访问 `http://localhost:5173`。
 
 ### 5. 启动商家端前端
 
 ```bash
 cd shop-frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
-npm run dev
-```
-
-商家端启动后访问 `http://localhost:5174`。
-
----
-
-## 数据库设计
-
-数据库名 `db_aps`，共 13 张表：
-
-| 表名 | 说明 | 核心字段 |
-|------|------|----------|
-| `user` | 用户表 | username, password, nickname, phone, email, avatar, gender |
-| `category` | 商品分类表 | name, sort, status |
-| `product` | 商品表 | name, price, stock, sales, categoryId, mainImage |
-| `cart` | 购物车表 | userId, productId, quantity, price, isChecked |
-| `orders` | 订单表 | orderNo, userId, status, totalAmount, payAmount, 收货信息 |
-| `order_item` | 订单商品表 | orderId, productId, price, quantity, totalPrice |
-| `coupon` | 优惠券表 | categoryId, minSpend, discountAmount, stock, 时间窗口 |
-| `user_coupon` | 用户优惠券表 | userId, couponId, status, expireTime |
-| `order_coupon` | 订单优惠券明细 | orderId, couponId, discountAmount |
-| `address` | 收货地址表 | userId, name, phone, 省市区, detailAddress, isDefault |
-| `favorite` | 收藏表 | userId, productId |
-| `comment` | 商品评论表 | userId, productId, orderId, rating, content |
-| `merchant` | 商家表 | name, phone, description, logo, status |
-
-**订单状态流转：**
-```
-待付款(0) ──支付──▶ 待发货(1) ──发货──▶ 待收货(2) ──确认收货──▶ 已完成(3)
-    │                                        │
-    └──── 取消 ◀─────────────────────────────┘
-                                              ▼
-                                        已取消(4)
+npm run dev    # http://localhost:5174
 ```
 
 ---
 
-## API 接口
+## 核心亮点
 
-所有接口返回统一格式：`{ code: 1, msg: "success", data: {...} }`
-
-### Swagger 文档
-
-项目集成了 Springdoc OpenAPI，启动后端后访问以下地址查看自动生成的接口文档：
-
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
-- **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
-
-Swagger UI 支持在线调试，可以直接在页面上测试 API 接口。
-
-### 用户模块 `/user`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/user/login` | 用户登录（返回 JWT token） |
-| POST | `/user/register` | 用户注册 |
-| GET | `/user/info?userId=` | 获取用户信息 |
-| GET | `/user/current` | 获取当前登录用户（需 Bearer token） |
-| POST | `/user/logout` | 退出登录 |
-| PUT | `/user/update` | 更新用户资料 |
-
-### 商品模块 `/product`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/product/list` | 商品列表 |
-| GET | `/product/{id}` | 商品详情 |
-| GET | `/product/category/{categoryId}` | 按分类查询 |
-| GET | `/product/hot-sales` | 热销榜单 TOP10 |
-
-### 分类模块 `/category`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/category/list` | 分类列表 |
-
-### 购物车模块 `/cart`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/cart/add` | 加入购物车 |
-| GET | `/cart/list?userId=` | 购物车列表 |
-| PUT | `/cart/update` | 更新数量 |
-| DELETE | `/cart/delete?id=` | 删除单项 |
-| DELETE | `/cart/batch-delete` | 批量删除 |
-| PUT | `/cart/check` | 勾选/取消勾选 |
-| PUT | `/cart/check-all` | 全选/取消全选 |
-| GET | `/cart/count?userId=` | 购物车数量 |
-
-### 订单模块 `/order`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/order/create` | 创建订单 |
-| GET | `/order/list?userId=&status=` | 订单列表 |
-| GET | `/order/detail?orderId=&userId=` | 订单详情 |
-| PUT | `/order/cancel?orderId=&userId=` | 取消订单 |
-| POST | `/order/pay` | 模拟支付 |
-| POST | `/order/coupons/available` | 查询可用优惠券 |
-
-### 优惠券模块 `/coupon` & `/userCoupon`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/coupon/list` | 优惠券列表 |
-| POST | `/userCoupon/receive` | 领取优惠券 |
-| GET | `/userCoupon/list?userId=` | 我的优惠券 |
-
-### 收藏模块 `/favorite`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/favorite` | 收藏商品 |
-| DELETE | `/favorite?userId=&productId=` | 取消收藏 |
-| GET | `/favorite/list?userId=` | 收藏列表 |
-| GET | `/favorite/check?userId=&productId=` | 检查是否收藏 |
-
-### 地址模块 `/address`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/address/list?userId=` | 地址列表 |
-| GET | `/address/default?userId=` | 默认地址 |
-| GET | `/address/{id}` | 地址详情 |
-| POST | `/address` | 新增地址 |
-| PUT | `/address` | 更新地址 |
-| PUT | `/address/default/{id}?userId=` | 设为默认 |
-| DELETE | `/address/{id}` | 删除地址 |
-
-### 评论模块 `/comment`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/comment` | 发表评论 |
-| DELETE | `/comment?id=&userId=` | 删除评论 |
-| GET | `/comment/list?productId=` | 商品评论列表 |
-| GET | `/comment/user?userId=` | 用户评论列表 |
-| GET | `/comment/stats?productId=` | 商品评论统计（平均分、评论数） |
-
-**发表评论请求体：**
-```json
-{
-  "userId": 1,
-  "productId": 2,
-  "orderId": 5,
-  "rating": 5,
-  "content": "商品质量很好，非常满意！",
-  "images": "https://example.com/img1.jpg,https://example.com/img2.jpg"
-}
-```
-
-**评论统计响应：**
-```json
-{
-  "code": 1,
-  "msg": "success",
-  "data": [4.8, 120]
-}
-```
-`data[0]` 为平均评分，`data[1]` 为评论总数。
-
-### 售后模块 `/after-sale`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/after-sale` | 提交售后申请 |
-| GET | `/after-sale/list?userId=` | 用户售后列表 |
-| GET | `/after-sale/detail?id=` | 售后单详情 |
-| PUT | `/after-sale/cancel?id=&userId=` | 取消售后 |
-
-### 订单模块（补充）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| PUT | `/order/confirm?orderId=&userId=` | 确认收货 |
-
-### 智能客服模块 `/shop/customer-service`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/shop/customer-service/process` | 发送消息给 AI 客服 |
-
-### 商家端 API
-
-#### 商家信息 `/shop/merchant`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/merchant/info` | 获取商家信息 |
-
-#### 数据总览 `/shop/dashboard`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/dashboard/sales-trend` | 近 7 天销售趋势 |
-| GET | `/shop/dashboard/order-status` | 订单状态分布统计 |
-| GET | `/shop/dashboard/top-products` | 热销商品 TOP10 |
-
-#### 商品管理 `/shop/product`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/product/list` | 商品列表（支持分页、搜索、筛选） |
-| GET | `/shop/product/detail?productId=` | 商品详情 |
-| POST | `/shop/product/add` | 新增商品 |
-| PUT | `/shop/product/update` | 修改商品信息 |
-| DELETE | `/shop/product/delete?productId=` | 删除商品 |
-| PUT | `/shop/product/status` | 上下架商品 |
-| PUT | `/shop/product/stock` | 修改库存 |
-
-#### 订单管理 `/shop/order`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/order/list` | 订单列表（支持分页、状态筛选） |
-| GET | `/shop/order/detail?orderId=` | 订单详情 |
-| PUT | `/shop/order/ship` | 订单发货 |
-
-#### 售后管理 `/shop/after-sale`
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/shop/after-sale/list` | 售后列表（支持分页、状态筛选） |
-| PUT | `/shop/after-sale/handle` | 处理售后（同意/拒绝 + 备注） |
+- **AI 智能客服** — 基于 LangChain ReAct Agent + ChromaDB RAG，支持语义搜索商品、查询订单/优惠券/购物车等 8 个工具
+- **Redis 多级缓存** — 商品列表/详情/分类/优惠券/用户信息 TTL 缓存 + 热销榜单 ZSet 实时排行 + 商品名映射 Hash cache-aside 自愈
+- **JWT 认证** — jjwt 签发 token，Axios 拦截器自动携带，Spring MVC 拦截器校验
+- **业务异常体系** — 9 种业务域异常分类，GlobalExceptionHandler 统一拦截，日志自动分类
 
 ---
 
-## AI 智能客服
+## 项目页面
 
-Agent 服务基于 **LangChain ReAct Agent** 模式，LLM 自主决策调用哪些工具来回答用户问题。
-
-### 工具列表
-
-| 工具 | 功能 | 数据源 |
-|------|------|--------|
-| `get_orderStatus` | 查询订单状态 | MySQL |
-| `get_userOrders` | 查询用户所有订单 | MySQL |
-| `get_user_coupons` | 查询用户优惠券 | MySQL |
-| `get_user_addresses` | 查询用户收货地址 | MySQL |
-| `get_user_favorites` | 查询用户收藏 | MySQL |
-| `get_user_cart` | 查询用户购物车 | MySQL |
-| `search_products` | 语义搜索推荐商品 | ChromaDB (RAG) |
-| `get_product_detail` | 查询商品详情 | MySQL |
-
-### RAG 流程
-
-```
-用户提问 → ZhipuAI Embedding 向量化 → ChromaDB 语义检索 (top-K=5, threshold=0.4)
-    → 返回匹配商品 → MySQL 查询商品详情 → LLM 生成回答
-```
-
-### Agent 接口
-
-```bash
-# 发送消息
-curl -X POST http://127.0.0.1:8000/process \
-  -H "Content-Type: application/json" \
-  -d '{"message": "帮我查一下我的订单状态", "user_id": "1"}'
-```
-
----
-
-## 前端页面
+### 用户端（端口 5173）
 
 | 页面 | 路由 | 功能 |
 |------|------|------|
-| 首页 | `/` | 分类导航、轮播图、热卖 TOP10、秒杀倒计时、商品瀑布流、登录/注册弹窗 |
-| 商品详情 | `/product?id=` | 商品图片、规格选择、数量控制、加入购物车/立即购买、收藏、评论 |
+| 首页 | `/` | 分类导航、轮播图、热卖 TOP10、秒杀倒计时、商品瀑布流 |
+| 商品详情 | `/product?id=` | 商品图片、规格选择、加入购物车/立即购买、收藏、评论 |
 | 个人中心 | `/personal?tab=` | 订单管理、收藏夹、优惠券、地址管理、个人资料 |
 | 订单确认 | `/order-confirm` | 地址选择、商品清单、优惠券选择、备注、提交订单 |
 | 支付页面 | `/payment/:id` | 支付方式选择、模拟二维码、倒计时、支付结果 |
@@ -480,7 +134,7 @@ curl -X POST http://127.0.0.1:8000/process \
 | 优惠券中心 | `/coupon-seckill` | 分类标签、优惠券列表、领取按钮 |
 | 智能客服 | `/customer-service` | 联系人列表、消息对话框、实时问答 |
 
-### 商家端页面（端口 5174）
+### 商家端（端口 5174）
 
 | 页面 | 路由 | 功能 |
 |------|------|------|
@@ -491,106 +145,9 @@ curl -X POST http://127.0.0.1:8000/process \
 
 ---
 
-## 配置说明
+## 文档
 
-### 后端配置 (`application.yml`)
-
-```yaml
-server:
-  port: 8080
-
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/db_aps
-    username: root
-    password: your_password
-```
-
-### Agent 配置 (`.env`)
-
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=db_aps
-LLM_API_KEY=your_llm_api_key
-ZHIPUAI_API_KEY=your_zhipuai_api_key
-```
-
-Agent 配置文件位于 `config/settings.py`，包含：
-- **LLM 配置** — 模型名称、API Key
-- **Embedding 配置** — 模型名称、向量库参数
-- **数据库配置** — 连接池参数
-
-### 前端代理 (`vite.config.js`)
-
-```js
-proxy: {
-  '/api': {
-    target: 'http://localhost:8080',
-    rewrite: (path) => path.replace(/^\/api/, '')
-  }
-}
-```
-
----
-
-## 开发说明
-
-- 后端遵循 **Controller → Service → Mapper** 三层架构
-- Service 层按角色分包：`service/User/`（用户端，只读）、`service/Shop/`（商家端，可修改）
-- 接口使用 **DTO 接收参数、VO 返回数据**，禁止使用 `Map<String, Object>`
-- 前端 API 封装在 `src/utils/request.js`，基于 Axios 拦截器统一处理响应
-- 设计令牌定义在 `src/styles/variables.css`，主色调为 `#E53935`（红色系）
-- 组件库使用 Element Plus，其余 UI 自定义实现
-- 用户认证使用 JWT（jjwt 0.9.1），token 存储在 localStorage 的 `loginUser` 对象中，通过 Axios 拦截器自动携带 `Authorization: Bearer <token>`
-- Spring MVC 拦截器（`AuthInterceptor`）验证 token，白名单配置在 `WebMvcConfig`
-- 商家端使用 SLF4J 日志，查询类 `debug`，状态变更 `info`，异常 `warn`
-
-### 业务异常体系
-
-异常按业务域分类，统一继承 `BaseException`，由 `GlobalExceptionHandler` 统一拦截并返回 `{ code, msg, data }` 格式。
-
-```
-RuntimeException
-  └── BaseException (code + message)
-        ├── UserException        — 用户登录/注册/信息相关
-        ├── ProductException     — 商品不存在/下架/库存不足
-        ├── OrderException       — 订单创建/支付/取消/确认收货
-        ├── CartException        — 购物车增删改查
-        ├── CouponException      — 优惠券领取/使用/过期
-        ├── AddressException     — 收货地址增删改查
-        ├── AfterSaleException   — 售后申请/取消/处理
-        ├── CommentException     — 评论发表/删除
-        └── FavoriteException    — 收藏/取消收藏
-```
-
-使用规范：Service 层根据业务场景抛出对应的异常类型，禁止直接使用 `BaseException`。
-
-### Redis 缓存策略
-
-| 缓存位置 | Key | 类型 | TTL | 说明 |
-|----------|-----|------|-----|------|
-| `UserProductServiceImpl.listProducts()` | `products:all` | String | 5 分钟 | 商品列表 |
-| `UserProductServiceImpl.getProductById()` | `product:{id}` | String | 5 分钟 | 商品详情 |
-| `UserCategoryServiceImpl.listCategories()` | `categories:all` | String | 30 分钟 | 分类列表 |
-| `CouponServiceImpl.listCoupons()` | `coupons:active` | String | 10 分钟 | 优惠券列表 |
-| `UserServiceImpl.getUserById()` | `user:{id}` | String | 3 分钟 | 用户信息 |
-| `SalesRankInitRunner` | `product:sales_rank` | ZSet | 无 | 热销排行（启动时预热） |
-| `SalesRankCacheTask` | `product:name:map` | Hash | 无 | 商品 ID→名称映射（cache-aside 按需回填） |
-| `SalesRankCacheTask` | `cache:hot_sales:top10` | String | 35 秒 | 热销榜单快照缓存 |
-
-**缓存清除策略：**
-- 商品名映射 Hash（`product:name:map`）：修改/删除商品时删除对应字段，新增无需操作（cache-aside 自动回填）
-- 其他缓存由商家端在修改/删除数据时主动调用清除方法
-
-缓存 Key 常量定义在 `ecommerce-common` 模块的 `RedisKeys` 类中。
-
-### 单元测试
-
-```bash
-cd backend/ecommerce-core
-$env:JAVA_HOME="E:\jdk1.8"
-$env:PATH="E:\jdk1.8\bin;" + $env:PATH
-mvn test "-Dtest=com.ecommerce.GlobalExceptionHandlerTest"
-```
+| 文档 | 说明 |
+|------|------|
+| [API 接口文档](docs/API.md) | 所有 REST API 接口、请求/响应示例、数据库设计 |
+| [开发指南](docs/DEV_GUIDE.md) | 配置说明、代码规范、异常体系、Redis 缓存策略、单元测试 |
