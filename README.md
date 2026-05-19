@@ -42,6 +42,7 @@
 | | Maven | - | 多模块构建工具 |
 | | Spring WebFlux | 2.7.15 | WebClient 调用 Agent 服务 |
 | | Springdoc OpenAPI | 1.6.15 | API 文档自动生成 (Swagger UI) |
+| | Redis | - | 缓存（热销榜单、商品名映射、用户信息等） |
 | **Agent** | Python | 3.8+ | 编程语言 |
 | | FastAPI | 0.115+ | Web 框架 |
 | | LangChain | 0.3.7+ | AI Agent 框架 |
@@ -95,7 +96,8 @@ FlowShop/
 │           ├── mapper/          # 数据访问层 (11 个)
 │           ├── entity/          # 实体类
 │           ├── config/          # 配置类
-│           └── exception/       # 自定义异常
+│           ├── runner/          # 启动任务 & 定时任务
+│           └── exception/       # 自定义异常（按业务域分类）
 │
 ├── agent/                       # AI 客服服务
 │   ├── app/
@@ -545,24 +547,42 @@ proxy: {
 - Spring MVC 拦截器（`AuthInterceptor`）验证 token，白名单配置在 `WebMvcConfig`
 - 商家端使用 SLF4J 日志，查询类 `debug`，状态变更 `info`，异常 `warn`
 
+### 业务异常体系
+
+异常按业务域分类，统一继承 `BaseException`，由 `GlobalExceptionHandler` 统一拦截并返回 `{ code, msg, data }` 格式。
+
+```
+RuntimeException
+  └── BaseException (code + message)
+        ├── UserException        — 用户登录/注册/信息相关
+        ├── ProductException     — 商品不存在/下架/库存不足
+        ├── OrderException       — 订单创建/支付/取消/确认收货
+        ├── CartException        — 购物车增删改查
+        ├── CouponException      — 优惠券领取/使用/过期
+        ├── AddressException     — 收货地址增删改查
+        ├── AfterSaleException   — 售后申请/取消/处理
+        ├── CommentException     — 评论发表/删除
+        └── FavoriteException    — 收藏/取消收藏
+```
+
+使用规范：Service 层根据业务场景抛出对应的异常类型，禁止直接使用 `BaseException`。
+
 ### Redis 缓存策略
 
-| 缓存位置 | Key | TTL | 说明 |
-|----------|-----|-----|------|
-| `UserProductServiceImpl.listProducts()` | `products:all` | 5 分钟 | 商品列表 |
-| `UserProductServiceImpl.getProductById()` | `product:{id}` | 5 分钟 | 商品详情 |
-| `UserCategoryServiceImpl.listCategories()` | `categories:all` | 30 分钟 | 分类列表 |
-| `CouponServiceImpl.listCoupons()` | `coupons:active` | 10 分钟 | 优惠券列表 |
-| `UserServiceImpl.getUserById()` | `user:{id}` | 3 分钟 | 用户信息 |
-| `SalesRankInitRunner` + `SalesRankCacheTask` | `product:sales_rank` (ZSet) | 无 | 热销排行实时数据 |
-| `SalesRankCacheTask` | `cache:hot_sales:top10` (String) | 35 秒 | 热销榜单快照缓存 |
+| 缓存位置 | Key | 类型 | TTL | 说明 |
+|----------|-----|------|-----|------|
+| `UserProductServiceImpl.listProducts()` | `products:all` | String | 5 分钟 | 商品列表 |
+| `UserProductServiceImpl.getProductById()` | `product:{id}` | String | 5 分钟 | 商品详情 |
+| `UserCategoryServiceImpl.listCategories()` | `categories:all` | String | 30 分钟 | 分类列表 |
+| `CouponServiceImpl.listCoupons()` | `coupons:active` | String | 10 分钟 | 优惠券列表 |
+| `UserServiceImpl.getUserById()` | `user:{id}` | String | 3 分钟 | 用户信息 |
+| `SalesRankInitRunner` | `product:sales_rank` | ZSet | 无 | 热销排行（启动时预热） |
+| `SalesRankCacheTask` | `product:name:map` | Hash | 无 | 商品 ID→名称映射（cache-aside 按需回填） |
+| `SalesRankCacheTask` | `cache:hot_sales:top10` | String | 35 秒 | 热销榜单快照缓存 |
 
-缓存清除由商家端在修改/删除数据时主动调用：
-- `UserProductServiceImpl.clearProductListCache()` — 新增/修改/删除商品时
-- `UserProductServiceImpl.clearProductCache(id)` — 商品修改/删除时
-- `UserCategoryServiceImpl.clearCategoryCache()` — 分类修改时
-- `CouponServiceImpl.clearCouponCache()` — 优惠券修改时
-- `UserServiceImpl.clearUserCache(id)` — 用户信息更新时
+**缓存清除策略：**
+- 商品名映射 Hash（`product:name:map`）：修改/删除商品时删除对应字段，新增无需操作（cache-aside 自动回填）
+- 其他缓存由商家端在修改/删除数据时主动调用清除方法
 
 缓存 Key 常量定义在 `ecommerce-common` 模块的 `RedisKeys` 类中。
 
@@ -572,5 +592,5 @@ proxy: {
 cd backend/ecommerce-core
 $env:JAVA_HOME="E:\jdk1.8"
 $env:PATH="E:\jdk1.8\bin;" + $env:PATH
-mvn test "-Dtest=com.ecommerce.CacheIntegrationTest"
+mvn test "-Dtest=com.ecommerce.GlobalExceptionHandlerTest"
 ```
