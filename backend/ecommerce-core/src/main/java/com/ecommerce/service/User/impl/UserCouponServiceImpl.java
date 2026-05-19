@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.UserCouponDTO;
 import com.ecommerce.entity.Coupon;
 import com.ecommerce.entity.UserCoupon;
-import com.ecommerce.exception.CouponException;
+import com.ecommerce.common.exception.CouponException;
 import com.ecommerce.mapper.CouponMapper;
 import com.ecommerce.mapper.UserCouponMapper;
 import com.ecommerce.service.User.UserCouponService;

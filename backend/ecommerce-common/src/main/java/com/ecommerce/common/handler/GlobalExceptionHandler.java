@@ -1,6 +1,6 @@
-package com.ecommerce.handler;
+package com.ecommerce.common.handler;
 
-import com.ecommerce.exception.*;
+import com.ecommerce.common.exception.*;
 import com.ecommerce.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;

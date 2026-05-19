@@ -7,7 +7,7 @@ import com.ecommerce.entity.AfterSale;
 import com.ecommerce.entity.AfterSaleItem;
 import com.ecommerce.entity.Order;
 import com.ecommerce.entity.OrderItem;
-import com.ecommerce.exception.AfterSaleException;
+import com.ecommerce.common.exception.AfterSaleException;
 import com.ecommerce.mapper.AfterSaleItemMapper;
 import com.ecommerce.mapper.AfterSaleMapper;
 import com.ecommerce.mapper.OrderItemMapper;

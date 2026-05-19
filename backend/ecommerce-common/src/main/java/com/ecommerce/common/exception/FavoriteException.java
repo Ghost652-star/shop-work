@@ -1,4 +1,4 @@
-package com.ecommerce.exception;
+package com.ecommerce.common.exception;
 
 public class FavoriteException extends BaseException {
     public FavoriteException(String message) {

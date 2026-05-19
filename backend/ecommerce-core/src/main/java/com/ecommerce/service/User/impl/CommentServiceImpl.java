@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CommentDTO;
 import com.ecommerce.entity.Comment;
 import com.ecommerce.entity.User;
-import com.ecommerce.exception.CommentException;
+import com.ecommerce.common.exception.CommentException;
 import com.ecommerce.mapper.CommentMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.CommentService;

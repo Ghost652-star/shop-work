@@ -1,4 +1,4 @@
-package com.ecommerce.exception;
+package com.ecommerce.common.exception;
 
 public class AddressException extends BaseException {
     public AddressException(String message) {

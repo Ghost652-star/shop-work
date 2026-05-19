@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.AddressDTO;
 import com.ecommerce.entity.Address;
-import com.ecommerce.exception.AddressException;
+import com.ecommerce.common.exception.AddressException;
 import com.ecommerce.mapper.AddressMapper;
 import com.ecommerce.service.User.AddressService;
 import com.ecommerce.vo.AddressVO;

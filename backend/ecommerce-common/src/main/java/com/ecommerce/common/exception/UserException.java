@@ -1,4 +1,4 @@
-package com.ecommerce.exception;
+package com.ecommerce.common.exception;
 
 public class UserException extends BaseException {
     public UserException(String message) {

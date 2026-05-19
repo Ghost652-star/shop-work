@@ -5,7 +5,7 @@ import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
 import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
-import com.ecommerce.exception.UserException;
+import com.ecommerce.common.exception.UserException;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.UserService;
 import com.ecommerce.utils.JwtUtils;

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.FavoriteDTO;
 import com.ecommerce.entity.Favorite;
-import com.ecommerce.exception.FavoriteException;
+import com.ecommerce.common.exception.FavoriteException;
 import com.ecommerce.mapper.FavoriteMapper;
 import com.ecommerce.service.User.FavoriteService;
 import com.ecommerce.vo.FavoriteVO;

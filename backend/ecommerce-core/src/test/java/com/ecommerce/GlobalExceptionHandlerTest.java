@@ -1,7 +1,7 @@
 package com.ecommerce;
 
-import com.ecommerce.exception.*;
-import com.ecommerce.handler.GlobalExceptionHandler;
+import com.ecommerce.common.exception.*;
+import com.ecommerce.common.handler.GlobalExceptionHandler;
 import com.ecommerce.result.Result;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

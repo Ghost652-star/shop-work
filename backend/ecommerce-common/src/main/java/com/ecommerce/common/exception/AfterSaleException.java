@@ -1,4 +1,4 @@
-package com.ecommerce.exception;
+package com.ecommerce.common.exception;
 
 public class AfterSaleException extends BaseException {
     public AfterSaleException(String message) {

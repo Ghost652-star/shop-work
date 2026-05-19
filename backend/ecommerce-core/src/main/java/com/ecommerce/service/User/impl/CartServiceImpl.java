@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CartDTO;
 import com.ecommerce.entity.Cart;
 import com.ecommerce.entity.Product;
-import com.ecommerce.exception.CartException;
+import com.ecommerce.common.exception.CartException;
 import com.ecommerce.mapper.CartMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.User.CartService;

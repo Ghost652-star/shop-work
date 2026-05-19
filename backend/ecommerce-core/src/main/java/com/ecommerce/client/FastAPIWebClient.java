@@ -1,7 +1,6 @@
-package com.ecommerce.Controller.Shop;
+package com.ecommerce.client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,7 +14,6 @@ public class FastAPIWebClient {
 
     private final WebClient webClient;
 
-    
     public FastAPIWebClient(WebClient webClient) {
         this.webClient = webClient;
         log.info("FastAPIWebClient初始化成功，目标地址: http://127.0.0.1:8000");
