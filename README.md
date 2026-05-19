@@ -271,6 +271,7 @@ Swagger UI 支持在线调试，可以直接在页面上测试 API 接口。
 | GET | `/product/list` | 商品列表 |
 | GET | `/product/{id}` | 商品详情 |
 | GET | `/product/category/{categoryId}` | 按分类查询 |
+| GET | `/product/hot-sales` | 热销榜单 TOP10 |
 
 ### 分类模块 `/category`
 
@@ -553,6 +554,8 @@ proxy: {
 | `UserCategoryServiceImpl.listCategories()` | `categories:all` | 30 分钟 | 分类列表 |
 | `CouponServiceImpl.listCoupons()` | `coupons:active` | 10 分钟 | 优惠券列表 |
 | `UserServiceImpl.getUserById()` | `user:{id}` | 3 分钟 | 用户信息 |
+| `SalesRankInitRunner` + `SalesRankCacheTask` | `product:sales_rank` (ZSet) | 无 | 热销排行实时数据 |
+| `SalesRankCacheTask` | `cache:hot_sales:top10` (String) | 35 秒 | 热销榜单快照缓存 |
 
 缓存清除由商家端在修改/删除数据时主动调用：
 - `UserProductServiceImpl.clearProductListCache()` — 新增/修改/删除商品时

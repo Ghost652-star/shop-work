@@ -256,7 +256,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CartSidebar from '../components/CartSidebar.vue'
-import { getCategoryList, getProductList } from '../api/product'
+import { getCategoryList, getProductList, getHotSales } from '../api/product'
 import { login, register, logout } from '../api/user'
 import { createOrder } from '../api/order'
 import { getDefaultAddress } from '../api/address'
@@ -345,13 +345,12 @@ const loadProductList = async () => {
 
 const loadHotSales = async () => {
   try {
-    const result = await getProductList()
+    const result = await getHotSales()
     if (result.code === 1) {
-      const topProducts = (result.data || []).slice(0, 10)
-      hotSales.value = topProducts.map((p, index) => ({
-        rank: index + 1,
-        name: p.name.substring(0, 8),
-        sales: p.sales > 1000 ? (p.sales / 1000).toFixed(1) + 'k+' : p.sales + '+'
+      hotSales.value = (result.data || []).map(item => ({
+        rank: item.rank,
+        name: item.name.substring(0, 8),
+        sales: item.sales > 1000 ? (item.sales / 1000).toFixed(1) + 'k+' : item.sales + '+'
       }))
     }
   } catch (error) {}

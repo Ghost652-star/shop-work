@@ -2,17 +2,23 @@ package com.ecommerce.service.Shop.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ecommerce.common.RedisKeys;
 import com.ecommerce.entity.AfterSale;
 import com.ecommerce.entity.Order;
+import com.ecommerce.entity.OrderItem;
+import com.ecommerce.entity.Product;
 import com.ecommerce.entity.User;
 import com.ecommerce.mapper.AfterSaleMapper;
+import com.ecommerce.mapper.OrderItemMapper;
 import com.ecommerce.mapper.OrderMapper;
+import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.dto.ShopAfterSaleQueryDTO;
 import com.ecommerce.service.Shop.ShopAfterSaleService;
 import com.ecommerce.vo.PageResultVO;
 import com.ecommerce.vo.ShopAfterSaleVO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -24,12 +30,20 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
 
     private final AfterSaleMapper afterSaleMapper;
     private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
     private final UserMapper userMapper;
+    private final ProductMapper productMapper;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public ShopAfterSaleServiceImpl(AfterSaleMapper afterSaleMapper, OrderMapper orderMapper, UserMapper userMapper) {
+    public ShopAfterSaleServiceImpl(AfterSaleMapper afterSaleMapper, OrderMapper orderMapper,
+                                     OrderItemMapper orderItemMapper, UserMapper userMapper,
+                                     ProductMapper productMapper, StringRedisTemplate stringRedisTemplate) {
         this.afterSaleMapper = afterSaleMapper;
         this.orderMapper = orderMapper;
+        this.orderItemMapper = orderItemMapper;
         this.userMapper = userMapper;
+        this.productMapper = productMapper;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     private static final String[] STATUS_TEXT = {"待处理", "已通过", "已驳回"};
@@ -91,11 +105,47 @@ public class ShopAfterSaleServiceImpl implements ShopAfterSaleService {
 
     @Override
     public void handleAfterSale(Long afterSaleId, Integer status, String adminRemark) {
-        AfterSale afterSale = new AfterSale();
-        afterSale.setId(afterSaleId);
+        AfterSale afterSale = afterSaleMapper.selectById(afterSaleId);
+        if (afterSale == null) {
+            log.warn("售后单不存在: afterSaleId={}", afterSaleId);
+            return;
+        }
+
+        // 如果是通过（status=1），需要恢复库存和销量
+        if (status == 1) {
+            restoreStockAndSales(afterSale.getOrderId());
+        }
+
         afterSale.setStatus(status);
         afterSale.setAdminRemark(adminRemark);
         afterSaleMapper.updateById(afterSale);
         log.info("售后处理完成: afterSaleId={}, newStatus={}, remark={}", afterSaleId, status, adminRemark);
+    }
+
+    /**
+     * 恢复库存和销量
+     */
+    private void restoreStockAndSales(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
+                .eq("order_id", orderId));
+
+        for (OrderItem item : items) {
+            Product product = productMapper.selectById(item.getProductId());
+            if (product != null) {
+                // 恢复库存
+                product.setStock(product.getStock() + item.getQuantity());
+                // 恢复销量
+                product.setSales(product.getSales() - item.getQuantity());
+                productMapper.updateById(product);
+
+                // 更新热销榜单 ZSet
+                stringRedisTemplate.opsForZSet().incrementScore(
+                        RedisKeys.SALES_RANK,
+                        product.getId().toString(),
+                        -item.getQuantity()
+                );
+            }
+        }
+        log.info("恢复库存和销量完成: orderId={}", orderId);
     }
 }

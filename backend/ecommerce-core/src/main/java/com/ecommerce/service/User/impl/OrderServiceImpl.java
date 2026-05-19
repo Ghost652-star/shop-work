@@ -2,6 +2,7 @@ package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ecommerce.common.RedisKeys;
 import com.ecommerce.dto.OrderDTO;
 import com.ecommerce.dto.AvailableCouponDTO;
 import com.ecommerce.dto.OrderItemDTO;
@@ -17,6 +18,7 @@ import com.ecommerce.vo.CouponInfoVO;
 import com.ecommerce.vo.UnavailableCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     
     @Autowired
     private CouponMapper couponMapper;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     @Transactional
@@ -348,13 +353,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             userCouponMapper.updateById(uc);
         }
 
-        // 恢复库存
+        // 恢复库存和销量
         List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
                 .eq("order_id", orderId));
-        
+
         for (OrderItem item : items) {
             Product product = productMapper.selectById(item.getProductId());
             product.setStock(product.getStock() + item.getQuantity());
+            // 只有已支付的订单才需要恢复销量（状态 1、2、3）
+            if (order.getStatus() >= 1) {
+                product.setSales(product.getSales() - item.getQuantity());
+                // 更新热销榜单 ZSet
+                updateSalesRank(product.getId().longValue(), -item.getQuantity());
+            }
             productMapper.updateById(product);
         }
         
@@ -577,7 +588,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         order.setStatus(3);
         orderMapper.updateById(order);
+
+        // 增加商品销量
+        List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
+                .eq("order_id", orderId));
+        for (OrderItem item : items) {
+            Product product = productMapper.selectById(item.getProductId());
+            if (product != null) {
+                product.setSales(product.getSales() + item.getQuantity());
+                productMapper.updateById(product);
+                // 更新热销榜单 ZSet
+                updateSalesRank(product.getId().longValue(), item.getQuantity());
+            }
+        }
+
         log.info("确认收货成功: orderId={}", orderId);
         return true;
+    }
+
+    /**
+     * 更新热销榜单 ZSet
+     */
+    private void updateSalesRank(Long productId, int delta) {
+        try {
+            stringRedisTemplate.opsForZSet().incrementScore(
+                    RedisKeys.SALES_RANK,
+                    productId.toString(),
+                    delta
+            );
+        } catch (Exception e) {
+            log.error("更新热销榜单失败: productId={}", productId, e);
+        }
     }
 }

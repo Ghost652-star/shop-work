@@ -18,3 +18,9 @@ export const getProductList = () => request.get('/product/list')
  * @returns {Promise}
  */
 export const getProductDetail = (id) => request.get(`/product/${id}`)
+
+/**
+ * 查询热销榜单
+ * @returns {Promise}
+ */
+export const getHotSales = () => request.get('/product/hot-sales')
