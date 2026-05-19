@@ -13,6 +13,7 @@ import com.ecommerce.service.User.impl.UserProductServiceImpl;
 import com.ecommerce.common.RedisKeys;
 import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.PageResultVO;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import com.ecommerce.vo.ShopProductDetailVO;
 import com.ecommerce.vo.ShopProductVO;
 import lombok.extern.slf4j.Slf4j;
@@ -33,12 +34,16 @@ public class ShopProductServiceImpl implements ShopProductService {
     private final RedisCacheUtil redisCacheUtil;
     private final UserProductServiceImpl userProductService;
 
+    private final StringRedisTemplate stringRedisTemplate;
+
     public ShopProductServiceImpl(ProductMapper productMapper, CategoryMapper categoryMapper,
-                                  RedisCacheUtil redisCacheUtil, UserProductServiceImpl userProductService) {
+                                  RedisCacheUtil redisCacheUtil, UserProductServiceImpl userProductService,
+                                  StringRedisTemplate stringRedisTemplate) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
         this.redisCacheUtil = redisCacheUtil;
         this.userProductService = userProductService;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
@@ -149,7 +154,7 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setSales(0);
         productMapper.insert(product);
         userProductService.clearProductListCache();
-        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
+        // 新增商品不需要删 Hash（新商品本来就不在缓存里）
         log.info("新增商品成功: productId={}, name={}", product.getId(), dto.getName());
     }
 
@@ -164,20 +169,20 @@ public class ShopProductServiceImpl implements ShopProductService {
         product.setCategoryId(dto.getCategoryId());
         product.setMainImage(dto.getMainImage());
         productMapper.updateById(product);
-        // 清除该商品的缓存
         userProductService.clearProductCache(dto.getId());
         userProductService.clearProductListCache();
-        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
+        // 删除该商品在 Hash 中的旧名称，下次 cache-aside 会回填新名称
+        stringRedisTemplate.opsForHash().delete(RedisKeys.PRODUCT_NAME_MAP, dto.getId().toString());
         log.info("修改商品信息成功: productId={}, name={}", dto.getId(), dto.getName());
     }
 
     @Override
     public void deleteProduct(Integer productId) {
         productMapper.deleteById(productId);
-        // 清除该商品的缓存
         userProductService.clearProductCache(productId);
         userProductService.clearProductListCache();
-        redisCacheUtil.valueOps.delete(RedisKeys.PRODUCT_NAME_MAP);
+        // 从 Hash 中移除该商品
+        stringRedisTemplate.opsForHash().delete(RedisKeys.PRODUCT_NAME_MAP, productId.toString());
         log.info("删除商品成功: productId={}", productId);
     }
 }

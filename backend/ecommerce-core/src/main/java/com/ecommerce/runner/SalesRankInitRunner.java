@@ -6,7 +6,6 @@ import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.utils.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,13 +19,10 @@ public class SalesRankInitRunner implements CommandLineRunner {
 
     private final ProductMapper productMapper;
     private final RedisCacheUtil redisCacheUtil;
-    private final StringRedisTemplate stringRedisTemplate;
 
-    public SalesRankInitRunner(ProductMapper productMapper, RedisCacheUtil redisCacheUtil,
-                               StringRedisTemplate stringRedisTemplate) {
+    public SalesRankInitRunner(ProductMapper productMapper, RedisCacheUtil redisCacheUtil) {
         this.productMapper = productMapper;
         this.redisCacheUtil = redisCacheUtil;
-        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
@@ -43,10 +39,9 @@ public class SalesRankInitRunner implements CommandLineRunner {
         // 2. 清空旧数据，重新加载
         redisCacheUtil.valueOps.delete(RedisKeys.SALES_RANK);
 
-        // 3. 批量写入 ZSet + 构建商品名映射
+        // 3. 批量写入 ZSet
         int count = 0;
         for (Product p : products) {
-            // 写入销量 ZSet
             if (p.getSales() != null && p.getSales() > 0) {
                 redisCacheUtil.zSetOps.incrementScore(
                         RedisKeys.SALES_RANK,
@@ -55,14 +50,9 @@ public class SalesRankInitRunner implements CommandLineRunner {
                 );
                 count++;
             }
-            // 写入商品名映射 Hash
-            stringRedisTemplate.opsForHash().put(
-                    RedisKeys.PRODUCT_NAME_MAP,
-                    p.getId().toString(),
-                    p.getName()
-            );
         }
 
-        log.info("热销榜单预热完成，共加载 {} 个商品，商品名映射 {} 条", count, products.size());
+        // 商品名映射 Hash 由 SalesRankCacheTask 的 cache-aside 按需从 MySQL 回填
+        log.info("热销榜单预热完成，共加载 {} 个商品", count);
     }
 }

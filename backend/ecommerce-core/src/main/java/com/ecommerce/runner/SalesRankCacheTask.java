@@ -1,6 +1,8 @@
 package com.ecommerce.runner;
 
 import com.ecommerce.common.RedisKeys;
+import com.ecommerce.entity.Product;
+import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.utils.RedisCacheUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -21,10 +23,13 @@ public class SalesRankCacheTask {
 
     private final RedisCacheUtil redisCacheUtil;
     private final StringRedisTemplate stringRedisTemplate;
+    private final ProductMapper productMapper;
 
-    public SalesRankCacheTask(RedisCacheUtil redisCacheUtil, StringRedisTemplate stringRedisTemplate) {
+    public SalesRankCacheTask(RedisCacheUtil redisCacheUtil, StringRedisTemplate stringRedisTemplate,
+                              ProductMapper productMapper) {
         this.redisCacheUtil = redisCacheUtil;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.productMapper = productMapper;
     }
 
     @Scheduled(fixedRate = 30000)
@@ -45,15 +50,33 @@ public class SalesRankCacheTask {
                 productIds.add(tuple.getValue());
             }
 
-            // 检查 Hash 是否存在，不存在则跳过（由 SalesRankInitRunner 负责预热）
-            Boolean hashExists = stringRedisTemplate.hasKey(RedisKeys.PRODUCT_NAME_MAP);
-            if (hashExists == null || !hashExists) {
-                log.debug("商品名映射 Hash 不存在，跳过缓存刷新");
-                return;
-            }
-
+            // cache-aside: 先查 Redis，miss 的回查 MySQL 并回填
             List<Object> names = stringRedisTemplate.opsForHash()
                     .multiGet(RedisKeys.PRODUCT_NAME_MAP, productIds);
+
+            // 找出 Redis 中没有的商品 ID
+            List<Integer> missIds = new ArrayList<>();
+            for (int i = 0; i < productIds.size(); i++) {
+                if (names.get(i) == null) {
+                    missIds.add(Integer.parseInt(productIds.get(i).toString()));
+                }
+            }
+
+            // 回查 MySQL，回填到 Redis Hash
+            if (!missIds.isEmpty()) {
+                List<Product> products = productMapper.selectBatchIds(missIds);
+                for (Product p : products) {
+                    stringRedisTemplate.opsForHash().put(
+                            RedisKeys.PRODUCT_NAME_MAP,
+                            p.getId().toString(),
+                            p.getName()
+                    );
+                }
+                // 重新获取完整数据
+                names = stringRedisTemplate.opsForHash()
+                        .multiGet(RedisKeys.PRODUCT_NAME_MAP, productIds);
+                log.debug("缓存 miss {} 条，已从数据库回填", missIds.size());
+            }
 
             // 3. 构建 ID -> Name 映射
             Map<String, String> nameMap = new HashMap<>();
