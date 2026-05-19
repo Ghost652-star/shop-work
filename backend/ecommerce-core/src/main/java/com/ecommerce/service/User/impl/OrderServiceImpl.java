@@ -7,7 +7,11 @@ import com.ecommerce.dto.OrderDTO;
 import com.ecommerce.dto.AvailableCouponDTO;
 import com.ecommerce.dto.OrderItemDTO;
 import com.ecommerce.entity.*;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.AddressException;
+import com.ecommerce.exception.CartException;
+import com.ecommerce.exception.CouponException;
+import com.ecommerce.exception.OrderException;
+import com.ecommerce.exception.ProductException;
 import com.ecommerce.mapper.*;
 import com.ecommerce.service.User.OrderService;
 import com.ecommerce.vo.OrderVO;
@@ -70,7 +74,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 1. 验证地址
         Address address = addressMapper.selectById(orderDTO.getAddressId().intValue());
         if (address == null || !address.getUserId().equals(orderDTO.getUserId().intValue())) {
-            throw new BaseException("地址不存在或不属于当前用户");
+            throw new AddressException("地址不存在或不属于当前用户");
         }
 
         // 2. 从购物车或前端获取商品项
@@ -81,12 +85,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     .eq("user_id", orderDTO.getUserId())
                     .in("id", orderDTO.getCartItemIds()));
             if (cartItems.size() != orderDTO.getCartItemIds().size()) {
-                throw new BaseException("购物车商品不存在或不属于当前用户");
+                throw new CartException("购物车商品不存在或不属于当前用户");
             }
             boolean hasUnchecked = cartItems.stream()
                     .anyMatch(item -> item.getIsChecked() == null || item.getIsChecked() != 1);
             if (hasUnchecked) {
-                throw new BaseException("存在未勾选的购物车商品");
+                throw new CartException("存在未勾选的购物车商品");
             }
             requestItems = cartItems.stream()
                     .map(item -> OrderItemDTO.builder()
@@ -96,7 +100,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     .collect(Collectors.toList());
         }
         if (requestItems == null || requestItems.isEmpty()) {
-            throw new BaseException("订单商品不能为空");
+            throw new OrderException("订单商品不能为空");
         }
 
         // 3. 计算商品金额和获取商品信息
@@ -108,10 +112,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         for (OrderItemDTO item : requestItems) {
             Product product = productMapper.selectById(item.getProductId());
             if (product == null || product.getStatus() != 1) {
-                throw new BaseException("商品不存在或已下架");
+                throw new ProductException("商品不存在或已下架");
             }
             if (product.getStock() < item.getQuantity()) {
-                throw new BaseException("商品库存不足");
+                throw new ProductException("商品库存不足");
             }
             productMap.put(product.getId().longValue(), product);
 
@@ -145,27 +149,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 // 验证用户优惠券
                 UserCoupon userCoupon = userCouponMapper.selectById(couponId);
                 if (userCoupon == null || !userCoupon.getUserId().equals(orderDTO.getUserId())) {
-                    throw new BaseException("优惠券不存在或不属于当前用户");
+                    throw new CouponException("优惠券不存在或不属于当前用户");
                 }
                 if (userCoupon.getStatus() != 0) {
-                    throw new BaseException("优惠券已使用或已过期");
+                    throw new CouponException("优惠券已使用或已过期");
                 }
                 if (LocalDateTime.now().isAfter(userCoupon.getExpireTime())) {
-                    throw new BaseException("优惠券已过期");
+                    throw new CouponException("优惠券已过期");
                 }
                 
                 // 验证优惠券
                 Coupon coupon = couponMapper.selectById(userCoupon.getCouponId());
                 if (coupon == null) {
-                    throw new BaseException("优惠券不存在");
+                    throw new CouponException("优惠券不存在");
                 }
                 
                 // 验证使用条件
                 if (totalAmount.compareTo(coupon.getMinSpend()) < 0) {
-                    throw new BaseException("订单金额不满足优惠券使用条件");
+                    throw new CouponException("订单金额不满足优惠券使用条件");
                 }
                 if (coupon.getCategoryId() != null && !categoryIds.contains(coupon.getCategoryId())) {
-                    throw new BaseException("商品不符合优惠券使用条件");
+                    throw new CouponException("商品不符合优惠券使用条件");
                 }
                 
                 // 计算优惠券抵扣金额
@@ -304,7 +308,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         
         Order order = orderMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new BaseException("订单不存在或不属于当前用户");
+            throw new OrderException("订单不存在或不属于当前用户");
         }
         
         List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
@@ -329,11 +333,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         
         Order order = orderMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new BaseException("订单不存在或不属于当前用户");
+            throw new OrderException("订单不存在或不属于当前用户");
         }
         
         if (order.getStatus() != 0 && order.getStatus() != 1 && order.getStatus() != 2) {
-            throw new BaseException("订单无法取消");
+            throw new OrderException("订单无法取消");
         }
         
         // 更新订单状态
@@ -387,11 +391,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         
         Order order = orderMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new BaseException("订单不存在或不属于当前用户");
+            throw new OrderException("订单不存在或不属于当前用户");
         }
         
         if (order.getStatus() != 0) {
-            throw new BaseException("只有待付款订单可以支付");
+            throw new OrderException("只有待付款订单可以支付");
         }
         
         // 更新订单状态
@@ -578,13 +582,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         log.info("确认收货: orderId={}, userId={}", orderId, userId);
         Order order = orderMapper.selectById(orderId);
         if (order == null) {
-            throw new BaseException("订单不存在");
+            throw new OrderException("订单不存在");
         }
         if (!order.getUserId().equals(userId)) {
-            throw new BaseException("无权操作该订单");
+            throw new OrderException("无权操作该订单");
         }
         if (order.getStatus() != 2) {
-            throw new BaseException("仅待收货状态可确认收货");
+            throw new OrderException("仅待收货状态可确认收货");
         }
         order.setStatus(3);
         orderMapper.updateById(order);

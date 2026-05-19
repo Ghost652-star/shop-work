@@ -7,7 +7,7 @@ import com.ecommerce.entity.AfterSale;
 import com.ecommerce.entity.AfterSaleItem;
 import com.ecommerce.entity.Order;
 import com.ecommerce.entity.OrderItem;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.AfterSaleException;
 import com.ecommerce.mapper.AfterSaleItemMapper;
 import com.ecommerce.mapper.AfterSaleMapper;
 import com.ecommerce.mapper.OrderItemMapper;
@@ -51,21 +51,21 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
 
         Order order = orderMapper.selectById(dto.getOrderId());
         if (order == null) {
-            throw new BaseException("订单不存在");
+            throw new AfterSaleException("订单不存在");
         }
         if (!order.getUserId().equals(dto.getUserId())) {
-            throw new BaseException("无权操作该订单");
+            throw new AfterSaleException("无权操作该订单");
         }
         if (order.getStatus() != 2 && order.getStatus() != 3) {
-            throw new BaseException("当前订单状态不支持申请售后");
+            throw new AfterSaleException("当前订单状态不支持申请售后");
         }
         if (order.getAfterSaleStatus() != null && order.getAfterSaleStatus() == 1) {
-            throw new BaseException("该订单已有售后处理中");
+            throw new AfterSaleException("该订单已有售后处理中");
         }
 
         List<Long> itemIds = dto.getOrderItemIds();
         if (itemIds == null || itemIds.isEmpty()) {
-            throw new BaseException("请选择要售后的商品");
+            throw new AfterSaleException("请选择要售后的商品");
         }
 
         LambdaQueryWrapper<OrderItem> itemQuery = new LambdaQueryWrapper<>();
@@ -73,7 +73,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
                  .in(OrderItem::getId, itemIds);
         List<OrderItem> orderItems = orderItemMapper.selectList(itemQuery);
         if (orderItems.size() != itemIds.size()) {
-            throw new BaseException("商品信息不正确");
+            throw new AfterSaleException("商品信息不正确");
         }
 
         BigDecimal refundAmount = orderItems.stream()
@@ -118,7 +118,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
     public AfterSaleVO getAfterSaleDetail(Long id) {
         AfterSale afterSale = getById(id);
         if (afterSale == null) {
-            throw new BaseException("售后单不存在");
+            throw new AfterSaleException("售后单不存在");
         }
         return convertToVO(afterSale);
     }
@@ -128,13 +128,13 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
     public void cancelAfterSale(Long id, Long userId) {
         AfterSale afterSale = getById(id);
         if (afterSale == null) {
-            throw new BaseException("售后单不存在");
+            throw new AfterSaleException("售后单不存在");
         }
         if (!afterSale.getUserId().equals(userId)) {
-            throw new BaseException("无权操作该售后单");
+            throw new AfterSaleException("无权操作该售后单");
         }
         if (afterSale.getStatus() != 0) {
-            throw new BaseException("仅待处理的售后单可取消");
+            throw new AfterSaleException("仅待处理的售后单可取消");
         }
 
         removeById(id);

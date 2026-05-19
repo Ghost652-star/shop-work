@@ -18,12 +18,12 @@ public class BaseException extends RuntimeException {
         this.code = code;
     }
     
-    // 手动添加 getCode 方法
+   
     public Integer getCode() {
         return code;
     }
     
-    // 手动添加 setCode 方法
+ 
     public void setCode(Integer code) {
         this.code = code;
     }

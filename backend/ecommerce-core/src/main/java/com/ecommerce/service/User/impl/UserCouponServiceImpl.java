@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.UserCouponDTO;
 import com.ecommerce.entity.Coupon;
 import com.ecommerce.entity.UserCoupon;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.CouponException;
 import com.ecommerce.mapper.CouponMapper;
 import com.ecommerce.mapper.UserCouponMapper;
 import com.ecommerce.service.User.UserCouponService;
@@ -37,22 +37,22 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         // 1. 检查优惠券是否存在且有效
         Coupon coupon = couponMapper.selectById(userCouponDTO.getCouponId());
         if (coupon == null) {
-            throw new BaseException("优惠券不存在");
+            throw new CouponException("优惠券不存在");
         }
         if (coupon.getStatus() != 1) {
-            throw new BaseException("优惠券已下架");
+            throw new CouponException("优惠券已下架");
         }
         if (coupon.getStock() <= 0) {
-            throw new BaseException("优惠券已被抢完");
+            throw new CouponException("优惠券已被抢完");
         }
         
         // 2. 检查是否在领取时间范围内
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(coupon.getStartTime())) {
-            throw new BaseException("优惠券还未开始发放");
+            throw new CouponException("优惠券还未开始发放");
         }
         if (now.isAfter(coupon.getEndTime())) {
-            throw new BaseException("优惠券已过期");
+            throw new CouponException("优惠券已过期");
         }
         
         // 3. 检查用户是否已领取过该优惠券
@@ -63,7 +63,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
                 .eq("coupon_id", userCouponDTO.getCouponId())
                 .one();
         if (existingCoupon != null) {
-            throw new BaseException("您已领取过该优惠券");
+            throw new CouponException("您已领取过该优惠券");
         }
         
         // 4. 扣减优惠券库存
@@ -84,7 +84,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
             save(userCoupon);
         } catch (DuplicateKeyException e) {
             // 并发/重复点击导致的唯一键冲突，转换为可读的业务异常
-            throw new BaseException("您已领取过该优惠券");
+            throw new CouponException("您已领取过该优惠券");
         }
 
         log.info("领取优惠券成功: userCouponId={}", userCoupon.getId());

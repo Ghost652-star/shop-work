@@ -5,7 +5,7 @@ import com.ecommerce.dto.LoginDTO;
 import com.ecommerce.dto.RegisterDTO;
 import com.ecommerce.dto.UpdateUserDTO;
 import com.ecommerce.entity.User;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.UserException;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.UserService;
 import com.ecommerce.utils.JwtUtils;
@@ -46,19 +46,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = findByUsername(loginDTO.getUsername());
         if (user == null) {
             log.warn("用户登录失败: 用户名不存在, username={}", loginDTO.getUsername());
-            throw new BaseException("用户名不存在");
+            throw new UserException("用户名不存在");
         }
         
         // 验证密码
         if (!user.getPassword().equals(loginDTO.getPassword())) {
             log.warn("用户登录失败: 密码错误, username={}", loginDTO.getUsername());
-            throw new BaseException("密码错误");
+            throw new UserException("密码错误");
         }
         
         // 验证用户状态
         if (user.getStatus() == 0) {
             log.warn("用户登录失败: 账号已被禁用, userId={}, username={}", user.getId(), user.getUsername());
-            throw new BaseException("账号已被禁用");
+            throw new UserException("账号已被禁用");
         }
         
         log.debug("用户登录验证通过: userId={}", user.getId());
@@ -80,13 +80,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 检查用户名是否已存在
         if (findByUsername(registerDTO.getUsername()) != null) {
             log.warn("用户注册失败: 用户名已存在, username={}", registerDTO.getUsername());
-            throw new BaseException("用户名已存在");
+            throw new UserException("用户名已存在");
         }
         
         // 检查手机号是否已存在
         if (findByPhone(registerDTO.getPhone()) != null) {
             log.warn("用户注册失败: 手机号已被注册, phone={}", maskPhone(registerDTO.getPhone()));
-            throw new BaseException("手机号已被注册");
+            throw new UserException("手机号已被注册");
         }
         
         // 创建新用户
@@ -128,7 +128,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = getById(userId);
         if (user == null) {
             log.warn("用户不存在: userId={}", userId);
-            throw new BaseException("用户不存在");
+            throw new UserException("用户不存在");
         }
 
         UserVO result = convertToVO(user);
@@ -150,7 +150,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = getById(updateUserDTO.getId());
         if (user == null) {
             log.warn("更新用户信息失败: 用户不存在, userId={}", updateUserDTO.getId());
-            throw new BaseException("用户不存在");
+            throw new UserException("用户不存在");
         }
 
         // 检查手机号是否被其他用户使用
@@ -158,7 +158,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             User existingUser = findByPhone(updateUserDTO.getPhone());
             if (existingUser != null && !existingUser.getId().equals(updateUserDTO.getId())) {
                 log.warn("更新用户信息失败: 手机号已被其他用户使用, phone={}", maskPhone(updateUserDTO.getPhone()));
-                throw new BaseException("手机号已被其他用户使用");
+                throw new UserException("手机号已被其他用户使用");
             }
         }
 

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CartDTO;
 import com.ecommerce.entity.Cart;
 import com.ecommerce.entity.Product;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.CartException;
 import com.ecommerce.mapper.CartMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.User.CartService;
@@ -37,12 +37,12 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         // 1. 检查商品是否存在
         Product product = productMapper.selectById(cartDTO.getProductId());
         if (product == null) {
-            throw new BaseException("商品不存在");
+            throw new CartException("商品不存在");
         }
         
         // 2. 检查商品状态
         if (product.getStatus() != 1) {
-            throw new BaseException("商品已下架");
+            throw new CartException("商品已下架");
         }
         
         // 3. 检查购物车中是否已有该商品
@@ -101,12 +101,12 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         // 1. 查询购物车记录
         Cart cart = getById(cartDTO.getId());
         if (cart == null) {
-            throw new BaseException("购物车记录不存在");
+            throw new CartException("购物车记录不存在");
         }
         
         // 2. 检查数量是否合法
         if (cartDTO.getQuantity() <= 0) {
-            throw new BaseException("商品数量必须大于 0");
+            throw new CartException("商品数量必须大于 0");
         }
         
         // 3. 更新数量
@@ -156,10 +156,10 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
 
         Cart cart = getById(cartDTO.getId());
         if (cart == null) {
-            throw new BaseException("购物车记录不存在");
+            throw new CartException("购物车记录不存在");
         }
         if (cartDTO.getUserId() != null && !cart.getUserId().equals(cartDTO.getUserId())) {
-            throw new BaseException("购物车记录不属于当前用户");
+            throw new CartException("购物车记录不属于当前用户");
         }
         cart.setIsChecked(cartDTO.getIsChecked());
         cart.setUpdateTime(LocalDateTime.now());

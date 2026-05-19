@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.AddressDTO;
 import com.ecommerce.entity.Address;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.AddressException;
 import com.ecommerce.mapper.AddressMapper;
 import com.ecommerce.service.User.AddressService;
 import com.ecommerce.vo.AddressVO;
@@ -75,7 +75,7 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         Address address = getById(id);
         if (address == null) {
             log.warn("地址不存在：addressId={}", id);
-            throw new BaseException("地址不存在");
+            throw new AddressException("地址不存在");
         }
         
         return convertToVO(address);
@@ -123,7 +123,7 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
     public void updateAddress(AddressDTO addressDTO) {
         if (addressDTO.getId() == null) {
             log.warn("修改地址失败：地址 ID 不能为空");
-            throw new BaseException("地址 ID 不能为空");
+            throw new AddressException("地址 ID 不能为空");
         }
         
         log.info("修改地址：addressId={}, userId={}, isDefault={}", 
@@ -164,13 +164,13 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         Address address = getById(id);
         if (address == null) {
             log.warn("地址不存在：addressId={}", id);
-            throw new BaseException("地址不存在");
+            throw new AddressException("地址不存在");
         }
         
         // 验证地址是否属于该用户
         if (!address.getUserId().equals(userId)) {
             log.warn("无权操作该地址：userId={}, addressId={}", userId, id);
-            throw new BaseException("无权操作该地址");
+            throw new AddressException("无权操作该地址");
         }
         
         // 将该用户的其他地址设为非默认
@@ -196,7 +196,7 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         Address address = getById(id);
         if (address == null) {
             log.warn("地址不存在：addressId={}", id);
-            throw new BaseException("地址不存在");
+            throw new AddressException("地址不存在");
         }
         
         removeById(id);

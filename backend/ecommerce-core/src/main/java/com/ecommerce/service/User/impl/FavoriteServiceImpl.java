@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.FavoriteDTO;
 import com.ecommerce.entity.Favorite;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.FavoriteException;
 import com.ecommerce.mapper.FavoriteMapper;
 import com.ecommerce.service.User.FavoriteService;
 import com.ecommerce.vo.FavoriteVO;
@@ -39,7 +39,7 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
         Favorite exist = getOne(queryWrapper);
         if (exist != null) {
             log.warn("商品已收藏：userId={}, productId={}", favoriteDTO.getUserId(), favoriteDTO.getProductId());
-            throw new BaseException("商品已收藏");
+            throw new FavoriteException("商品已收藏");
         }
 
         // 构建收藏实体
@@ -67,7 +67,7 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteMapper, Favorite> i
         boolean removed = remove(queryWrapper);
         if (!removed) {
             log.warn("取消收藏失败，记录不存在：userId={}, productId={}", userId, productId);
-            throw new BaseException("收藏记录不存在");
+            throw new FavoriteException("收藏记录不存在");
         }
         log.info("取消收藏成功：userId={}, productId={}", userId, productId);
     }

@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CommentDTO;
 import com.ecommerce.entity.Comment;
 import com.ecommerce.entity.User;
-import com.ecommerce.exception.BaseException;
+import com.ecommerce.exception.CommentException;
 import com.ecommerce.mapper.CommentMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.CommentService;
@@ -43,7 +43,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         // 校验评分
         if (commentDTO.getRating() == null || commentDTO.getRating() < 1 || commentDTO.getRating() > 5) {
-            throw new BaseException("评分必须在1-5之间");
+            throw new CommentException("评分必须在1-5之间");
         }
 
         // 检查是否已评论过该商品
@@ -51,7 +51,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         queryWrapper.eq(Comment::getUserId, commentDTO.getUserId())
                     .eq(Comment::getProductId, commentDTO.getProductId());
         if (count(queryWrapper) > 0) {
-            throw new BaseException("您已评论过该商品");
+            throw new CommentException("您已评论过该商品");
         }
 
         Comment comment = Comment.builder()
@@ -78,10 +78,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         Comment comment = getById(id);
         if (comment == null) {
-            throw new BaseException("评论不存在");
+            throw new CommentException("评论不存在");
         }
         if (!comment.getUserId().equals(userId)) {
-            throw new BaseException("无权删除该评论");
+            throw new CommentException("无权删除该评论");
         }
 
         removeById(id);
