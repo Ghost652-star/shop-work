@@ -1,8 +1,10 @@
 package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ecommerce.entity.Merchant;
 import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.ProductMapper;
+import com.ecommerce.mapper.Shop.MerchantMapper;
 import com.ecommerce.common.RedisKeys;
 import com.ecommerce.service.User.UserProductService;
 import com.ecommerce.utils.RedisCacheUtil;
@@ -21,9 +23,11 @@ import java.util.List;
 public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements UserProductService {
 
     private final RedisCacheUtil redisCacheUtil;
+    private final MerchantMapper merchantMapper;
 
-    public UserProductServiceImpl(RedisCacheUtil redisCacheUtil) {
+    public UserProductServiceImpl(RedisCacheUtil redisCacheUtil, MerchantMapper merchantMapper) {
         this.redisCacheUtil = redisCacheUtil;
+        this.merchantMapper = merchantMapper;
     }
 
     @Override
@@ -101,14 +105,24 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
         if (product == null) {
             return null;
         }
+        String merchantName = null;
+        if (product.getMerchantId() != null) {
+            Merchant merchant = merchantMapper.selectById(product.getMerchantId());
+            if (merchant != null) {
+                merchantName = merchant.getName();
+            }
+        }
         return ProductVO.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
+                .stock(product.getStock())
                 .sales(product.getSales())
                 .mainImage(product.getMainImage())
                 .categoryId(product.getCategoryId())
+                .merchantId(product.getMerchantId())
+                .merchantName(merchantName)
                 .build();
     }
 }

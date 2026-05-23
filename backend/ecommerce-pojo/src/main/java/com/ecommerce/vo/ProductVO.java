@@ -48,4 +48,19 @@ public class ProductVO {
      * 分类ID
      */
     private Integer categoryId;
+
+    /**
+     * 库存
+     */
+    private Integer stock;
+
+    /**
+     * 商家ID
+     */
+    private Integer merchantId;
+
+    /**
+     * 商家名称
+     */
+    private String merchantName;
 }

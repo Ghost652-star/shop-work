@@ -157,43 +157,88 @@
       <!-- 右侧：购买操作区（固定） -->
       <div class="right-section">
         <div class="purchase-panel">
+          <!-- 店铺信息 -->
+          <div class="store-bar" v-if="product.merchantName">
+            <div class="store-info">
+              <div class="store-avatar">{{ product.merchantName.charAt(0) }}</div>
+              <div class="store-meta">
+                <span class="store-name">{{ product.merchantName }}</span>
+                <div class="store-rating">
+                  <span class="rating-star">★</span>
+                  <span class="rating-score">4.8</span>
+                </div>
+              </div>
+            </div>
+            <button class="store-enter-btn">进店 ›</button>
+          </div>
+
           <!-- 商品标题 -->
           <h2 class="product-title">{{ product.name }}</h2>
-          
-          <!-- 副标题 -->
-          <p class="product-subtitle">{{ product.description }}</p>
+
+          <!-- 社会证明 -->
+          <div class="social-proof">
+            <span class="proof-item proof-sales">已售 {{ product.sales || 0 }}+</span>
+            <span class="proof-divider">|</span>
+            <span class="proof-item proof-review">多人评价"质量不错"</span>
+            <span class="proof-divider">|</span>
+            <span class="proof-item proof-fans">{{ Math.floor((product.sales || 0) * 0.3) }}人加购</span>
+          </div>
 
           <!-- 价格区域 -->
           <div class="price-panel">
-            <div class="price-label-row">
-              <span class="price-label-tag">到手价</span>
-              <span class="price-label-original">原价 ¥{{ (product.price * 1.3).toFixed(2) }}</span>
-            </div>
-            <div class="current-price">
-              <span class="price-value">{{ product.price }}</span>
+            <div class="price-main">
+              <div class="price-left">
+                <span class="price-label">店铺优惠后</span>
+                <div class="price-row">
+                  <span class="price-symbol">¥</span>
+                  <span class="price-value">{{ product.price }}</span>
+                </div>
+                <span class="price-original">优惠前 ¥{{ (product.price * 1.3).toFixed(0) }}</span>
+              </div>
+              <div class="price-activity">
+                <div class="activity-badge">限时特惠</div>
+                <div class="activity-time">活动进行中</div>
+              </div>
             </div>
           </div>
 
-          <!-- 促销信息 -->
-          <div class="promotion-info">
-            <div class="promotion-tag">超级 88</div>
-            <span class="promotion-text">官方立减{{ (product.price * 0.1).toFixed(1) }}元</span>
+          <!-- 促销标签 -->
+          <div class="promo-tags">
+            <span class="promo-tag-item">官方立减{{ (product.price * 0.1).toFixed(0) }}元</span>
+          </div>
+
+          <!-- 优惠券领取 -->
+          <div class="coupon-bar" @click="goToCouponPage">
+            <div class="coupon-left">
+              <svg class="coupon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg>
+              <span>领取优惠券</span>
+            </div>
+            <span class="coupon-arrow">›</span>
           </div>
 
           <!-- 服务保障 -->
           <div class="service-info">
-            <div class="service-item">
-              <span>24 小时发货</span>
+            <div class="service-row">
+              <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <span>48小时内发货</span>
             </div>
-            <div class="service-item">
-              <span>免运费</span>
+            <span class="service-divider">|</span>
+            <div class="service-row">
+              <span>快递: 免运费</span>
             </div>
-            <div class="service-item">
-              <span>7 天无理由退换</span>
+          </div>
+          <div class="service-info">
+            <div class="service-row">
+              <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>大促价保</span>
             </div>
-            <div class="service-item coupon-entry" @click="goToCouponPage">
-              <span>领取优惠券</span>
-              <span class="coupon-arrow">›</span>
+            <span class="service-divider">|</span>
+            <div class="service-row">
+              <span>7天无理由退货</span>
+            </div>
+            <span class="service-divider">|</span>
+            <div class="service-row">
+              <span>极速退款</span>
             </div>
           </div>
 
@@ -245,6 +290,7 @@
           <div class="action-buttons">
             <div class="combined-buttons">
               <button class="cart-btn" @click="addToCart">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
                 <span>加入购物车</span>
               </button>
               <button class="buy-btn" @click="buyNow">
@@ -252,8 +298,7 @@
               </button>
             </div>
             <button class="favorite-btn" @click="toggleFavorite" :class="{ active: isFavorited }">
-              <span class="favorite-icon">{{ isFavorited ? '♥' : '♡' }}</span>
-              <span>收藏</span>
+              <svg class="fav-icon" :class="{ filled: isFavorited }" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
             </button>
           </div>
 
@@ -1514,19 +1559,19 @@ export default {
   width: 420px;
   flex-shrink: 0;
   position: sticky;
-  top: 0;  /* ← 改为 0，从视口顶部开始 */
-  height: 100vh;  /* ← 新增：高度撑满整个视口 */
+  top: 0;
+  height: 100vh;
 }
 
 /* 购买面板 - 内部可滚动 */
 .purchase-panel {
-  height: 100%;  /* ← 改为 100%，填满父容器 */
-  padding-top: 72px;  /* ← 新增：顶部留出导航栏高度的空间 */
-  box-sizing: border-box;  /* ← 新增：让 padding 不增加总高度 */
+  height: 100%;
+  padding-top: 72px;
+  box-sizing: border-box;
   background: var(--color-bg-white);
   overflow-y: auto;
   overflow-x: hidden;
-  border-left: 1px solid var(--color-border-light);  /* ← 只保留左边框作为分隔 */
+  border-left: 1px solid var(--color-border-light);
 }
 
 /* 自定义滚动条样式 */
@@ -1548,154 +1593,271 @@ export default {
   background: var(--color-text-tertiary);
 }
 
-/* 商品标题 - 增加内边距 */
-.product-title {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-  padding: 20px 24px 12px;
-  line-height: 1.4;
-}
-
-/* 商品副标题 - 增加内边距 */
-.product-subtitle {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: 0;
-  padding: 0 24px 16px;
-  line-height: 1.5;
-}
-
-/* 价格面板 - 增加内边距 */
-.price-panel {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--color-border-light);
-  background: linear-gradient(135deg, var(--color-primary-lighter), #FFF8F8);
-  margin: 0 -24px;
-}
-
-.price-label-row {
+/* 店铺信息栏 */
+.store-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  padding: 14px 20px;
+  margin: 0 20px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
 }
 
-.price-label-tag {
-  font-size: var(--text-xs);
+.store-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.store-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.store-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.store-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.store-rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rating-star {
+  color: #FF9800;
+  font-size: 12px;
+}
+
+.rating-score {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.store-enter-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: white;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.store-enter-btn:hover {
+  border-color: var(--color-primary);
   color: var(--color-primary);
-  background: var(--color-primary-light);
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
+}
+
+/* 商品标题 */
+.product-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  padding: 14px 20px 6px;
+  line-height: 1.4;
+}
+
+/* 社会证明 */
+.social-proof {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 12px;
+  font-size: 12px;
+}
+
+.proof-sales {
+  color: var(--color-primary);
   font-weight: 600;
 }
 
-.price-label-original {
-  font-size: var(--text-xs);
+.proof-divider {
+  color: var(--color-border);
+  font-size: 10px;
+}
+
+.proof-review,
+.proof-fans {
   color: var(--color-text-tertiary);
-  text-decoration: line-through;
 }
 
-.current-price {
+/* 价格面板 - 橙红渐变 */
+.price-panel {
+  margin: 0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #FF6034, #EE0A24);
+  color: white;
+}
+
+.price-main {
   display: flex;
+  justify-content: space-between;
   align-items: flex-end;
-  gap: 6px;
 }
 
-.price-value {
-  font-size: 36px;
+.price-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-label {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-symbol {
+  font-size: 16px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.price-panel .price-value {
+  font-size: 32px;
   font-weight: 800;
-  color: var(--color-primary);
+  color: white;
   letter-spacing: -1px;
   line-height: 1;
   font-family: 'DIN Alternate', 'Helvetica Neue', Arial, sans-serif;
 }
 
-.original-price {
-  font-size: var(--text-sm);
-  color: var(--color-text-tertiary);
+.price-original {
+  font-size: 12px;
+  opacity: 0.65;
   text-decoration: line-through;
-  margin-left: 8px;
-  line-height: 1;
 }
 
-/* 促销信息 - 增加内边距 */
-.promotion-info {
+.price-activity {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
-  background: var(--color-primary-lighter);
-  border-radius: 0;
-  margin: 0;
-  border-bottom: 1px solid var(--color-border-light);
+  gap: 4px;
 }
 
-.promotion-tag {
-  padding: 3px 10px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-xs, 2px);
-  font-size: 11px;
+.activity-badge {
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
 
-.promotion-text {
-  font-size: var(--text-sm);
+.activity-time {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* 促销标签 */
+.promo-tags {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.promo-tag-item {
+  padding: 3px 10px;
+  background: #FFF0F0;
+  color: var(--color-primary);
+  border: 1px solid #FFDDDD;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 优惠券领取栏 */
+.coupon-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #FFF8F8;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.coupon-bar:hover {
+  background: #FFF0F0;
+}
+
+.coupon-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: var(--color-primary);
   font-weight: 500;
 }
 
-/* 服务保障 - 简洁图标+文字风格 */
-.service-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.service-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  position: relative;
-  padding-left: 14px;
-}
-
-.service-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: var(--radius-full);
-  background: var(--color-success);
-}
-
-.service-item.coupon-entry {
-  cursor: pointer;
+.coupon-icon {
+  width: 16px;
+  height: 16px;
   color: var(--color-primary);
-  transition: color var(--duration-normal) var(--ease-in-out);
-}
-
-.service-item.coupon-entry::before {
-  background: var(--color-primary);
-}
-
-.coupon-entry:hover {
-  color: var(--color-primary-dark);
 }
 
 .coupon-arrow {
-  margin-left: 2px;
+  color: var(--color-text-tertiary);
+  font-size: 16px;
   font-weight: 700;
+}
+
+/* 服务保障 - 图标+竖线分隔 */
+.service-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.service-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.service-divider {
+  color: var(--color-border);
+  font-size: 10px;
+  margin: 0 10px;
 }
 
 /* 规格选择 - 增加内边距 */
@@ -1829,13 +1991,12 @@ export default {
   color: var(--color-text-tertiary);
 }
 
-/* 操作按钮 - 增加内边距 */
+/* 操作按钮 */
 .action-buttons {
   display: flex;
   gap: 10px;
-  padding: 20px 24px;
+  padding: 16px 20px;
   margin: 0;
-  border-bottom: 1px solid var(--color-border-light);
 }
 
 .combined-buttons {
@@ -1844,24 +2005,26 @@ export default {
   gap: 10px;
 }
 
+.btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .cart-btn,
 .buy-btn {
   flex: 1;
-  padding: 12px 16px;
+  padding: 0 16px;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 20px;
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: 14px;
   font-weight: 600;
-  transition: background var(--duration-slow) var(--ease-out),
-              box-shadow var(--duration-slow) var(--ease-out),
-              transform var(--duration-fast) var(--ease-in-out);
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 46px;
-  letter-spacing: 0.5px;
+  height: 42px;
 }
 
 .cart-btn {
@@ -1871,9 +2034,8 @@ export default {
 }
 
 .cart-btn:hover {
-  background: var(--color-primary-light);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+  background: #FFF0F0;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.15);
 }
 
 .cart-btn:active {
@@ -1881,64 +2043,56 @@ export default {
 }
 
 .buy-btn {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, #FF6034, #EE0A24);
   color: white;
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+  box-shadow: 0 3px 10px rgba(238, 10, 36, 0.3);
 }
 
 .buy-btn:hover {
-  background: var(--color-primary-dark);
+  box-shadow: 0 4px 14px rgba(238, 10, 36, 0.4);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 77, 79, 0.4);
 }
 
 .buy-btn:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
 }
 
 .favorite-btn {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border: 1.5px solid var(--color-border);
   background: white;
-  border-radius: var(--radius-full);
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  transition: border-color var(--duration-normal) var(--ease-in-out),
-              background var(--duration-normal) var(--ease-in-out),
-              color var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
-  padding: 4px;
+  transition: all 0.2s;
   flex-shrink: 0;
+}
+
+.fav-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-tertiary);
+  transition: all 0.2s;
+}
+
+.fav-icon.filled {
+  color: var(--color-primary);
 }
 
 .favorite-btn:hover {
   border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  transform: scale(1.05);
+  transform: scale(1.08);
+}
+
+.favorite-btn:hover .fav-icon {
+  color: var(--color-primary);
 }
 
 .favorite-btn:active {
   transform: scale(0.92);
-}
-
-.favorite-btn.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-.favorite-icon {
-  font-size: var(--text-lg);
-}
-
-.favorite-btn span:last-child {
-  font-size: 10px;
 }
 
 /* 已选信息 - 增加内边距 */
@@ -2229,69 +2383,15 @@ export default {
   color: var(--color-primary-dark);
 }
 
-/* ===== 新增：视觉优化 ===== */
-
-/* 价格符号优化 */
-.price-value::before {
-  content: '¥';
-  font-size: 20px;
-  font-weight: 600;
-  vertical-align: super;
-  margin-right: 2px;
-  opacity: 0.9;
-}
-.price-value {
-  font-size: 36px;
-  font-weight: 800;
-  color: var(--color-primary);
-  letter-spacing: -1px;
-  line-height: 1;
-}
-
-.original-price::before {
-  content: '¥';
-  font-size: var(--text-xs);
-  font-weight: 400;
-  vertical-align: super;
-  margin-right: 1px;
-}
-
-/* 收藏按钮心形优化 */
-.favorite-icon {
-  font-size: 18px;
-  line-height: 1;
-  transition: transform var(--duration-fast) var(--ease-in-out);
-}
-.favorite-btn:hover .favorite-icon {
-  transform: scale(1.15);
-}
+/* ===== 视觉优化 ===== */
 
 /* 顶部导航阴影增强 */
 .header-search {
-  background: var(--color-bg-white);
-  border-bottom: 1px solid var(--color-border-light);
-  position: sticky;
-  top: 0;
-  z-index: 100;
   box-shadow: 0 2px 12px rgba(29, 33, 41, 0.06);
 }
 
 /* 商品图片区域优化 */
 .main-image-container {
-  flex: 1;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--color-bg);
-  box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border-light);
-}
-
-/* 规格选择优化 */
-.spec-option.selected {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(255, 77, 79, 0.1);
 }
 </style>
