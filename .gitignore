@@ -3,7 +3,9 @@
 .vscode/
 .lingma/
 .trae/
-
+.k6/
+.qoder/
+.qoder/e:\屏幕截图\屏幕截图 2026-05-20 224551.png
 # 构建输出
 backend/target/
 user-frontend/node_modules/

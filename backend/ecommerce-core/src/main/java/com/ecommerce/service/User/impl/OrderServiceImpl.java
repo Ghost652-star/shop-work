@@ -21,7 +21,6 @@ import com.ecommerce.vo.OrderCouponVO;
 import com.ecommerce.vo.CouponInfoVO;
 import com.ecommerce.vo.UnavailableCouponVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.ecommerce.utils.RedisCacheUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,46 +37,45 @@ import java.util.stream.Collectors;
 @Service
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
 
-    @Autowired
-    private OrderMapper orderMapper;
-    
-    @Autowired
-    private OrderItemMapper orderItemMapper;
-    
-    @Autowired
-    private OrderCouponMapper orderCouponMapper;
-    
-    @Autowired
-    private CartMapper cartMapper;
-    
-    @Autowired
-    private UserCouponMapper userCouponMapper;
-    
-    @Autowired
-    private ProductMapper productMapper;
-    
-    @Autowired
-    private AddressMapper addressMapper;
-    
-    @Autowired
-    private CouponMapper couponMapper;
+    private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final OrderCouponMapper orderCouponMapper;
+    private final CartMapper cartMapper;
+    private final UserCouponMapper userCouponMapper;
+    private final ProductMapper productMapper;
+    private final AddressMapper addressMapper;
+    private final CouponMapper couponMapper;
+    private final RedisCacheUtil redisCacheUtil;
 
-    @Autowired
-    private RedisCacheUtil redisCacheUtil;
+    public OrderServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
+                            OrderCouponMapper orderCouponMapper, CartMapper cartMapper,
+                            UserCouponMapper userCouponMapper, ProductMapper productMapper,
+                            AddressMapper addressMapper, CouponMapper couponMapper,
+                            RedisCacheUtil redisCacheUtil) {
+        this.orderMapper = orderMapper;
+        this.orderItemMapper = orderItemMapper;
+        this.orderCouponMapper = orderCouponMapper;
+        this.cartMapper = cartMapper;
+        this.userCouponMapper = userCouponMapper;
+        this.productMapper = productMapper;
+        this.addressMapper = addressMapper;
+        this.couponMapper = couponMapper;
+        this.redisCacheUtil = redisCacheUtil;
+    }
 
     @Override
     @Transactional
     public OrderVO createOrder(OrderDTO orderDTO) {
-        log.info("创建订单请求: userId={}, addressId={}, couponIds={}", 
+        log.info("创建订单请求: userId={}, addressId={}, couponIds={}",
                 orderDTO.getUserId(), orderDTO.getAddressId(), orderDTO.getCouponIds());
-        
+
         // 1. 验证地址
         Address address = addressMapper.selectById(orderDTO.getAddressId().intValue());
         if (address == null || !address.getUserId().equals(orderDTO.getUserId().intValue())) {
             throw new AddressException("地址不存在或不属于当前用户");
         }
 
-        // 2. 从购物车或前端获取商品项
+        // 2. 从购物车获取商品项
         List<Cart> cartItems = Collections.emptyList();
         List<OrderItemDTO> requestItems = orderDTO.getItems();
         if (orderDTO.getCartItemIds() != null && !orderDTO.getCartItemIds().isEmpty()) {
@@ -103,31 +101,32 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new OrderException("订单商品不能为空");
         }
 
-        // 3. 计算商品金额和获取商品信息
+        // 3. 批量查询商品，避免循环查询导致的 N+1 问题
+        List<Long> productIds = requestItems.stream()
+                .map(OrderItemDTO::getProductId)
+                .collect(Collectors.toList());
+        List<Product> products = productMapper.selectBatchIds(productIds);
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(p -> p.getId().longValue(), p -> p));
+
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
         Set<Integer> categoryIds = new HashSet<>();
-        Map<Long, Product> productMap = new HashMap<>();
 
         for (OrderItemDTO item : requestItems) {
-            Product product = productMapper.selectById(item.getProductId());
+            Product product = productMap.get(item.getProductId());
             if (product == null || product.getStatus() != 1) {
                 throw new ProductException("商品不存在或已下架");
             }
             if (product.getStock() < item.getQuantity()) {
                 throw new ProductException("商品库存不足");
             }
-            productMap.put(product.getId().longValue(), product);
 
-            // 计算小计
             BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
             totalAmount = totalAmount.add(itemTotal);
-            
-            // 记录商品分类
             categoryIds.add(product.getCategoryId());
-            
-            // 创建订单商品明细
-            OrderItem orderItem = OrderItem.builder()
+
+            orderItems.add(OrderItem.builder()
                     .productId(product.getId().longValue())
                     .productName(product.getName())
                     .productImage(product.getMainImage())
@@ -135,19 +134,33 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     .price(product.getPrice())
                     .quantity(item.getQuantity())
                     .totalPrice(itemTotal)
-                    .build();
-            orderItems.add(orderItem);
+                    .build());
         }
-    //TODO 是否该在这里判断优惠券的使用条件
-        // 3. 处理优惠券
+
+        // 4. 批量查询优惠券，避免循环查询导致的 N+1 问题
         BigDecimal couponAmount = BigDecimal.ZERO;
         List<OrderCoupon> orderCoupons = new ArrayList<>();
         List<UserCoupon> usedUserCoupons = new ArrayList<>();
-        
+        Map<Long, Coupon> couponCache = new HashMap<>();
+
         if (orderDTO.getCouponIds() != null && !orderDTO.getCouponIds().isEmpty()) {
+            // 批量查 user_coupon
+            List<UserCoupon> userCoupons = userCouponMapper.selectBatchIds(orderDTO.getCouponIds());
+            Map<Long, UserCoupon> userCouponMap = userCoupons.stream()
+                    .collect(Collectors.toMap(UserCoupon::getId, uc -> uc));
+
+            // 批量查 coupon 详情
+            Set<Integer> couponDefIds = userCoupons.stream()
+                    .map(uc -> uc.getCouponId().intValue())
+                    .collect(Collectors.toSet());
+            if (!couponDefIds.isEmpty()) {
+                List<Coupon> couponDefs = couponMapper.selectBatchIds(couponDefIds);
+                couponCache = couponDefs.stream()
+                        .collect(Collectors.toMap(c -> c.getId().longValue(), c -> c));
+            }
+
             for (Long couponId : orderDTO.getCouponIds()) {
-                // 验证用户优惠券
-                UserCoupon userCoupon = userCouponMapper.selectById(couponId);
+                UserCoupon userCoupon = userCouponMap.get(couponId);
                 if (userCoupon == null || !userCoupon.getUserId().equals(orderDTO.getUserId())) {
                     throw new CouponException("优惠券不存在或不属于当前用户");
                 }
@@ -157,57 +170,46 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 if (LocalDateTime.now().isAfter(userCoupon.getExpireTime())) {
                     throw new CouponException("优惠券已过期");
                 }
-                
-                // 验证优惠券
-                Coupon coupon = couponMapper.selectById(userCoupon.getCouponId());
+
+                Coupon coupon = couponCache.get(userCoupon.getCouponId());
                 if (coupon == null) {
                     throw new CouponException("优惠券不存在");
                 }
-                
-                // 验证使用条件
                 if (totalAmount.compareTo(coupon.getMinSpend()) < 0) {
                     throw new CouponException("订单金额不满足优惠券使用条件");
                 }
                 if (coupon.getCategoryId() != null && !categoryIds.contains(coupon.getCategoryId())) {
                     throw new CouponException("商品不符合优惠券使用条件");
                 }
-                
-                // 计算优惠券抵扣金额
+
                 BigDecimal discount = coupon.getDiscountAmount();
                 if (discount.compareTo(totalAmount) > 0) {
                     discount = totalAmount;
                 }
-                
                 couponAmount = couponAmount.add(discount);
-                
-                // 创建订单优惠券明细
-                OrderCoupon orderCoupon = OrderCoupon.builder()
+
+                orderCoupons.add(OrderCoupon.builder()
                         .couponId(coupon.getId().longValue())
                         .categoryId(coupon.getCategoryId())
                         .discountAmount(discount)
-                        .build();
-                orderCoupons.add(orderCoupon);
-
+                        .build());
                 usedUserCoupons.add(userCoupon);
             }
         }
-        // TODO 优惠券冻结逻辑：下单冻结、支付核销、取消解冻
 
-        BigDecimal freightAmount = BigDecimal.valueOf(5); // 暂定运费为5
-        // 4. 计算实付金额
+        BigDecimal freightAmount = BigDecimal.valueOf(5);
         BigDecimal payAmount = totalAmount.add(freightAmount).subtract(couponAmount);
         if (payAmount.compareTo(BigDecimal.ZERO) < 0) {
             payAmount = BigDecimal.ZERO;
         }
-        
-        // 5. 生成订单号
+
         String orderNo = generateOrderNo();
-        
-        // 6. 创建订单
+
+        // 5. 创建订单
         Order order = Order.builder()
                 .orderNo(orderNo)
                 .userId(orderDTO.getUserId())
-                .status(0) // 待付款
+                .status(0)
                 .totalAmount(totalAmount)
                 .freightAmount(freightAmount)
                 .couponAmount(couponAmount)
@@ -222,45 +224,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .createTime(LocalDateTime.now())
                 .build();
         orderMapper.insert(order);
-        
-        // 7. 设置订单 ID 到订单商品明细表和优惠券明细表
+
+        // 6. 插入订单明细（写操作必须逐条，确保数据一致性）
         for (OrderItem item : orderItems) {
             item.setOrderId(order.getId());
             orderItemMapper.insert(item);
         }
-        
         for (OrderCoupon oc : orderCoupons) {
             oc.setOrderId(order.getId());
             orderCouponMapper.insert(oc);
         }
 
-        // 7.1 更新用户优惠券状态（绑定订单 ID）
+        // 7. 更新用户优惠券状态
         for (UserCoupon userCoupon : usedUserCoupons) {
-            userCoupon.setStatus(1); // 已使用
+            userCoupon.setStatus(1);
             userCoupon.setOrderId(order.getId());
             userCoupon.setUseTime(LocalDateTime.now());
             userCouponMapper.updateById(userCoupon);
         }
 
-        // 8. 扣减商品库存
+        // 8. 原子扣减库存（使用 WHERE stock >= ? 防止超卖）
         for (OrderItemDTO item : requestItems) {
-            Product product = productMap.get(item.getProductId());
-            if (product == null) {
-                product = productMapper.selectById(item.getProductId());
+            int rows = productMapper.deductStock(item.getProductId(), item.getQuantity());
+            if (rows == 0) {
+                throw new ProductException("商品库存不足");
             }
-            product.setStock(product.getStock() - item.getQuantity());
-            productMapper.updateById(product);
         }
-        
-        // 9. 清空购物车中已购买的商品
+
+        // 9. 清空购物车
         if (orderDTO.getCartItemIds() != null && !orderDTO.getCartItemIds().isEmpty()) {
             cartMapper.delete(new QueryWrapper<Cart>()
                     .eq("user_id", orderDTO.getUserId())
                     .in("id", orderDTO.getCartItemIds()));
         }
 
-        // 10. 构建返回结果
-        OrderVO orderVO = buildOrderVO(order, orderItems, orderCoupons);
+        // 10. 构建返回结果（复用步骤 4 的 couponCache，避免重复查询）
+        OrderVO orderVO = buildOrderVO(order, orderItems, orderCoupons, couponCache);
         log.info("创建订单成功: orderId={}, orderNo={}", order.getId(), orderNo);
         return orderVO;
     }
@@ -274,25 +273,48 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<OrderVO> getOrderList(Long userId, Integer status) {
         log.info("查询订单列表: userId={}, status={}", userId, status);
-        
+
         QueryWrapper<Order> queryWrapper = new QueryWrapper<Order>()
                 .eq("user_id", userId)
                 .orderByDesc("create_time");
-        
+
         if (status != null) {
             queryWrapper.eq("status", status);
         }
-        
+
         List<Order> orders = orderMapper.selectList(queryWrapper);
-        
+        if (orders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 批量查询所有关联数据，避免 N+1 查询问题
+        List<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());
+
+        List<OrderItem> allItems = orderItemMapper.selectList(
+                new QueryWrapper<OrderItem>().in("order_id", orderIds));
+        List<OrderCoupon> allCoupons = orderCouponMapper.selectList(
+                new QueryWrapper<OrderCoupon>().in("order_id", orderIds));
+
+        // 批量查询优惠券详情（Coupon.id 是 Integer，需要转换）
+        Set<Integer> couponIds = allCoupons.stream()
+                .map(oc -> oc.getCouponId().intValue())
+                .collect(Collectors.toSet());
+        List<Coupon> allCouponDetails = couponIds.isEmpty()
+                ? Collections.emptyList()
+                : couponMapper.selectBatchIds(couponIds);
+        Map<Long, Coupon> couponMap = allCouponDetails.stream()
+                .collect(Collectors.toMap(c -> c.getId().longValue(), c -> c));
+
+        // 按 order_id 分组，避免循环中重复查询
+        Map<Long, List<OrderItem>> itemsByOrder = allItems.stream()
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        Map<Long, List<OrderCoupon>> couponsByOrder = allCoupons.stream()
+                .collect(Collectors.groupingBy(OrderCoupon::getOrderId));
+
         return orders.stream().map(order -> {
-            List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
-                    .eq("order_id", order.getId()));
-            
-            List<OrderCoupon> coupons = orderCouponMapper.selectList(new QueryWrapper<OrderCoupon>()
-                    .eq("order_id", order.getId()));
-            
-            return buildOrderVO(order, items, coupons);
+            List<OrderItem> items = itemsByOrder.getOrDefault(order.getId(), Collections.emptyList());
+            List<OrderCoupon> coupons = couponsByOrder.getOrDefault(order.getId(), Collections.emptyList());
+            return buildOrderVO(order, items, coupons, couponMap);
         }).collect(Collectors.toList());
     }
 
@@ -305,19 +327,29 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public OrderVO getOrderDetail(Long orderId, Long userId) {
         log.info("查询订单详情: orderId={}, userId={}", orderId, userId);
-        
+
         Order order = orderMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
             throw new OrderException("订单不存在或不属于当前用户");
         }
-        
+
         List<OrderItem> items = orderItemMapper.selectList(new QueryWrapper<OrderItem>()
                 .eq("order_id", order.getId()));
-        
+
         List<OrderCoupon> coupons = orderCouponMapper.selectList(new QueryWrapper<OrderCoupon>()
                 .eq("order_id", order.getId()));
-        
-        return buildOrderVO(order, items, coupons);
+
+        // 批量查询优惠券详情，避免循环查询
+        Set<Integer> couponIds = coupons.stream()
+                .map(oc -> oc.getCouponId().intValue())
+                .collect(Collectors.toSet());
+        List<Coupon> couponDetails = couponIds.isEmpty()
+                ? Collections.emptyList()
+                : couponMapper.selectBatchIds(couponIds);
+        Map<Long, Coupon> couponMap = couponDetails.stream()
+                .collect(Collectors.toMap(c -> c.getId().longValue(), c -> c));
+
+        return buildOrderVO(order, items, coupons, couponMap);
     }
 
     /**
@@ -513,7 +545,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 构建订单 VO
      */
-    private OrderVO buildOrderVO(Order order, List<OrderItem> items, List<OrderCoupon> coupons) {
+    private OrderVO buildOrderVO(Order order, List<OrderItem> items, List<OrderCoupon> coupons, Map<Long, Coupon> couponMap) {
         List<OrderItemVO> itemVOs = items.stream().map(item -> OrderItemVO.builder()
                 .id(item.getId())
                 .productId(item.getProductId())
@@ -524,9 +556,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .quantity(item.getQuantity())
                 .totalPrice(item.getTotalPrice())
                 .build()).collect(Collectors.toList());
-        
+
         List<OrderCouponVO> couponVOs = coupons.stream().map(coupon -> {
-            Coupon c = couponMapper.selectById(coupon.getCouponId());
+            Coupon c = couponMap.get(coupon.getCouponId());
             return OrderCouponVO.builder()
                     .id(coupon.getId())
                     .couponId(coupon.getCouponId())

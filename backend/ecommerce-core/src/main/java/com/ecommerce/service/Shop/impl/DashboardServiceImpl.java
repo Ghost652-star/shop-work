@@ -1,11 +1,11 @@
 package com.ecommerce.service.Shop.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ecommerce.entity.Order;
 import com.ecommerce.entity.Product;
 import com.ecommerce.mapper.OrderMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.Shop.DashboardService;
+import com.ecommerce.vo.SalesTrendRow;
 import com.ecommerce.vo.ShopOrderStatusVO;
 import com.ecommerce.vo.ShopSalesTrendVO;
 import com.ecommerce.vo.ShopTopProductVO;
@@ -14,12 +14,11 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,50 +35,57 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public ShopSalesTrendVO getSalesTrend() {
-        List<String> dates = new ArrayList<>();
-        List<BigDecimal> amounts = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
+        LocalDate today = LocalDate.now();
 
+        // 构建完整的 7 天日期列表（含无销售的日期）
+        List<String> dates = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            dates.add(date.format(fmt));
+            dates.add(today.minusDays(i).format(fmt));
+        }
 
-            LocalDateTime start = date.atStartOfDay();
-            LocalDateTime end = date.atTime(LocalTime.MAX);
+        // 一条 SQL 查出有销售记录的日期
+        java.util.Date start = java.sql.Timestamp.valueOf(today.minusDays(6).atStartOfDay());
+        java.util.Date end = java.sql.Timestamp.valueOf(today.atTime(LocalTime.MAX));
+        List<SalesTrendRow> rows = orderMapper.getSalesTrend(start, end);
 
-            QueryWrapper<Order> wrapper = new QueryWrapper<>();
-            wrapper.between("create_time", start, end)
-                   .in("status", 1, 2, 3);
+        // 按日期聚合为 Map
+        Map<String, BigDecimal> salesMap = rows.stream()
+                .collect(Collectors.toMap(SalesTrendRow::getDate, SalesTrendRow::getTotal, BigDecimal::add));
 
-            List<Order> orders = orderMapper.selectList(wrapper);
-            BigDecimal total = orders.stream()
-                    .map(Order::getPayAmount)
-                    .filter(Objects::nonNull)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            amounts.add(total);
+        // 按日期列表顺序填充金额，无记录的日期填 0
+        List<BigDecimal> amounts = new ArrayList<>();
+        for (String date : dates) {
+            amounts.add(salesMap.getOrDefault(date, BigDecimal.ZERO));
         }
 
         ShopSalesTrendVO result = ShopSalesTrendVO.builder()
                 .dates(dates)
                 .amounts(amounts)
                 .build();
-        log.debug("销售趋势查询完成: days={}, totalAmount={}", dates.size(), amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+        log.debug("销售趋势查询完成: days={}, totalAmount={}", dates.size(),
+                amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
         return result;
     }
 
     @Override
     public List<ShopOrderStatusVO> getOrderStatus() {
         String[] statusNames = {"待付款", "待发货", "待收货", "已完成", "已取消"};
+
+        // 一条 SQL 查出所有状态的计数
+        List<ShopOrderStatusVO> rows = orderMapper.getOrderStatusCounts();
+
+        // 按 status 建立索引映射
+        Map<Integer, Long> countMap = rows.stream()
+                .collect(Collectors.toMap(ShopOrderStatusVO::getStatus, ShopOrderStatusVO::getValue));
+
+        // 按固定顺序组装，确保每个状态都有值（无订单的状态填 0）
         List<ShopOrderStatusVO> result = new ArrayList<>();
-
         for (int i = 0; i < statusNames.length; i++) {
-            QueryWrapper<Order> wrapper = new QueryWrapper<>();
-            wrapper.eq("status", i);
-            long count = orderMapper.selectCount(wrapper);
-
             result.add(ShopOrderStatusVO.builder()
+                    .status(i)
                     .name(statusNames[i])
-                    .value(count)
+                    .value(countMap.getOrDefault(i, 0L))
                     .build());
         }
         log.debug("订单状态分布查询完成: {}", result);
@@ -89,7 +95,7 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<ShopTopProductVO> getTopProducts() {
         QueryWrapper<Product> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("sales").last("LIMIT 10");
+        wrapper.select("name", "sales").orderByDesc("sales").last("LIMIT 10");
         List<Product> products = productMapper.selectList(wrapper);
 
         List<ShopTopProductVO> topProducts = products.stream().map(p -> ShopTopProductVO.builder()

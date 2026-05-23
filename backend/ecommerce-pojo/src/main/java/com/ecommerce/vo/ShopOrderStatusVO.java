@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShopOrderStatusVO {
+    private Integer status;
     private String name;
     private long value;
 }

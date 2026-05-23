@@ -171,15 +171,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Override
     public Integer getCartCount(Long userId) {
         log.info("获取购物车商品总数：userId={}", userId);
-        
-        // 查询用户购物车中所有商品的数量总和
-        List<Cart> carts = query()
-                .eq("user_id", userId)
-                .list();
-        
-        return carts.stream()
-                .mapToInt(Cart::getQuantity)
-                .sum();
+
+        return getBaseMapper().getCartCount(userId);
     }
 
     /**
