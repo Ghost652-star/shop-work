@@ -24,6 +24,9 @@ public class RedisKeys {
     public static final String HOT_SALES_CACHE = "cache:hot_sales:top10";
     public static final String PRODUCT_NAME_MAP = "product:name:map";
 
+    // ==================== 评论 ====================
+    public static final String COMMENT_LIST_PREFIX = "comment:list:";
+
     // ==================== Dashboard ====================
     public static final String DASHBOARD_SALES_TREND = "dashboard:salesTrend";
     public static final String DASHBOARD_ORDER_STATUS = "dashboard:orderStatus";

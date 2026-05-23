@@ -76,10 +76,10 @@
 
         <div class="input-area">
           <div class="quick-tags">
-            <span class="quick-tag" :class="{ active: selectedService === '订单咨询' }" @click="openOrderSelect">📦 订单咨询</span>
-            <span class="quick-tag" :class="{ active: selectedService === '售后服务' }" @click="selectService('售后服务')">🔄 售后服务</span>
-            <span class="quick-tag" :class="{ active: selectedService === '优惠券咨询' }" @click="selectService('优惠券咨询')">🎫 优惠券</span>
-            <span class="quick-tag" :class="{ active: selectedService === '商品咨询' }" @click="selectService('商品咨询')">🔍 商品咨询</span>
+            <span class="quick-tag" :class="{ active: selectedService === '订单咨询' }" @click="openOrderSelect">订单咨询</span>
+            <span class="quick-tag" :class="{ active: selectedService === '售后服务' }" @click="selectService('售后服务')">售后服务</span>
+            <span class="quick-tag" :class="{ active: selectedService === '优惠券咨询' }" @click="selectService('优惠券咨询')">优惠券</span>
+            <span class="quick-tag" :class="{ active: selectedService === '商品咨询' }" @click="selectService('商品咨询')">商品咨询</span>
           </div>
           <div v-if="selectedOrder" class="selected-order-tag">
             <span>已选：{{ selectedOrder.orderNo }}</span>

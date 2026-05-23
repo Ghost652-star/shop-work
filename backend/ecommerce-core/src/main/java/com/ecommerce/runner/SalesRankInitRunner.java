@@ -29,8 +29,8 @@ public class SalesRankInitRunner implements CommandLineRunner {
     public void run(String... args) {
         log.info("开始预热销榜单数据...");
 
-        // 1. 查询所有商品
-        List<Product> products = productMapper.selectList(null);
+        // 1. 只查 id 和 sales，避免加载全部字段
+        List<Product> products = productMapper.selectIdAndSales();
         if (products.isEmpty()) {
             log.info("没有商品数据，跳过预热");
             return;

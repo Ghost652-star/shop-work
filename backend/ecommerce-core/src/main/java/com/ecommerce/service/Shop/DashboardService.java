@@ -9,5 +9,5 @@ import java.util.List;
 public interface DashboardService {
     ShopSalesTrendVO getSalesTrend();
     List<ShopOrderStatusVO> getOrderStatus();
-    List<ShopTopProductVO> getTopProducts();
+    List<ShopTopProductVO> getTopProducts(Long merchantId);
 }

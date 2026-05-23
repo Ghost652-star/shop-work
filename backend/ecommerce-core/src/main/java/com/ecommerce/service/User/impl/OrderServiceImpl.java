@@ -17,6 +17,7 @@ import com.ecommerce.service.User.OrderService;
 import com.ecommerce.vo.OrderVO;
 import com.ecommerce.vo.AvailableCouponVO;
 import com.ecommerce.vo.OrderItemVO;
+import com.ecommerce.entity.OrderCoupon;
 import com.ecommerce.vo.OrderCouponVO;
 import com.ecommerce.vo.CouponInfoVO;
 import com.ecommerce.vo.UnavailableCouponVO;
@@ -377,16 +378,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         order.setStatus(4); // 已取消
         orderMapper.updateById(order);
         
-        // 恢复优惠券
-        List<UserCoupon> userCoupons = userCouponMapper.selectList(new QueryWrapper<UserCoupon>()
-                .eq("order_id", orderId)
-                .eq("user_id", userId)
-                .eq("status", 1));
-        for (UserCoupon uc : userCoupons) {
-            uc.setStatus(0); // 恢复为未使用
-            uc.setOrderId(null);
-            uc.setUseTime(null);
-            userCouponMapper.updateById(uc);
+        // 恢复优惠券：先查 order_coupon 拿到 coupon_id，再定位 user_coupon
+        List<OrderCoupon> orderCoupons = orderCouponMapper.selectList(
+                new QueryWrapper<OrderCoupon>().eq("order_id", orderId));
+        for (OrderCoupon oc : orderCoupons) {
+            UserCoupon uc = userCouponMapper.selectOne(new QueryWrapper<UserCoupon>()
+                    .eq("user_id", userId)
+                    .eq("coupon_id", oc.getCouponId())
+                    .eq("status", 1));
+            if (uc != null) {
+                uc.setStatus(0);
+                uc.setOrderId(null);
+                uc.setUseTime(null);
+                userCouponMapper.updateById(uc);
+            }
         }
 
         // 恢复库存和销量

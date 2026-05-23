@@ -30,7 +30,7 @@ public class CommentController {
      */
     @PostMapping
     public Result<Void> addComment(@RequestBody CommentDTO commentDTO) {
-        log.info("发表评论请求: userId={}, productId={}, orderId={}", commentDTO.getUserId(), commentDTO.getProductId(), commentDTO.getOrderId());
+        log.info("发表评论请求: userId={}, productId={}", commentDTO.getUserId(), commentDTO.getProductId());
         commentService.addComment(commentDTO);
         log.info("评论发表成功");
         return Result.success();

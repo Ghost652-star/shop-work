@@ -13,17 +13,9 @@
         <div class="right-links">
           <span class="action-link" @click="handlePersonalCenter">个人中心</span>
           <span class="divider">|</span>
-          <span class="action-link" @click="handleCart">购物车</span>
-          <span class="divider">|</span>
           <span class="action-link" @click="handleMyOrders">我的订单</span>
           <span class="divider">|</span>
-          <span class="action-link">收藏夹</span>
-          <span class="divider">|</span>
-          <span class="action-link">卖家中心</span>
-          <span class="divider">|</span>
           <span class="action-link" @click="goToCustomerService">联系客服</span>
-          <span class="divider">|</span>
-          <span class="action-link">网站导航</span>
           <span class="divider">|</span>
           <span v-if="isLoggedIn" class="action-link" @click="handleLogout">退出</span>
         </div>
@@ -45,7 +37,7 @@
               <button class="search-btn" @click="handleSearch">搜索</button>
             </div>
             <div class="hot-search">
-              <span v-for="(tag, idx) in hotSearchTags" :key="idx" class="hot-tag" @click="searchText = tag">{{ tag }}</span>
+              <span v-for="(tag, idx) in hotSearchTags" :key="idx" :class="['hot-tag', { 'is-hot': idx < 3 }]" @click="searchText = tag">{{ tag }}</span>
             </div>
           </div>
         </div>
@@ -54,8 +46,7 @@
       <!-- 顶部第三行 - 红色分类导航 -->
       <div class="category-nav">
         <div class="category-content">
-          <span class="category-item all-categories" @click="selectCategory(null)">☰ 全部商品分类</span>
-          <span class="category-item" :class="{ active: activeCategoryId === null }" @click="selectCategory(null)">首页</span>
+          <span class="category-item all-categories" @click="selectCategory(null)">≡ 全部商品分类</span>
           <span v-for="category in categories" :key="category.id" class="category-item" :class="{ active: activeCategoryId === category.id }" @click="selectCategory(category.id)">
             {{ category.name }}
           </span>
@@ -68,7 +59,7 @@
       <!-- 左侧:热销榜单 -->
       <div class="hot-sales">
         <div class="hot-sales-header">
-          <h3>🔥 热销榜单</h3>
+          <h3><span class="hot-flame"></span>热销榜单</h3>
           <span class="hot-sales-subtitle">热销商品 TOP10</span>
         </div>
         <div class="hot-sales-list">
@@ -109,35 +100,35 @@
         </div>
       </div>
 
-      <!-- 右侧:促销卡片 -->
+      <!-- 右侧:金刚区导航 -->
       <div class="promo-cards">
-        <div class="promo-card promo-orange" @click="selectCategory(null)">
+        <div class="promo-card" @click="selectCategory(null)">
+          <div class="promo-icon"><i class="ri-home-smile-line"></i></div>
           <div class="promo-text">
             <h4>品质家居</h4>
             <p>超值优惠</p>
           </div>
-          <div class="promo-icon">🏠</div>
         </div>
-        <div class="promo-card promo-pink" @click="selectCategory(null)">
+        <div class="promo-card" @click="selectCategory(null)">
+          <div class="promo-icon"><i class="ri-heart-pulse-line"></i></div>
           <div class="promo-text">
             <h4>精致美妆</h4>
             <p>品质之选</p>
           </div>
-          <div class="promo-icon">💄</div>
         </div>
-        <div class="promo-card promo-orange2" @click="selectCategory(null)">
+        <div class="promo-card" @click="selectCategory(null)">
+          <div class="promo-icon"><i class="ri-tools-line"></i></div>
           <div class="promo-text">
             <h4>品质五金</h4>
             <p>超值特惠</p>
           </div>
-          <div class="promo-icon">🔧</div>
         </div>
-        <div class="promo-card promo-blue" @click="selectCategory(null)">
+        <div class="promo-card" @click="selectCategory(null)">
+          <div class="promo-icon"><i class="ri-shopping-basket-line"></i></div>
           <div class="promo-text">
             <h4>超值百货</h4>
             <p>省钱省心</p>
           </div>
-          <div class="promo-icon">🧴</div>
         </div>
       </div>
     </div>
@@ -145,7 +136,7 @@
     <!-- 倒计时条 -->
     <div class="countdown-bar">
       <div class="countdown-content">
-        <span class="countdown-label">⏰ 限时秒杀</span>
+        <span class="countdown-label">限时秒杀</span>
         <span class="countdown-time">{{ seckillCountdown }}</span>
         <span class="countdown-more" @click="goToCouponSeckill">更多秒杀 ›</span>
       </div>
@@ -159,6 +150,11 @@
       <div class="product-grid">
         <div v-for="product in filteredProducts" :key="product.id" class="product-card" @click="goToProductDetail(product.id)">
           <div class="product-image">
+            <div class="product-tags">
+              <span v-if="product.price < 100" class="tag-free">包邮</span>
+              <span v-if="product.sales > 500" class="tag-hot">热销</span>
+              <span v-if="product.price < 30" class="tag-deal">特价</span>
+            </div>
             <img v-if="product.mainImage" :src="product.mainImage" :alt="product.name" class="product-image-real" />
             <div v-else class="image-placeholder">商品图片</div>
           </div>
@@ -166,7 +162,7 @@
             <h3 class="product-name">{{ product.name }}</h3>
             <p class="product-desc" v-if="product.description">{{ product.description }}</p>
             <div class="product-bottom">
-              <p class="product-price">¥{{ product.price }}</p>
+              <p class="product-price">{{ product.price }}</p>
               <p class="product-sales">{{ product.sales > 1000 ? (product.sales / 1000).toFixed(1) + 'k+' : product.sales }}人付款</p>
             </div>
           </div>
@@ -214,9 +210,9 @@
               <div class="other-login">
                 <p>其他方式登录</p>
                 <div class="login-icons">
-                  <span class="login-icon">微信</span>
-                  <span class="login-icon">微博</span>
-                  <span class="login-icon">QQ</span>
+                  <span class="login-icon"><i class="ri-wechat-fill" style="color:#07C160;font-size:18px;"></i></span>
+                  <span class="login-icon"><i class="ri-weibo-fill" style="color:#E6162D;font-size:18px;"></i></span>
+                  <span class="login-icon"><i class="ri-qq-fill" style="color:#12B7F5;font-size:18px;"></i></span>
                 </div>
               </div>
               <p class="login-tip">还没有账号？<span class="register-link" @click="showRegister = true">立即注册</span></p>
@@ -281,7 +277,7 @@ const banners = ref([
   { image: 'https://picsum.photos/800/400?random=5', title: '运动健康 - 智能手表运动版' },
   { image: 'https://picsum.photos/800/400?random=6', title: '数码配件 - 蓝牙耳机运动款' }
 ])
-const hotSearchTags = ['华为Mate80', '连衣裙', '夏季新款', '防晒霜', '空调', '冰丝T恤', '运动鞋', '防晒霜']
+const hotSearchTags = ['华为Mate80', '连衣裙', '夏季新款', '防晒霜', '空调', '冰丝T恤', '运动鞋']
 const searchPlaceholders = ['2024新款连衣裙 夏季', '华为Mate80', '防晒霜SPF50+', '空调2024新款', '冰丝T恤 男', '笔记本电脑推荐']
 const currentPlaceholderIndex = ref(0)
 const placeholderTimer = ref(null)
@@ -532,8 +528,8 @@ onBeforeUnmount(() => {
 @import '../styles/variables.css';
 
 .home-container { min-height: 100vh; background: var(--color-bg); background-image:
-  radial-gradient(circle at 20% 0%, rgba(229, 57, 53, 0.02) 0%, transparent 50%),
-  radial-gradient(circle at 80% 100%, rgba(30, 136, 229, 0.02) 0%, transparent 50%); }
+  radial-gradient(circle at 20% 0%, rgba(255, 77, 79, 0.03) 0%, transparent 50%),
+  radial-gradient(circle at 80% 100%, rgba(22, 93, 255, 0.03) 0%, transparent 50%); }
 
 /* ===== 顶部第一行 - 灰色用户操作栏 ===== */
 .header-top {
@@ -592,12 +588,12 @@ onBeforeUnmount(() => {
   padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: center; /* ✅ 居中布局 */
-  gap: 48px;
+  gap: 24px;
 }
 .logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   flex-shrink: 0;
@@ -613,7 +609,7 @@ onBeforeUnmount(() => {
   font-size: var(--text-3xl);
   font-weight: 700;
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.2);
   transition: transform var(--duration-normal) var(--ease-out);
 }
 .logo:hover .logo-icon {
@@ -625,8 +621,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 .search-center {
-  flex: 1;
-  max-width: 640px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -644,7 +639,7 @@ onBeforeUnmount(() => {
 }
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1);
 }
 .search-input {
   flex: 1;
@@ -669,7 +664,7 @@ onBeforeUnmount(() => {
 }
 .search-btn:hover {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.25);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.25);
 }
 .search-btn:active {
   transform: scale(0.97);
@@ -693,9 +688,8 @@ onBeforeUnmount(() => {
 .hot-tag:hover { color: var(--color-primary); }
 .hot-tag::after { content: '|'; margin-left: 10px; color: var(--color-border); }
 .hot-tag:last-child::after { display: none; }
-.hot-tag:nth-child(1),
-.hot-tag:nth-child(2),
-.hot-tag:nth-child(3) { color: var(--color-primary); }
+.hot-tag.is-hot { color: var(--color-primary); font-weight: 500; }
+.hot-tag { color: var(--color-text-tertiary); }
 
 /* ===== 顶部第三行 - 白色分类导航 (简化) ===== */
 .category-nav {
@@ -716,36 +710,44 @@ onBeforeUnmount(() => {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: color var(--duration-normal) var(--ease-in-out),
-              background var(--duration-normal) var(--ease-in-out);
+  transition: color var(--duration-normal) var(--ease-in-out);
   font-weight: 400;
   white-space: nowrap;
   border-radius: var(--radius-md);
+  position: relative;
 }
 .category-item:hover {
-  background: var(--color-bg);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 .category-item.active {
-  background: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: 600;
 }
-.all-categories {
+.category-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
   background: var(--color-primary);
-  color: white;
-  font-weight: 600;
+  border-radius: 1px;
+}
+.all-categories {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-weight: 500;
   margin-right: 8px;
   padding: 10px 16px;
   border-radius: var(--radius-md);
-  transition: background var(--duration-normal) var(--ease-in-out),
-              box-shadow var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
-  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.15);
+  border: 1px solid var(--color-border);
+  transition: all var(--duration-normal) var(--ease-in-out);
 }
 .all-categories:hover {
-  background: var(--color-primary-hover);
-  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
 }
 .all-categories:active {
   transform: scale(0.97);
@@ -756,7 +758,7 @@ onBeforeUnmount(() => {
   max-width: 1200px;
   margin: 20px auto;
   display: grid;
-  grid-template-columns: 240px 1fr 280px;
+  grid-template-columns: 260px 1fr 260px;
   gap: 20px;
   align-items: start;
   padding: 0 24px;
@@ -771,6 +773,7 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   border: 1px solid var(--color-border-light);
   position: relative;
+  box-shadow: var(--shadow-xs);
 }
 .hot-sales::-webkit-scrollbar {
   width: 4px;
@@ -782,16 +785,7 @@ onBeforeUnmount(() => {
 .hot-sales::-webkit-scrollbar-track {
   background: transparent;
 }
-.hot-sales::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-}
+
 .hot-sales-header { margin-bottom: 12px; }
 .hot-sales-header h3 {
   margin: 0 0 4px 0;
@@ -804,26 +798,28 @@ onBeforeUnmount(() => {
 .hot-sales-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 5px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
+  transition: all var(--duration-normal) var(--ease-in-out);
+  border: 1px solid transparent;
 }
 .hot-sales-item:hover {
-  background: var(--color-primary-light);
-  transform: translateX(3px);
+  background: var(--color-bg);
+  border-color: var(--color-border-light);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-xs);
 }
 .item-rank {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
   color: var(--color-text-tertiary);
   font-weight: 600;
   flex-shrink: 0;
@@ -831,19 +827,20 @@ onBeforeUnmount(() => {
 .item-rank.top-3 {
   background: var(--color-primary);
   color: white;
-  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.2);
+  box-shadow: 0 2px 6px rgba(255, 77, 79, 0.2);
 }
-.hot-sales-item:nth-child(1) .item-rank.top-3 { background: #FF4757; box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3); }
-.hot-sales-item:nth-child(2) .item-rank.top-3 { background: #FF6348; box-shadow: 0 2px 8px rgba(255, 99, 72, 0.25); }
-.hot-sales-item:nth-child(3) .item-rank.top-3 { background: #FFA502; box-shadow: 0 2px 8px rgba(255, 165, 2, 0.25); }
+.hot-sales-item:nth-child(1) .item-rank.top-3 { background: #FF4D4F; box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3); }
+.hot-sales-item:nth-child(2) .item-rank.top-3 { background: #FF7D00; box-shadow: 0 2px 8px rgba(255, 125, 0, 0.25); }
+.hot-sales-item:nth-child(3) .item-rank.top-3 { background: #FFB800; box-shadow: 0 2px 8px rgba(255, 184, 0, 0.25); }
 .item-info { flex: 1; overflow: hidden; }
 .item-name {
-  font-size: var(--text-xs);
+  font-size: 12px;
   color: var(--color-text-primary);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 .item-sales {
   font-size: var(--text-xs);
@@ -858,6 +855,9 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-xs);
+  height: 400px;
+  box-sizing: border-box;
 }
 .carousel-container { position: relative; width: 100%; height: 400px; overflow: hidden; }
 .carousel-wrapper {
@@ -919,42 +919,48 @@ onBeforeUnmount(() => {
   z-index: 10;
 }
 .indicator {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-full);
-  background: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.45);
   cursor: pointer;
-  transition: all 0.2s var(--ease-in-out);
+  transition: all 0.3s var(--ease-in-out);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.indicator:hover {
+  background: rgba(255,255,255,0.75);
 }
 .indicator.active {
   background: white;
-  width: 24px;
+  width: 28px;
   border-radius: var(--radius-sm);
+  border-color: transparent;
+  box-shadow: 0 0 8px rgba(255,255,255,0.4);
 }
 
-/* 右侧促销卡片 - 与轮播图高度一致 (去渐变化) */
+/* 右侧金刚区 - 2x2 图标网格导航 */
 .promo-cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   height: 400px;
 }
 .promo-card {
-  flex: 1;
   border-radius: var(--radius-md);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
+  justify-content: center;
+  padding: 16px 8px;
   cursor: pointer;
-  transition: transform var(--duration-normal) var(--ease-in-out),
-              box-shadow var(--duration-normal) var(--ease-in-out),
-              border-color var(--duration-normal) var(--ease-in-out);
+  transition: all var(--duration-normal) var(--ease-in-out);
   border: 1px solid var(--color-border-light);
   background: var(--color-bg-white);
+  gap: 10px;
+  box-shadow: var(--shadow-xs);
 }
 .promo-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary);
 }
@@ -962,45 +968,44 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
+.promo-text {
+  text-align: center;
+}
 .promo-text h4 {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-weight: 600;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   color: var(--color-text-primary);
 }
 .promo-text p {
-  font-size: var(--text-xs);
+  font-size: 11px;
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+  opacity: 0.6;
 }
-.promo-icon { font-size: 32px; }
-/* ✅ 移除所有渐变背景,使用浅色背景 + 图标色彩 */
-.promo-orange {
-  background: linear-gradient(135deg, #FFF8F0, #FFFFFF);
-  border-color: #FFE0CC;
+.promo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform var(--duration-normal) var(--ease-in-out);
 }
-.promo-orange:hover { border-color: #FF8C42; box-shadow: 0 8px 24px rgba(255, 140, 66, 0.12); }
-.promo-pink {
-  background: linear-gradient(135deg, #FFF0F3, #FFFFFF);
-  border-color: #FFD6E0;
+.promo-card:hover .promo-icon {
+  transform: scale(1.08);
 }
-.promo-pink:hover { border-color: #FF6B8A; box-shadow: 0 8px 24px rgba(255, 107, 138, 0.12); }
-.promo-orange2 {
-  background: linear-gradient(135deg, #FFF5EB, #FFFFFF);
-  border-color: #FFE4C4;
-}
-.promo-orange2:hover { border-color: #F0A030; box-shadow: 0 8px 24px rgba(240, 160, 48, 0.12); }
-.promo-blue {
-  background: linear-gradient(135deg, #F0F7FF, #FFFFFF);
-  border-color: #C8E0F4;
-}
-.promo-blue:hover { border-color: #5BA0D9; box-shadow: 0 8px 24px rgba(91, 160, 217, 0.12); }
 
 /* ===== 倒计时条 ===== */
 .countdown-bar {
   max-width: 1200px;
   margin: 0 auto 20px;
-  background: linear-gradient(135deg, var(--color-primary), #D32F2F);
+  background: linear-gradient(135deg, var(--color-primary), #CF1322);
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
@@ -1029,13 +1034,14 @@ onBeforeUnmount(() => {
   color: white;
   font-size: var(--text-xl);
   font-weight: 700;
-  font-family: 'Courier New', monospace;
-  background: rgba(0,0,0,0.15);
-  padding: 4px 12px;
+  font-family: 'SF Mono', 'Courier New', 'DIN Alternate', monospace;
+  background: rgba(0,0,0,0.18);
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
   min-width: 120px;
   text-align: center;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .countdown-more { color: rgba(255,255,255,0.9); font-size: var(--text-base); cursor: pointer; }
 .countdown-more:hover { color: white; }
@@ -1048,6 +1054,7 @@ onBeforeUnmount(() => {
   background: var(--color-bg-white);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-xs);
 }
 .product-section h2 {
   margin: 0 0 24px;
@@ -1070,8 +1077,14 @@ onBeforeUnmount(() => {
 }
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* ✅ 固定列数,更整齐 */
-  gap: 16px; /* ✅ 增加间距 */
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1024px) {
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
 .product-card {
   border: 1px solid var(--color-border-light);
@@ -1110,9 +1123,10 @@ onBeforeUnmount(() => {
 }
 .product-image {
   width: 100%;
-  aspect-ratio: 1; /* ✅ 保持正方形 */
+  aspect-ratio: 1;
   background: var(--color-bg);
   overflow: hidden;
+  position: relative;
 }
 .product-image-real {
   width: 100%;
@@ -1160,6 +1174,48 @@ onBeforeUnmount(() => {
   color: var(--color-text-tertiary);
   margin: 0;
   white-space: nowrap;
+}
+
+/* 商品标签 */
+.product-tags {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  z-index: 2;
+}
+.product-tags .tag-free,
+.product-tags .tag-hot,
+.product-tags .tag-deal {
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.product-tags .tag-free {
+  background: var(--color-primary);
+  color: white;
+}
+.product-tags .tag-hot {
+  background: linear-gradient(135deg, #FF7D00, #FF4D4F);
+  color: white;
+}
+.product-tags .tag-deal {
+  background: var(--color-success);
+  color: white;
+}
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  background: var(--color-bg-stripe);
 }
 
 /* ===== 登录弹窗 ===== */
@@ -1337,25 +1393,25 @@ onBeforeUnmount(() => {
 }
 .login-icons { display: flex; justify-content: center; gap: 20px; }
 .login-icon {
-  font-size: var(--text-base);
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
-  padding: 8px 16px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: color var(--duration-normal) var(--ease-in-out),
-              border-color var(--duration-normal) var(--ease-in-out),
+  border-radius: var(--radius-full);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
               background var(--duration-normal) var(--ease-in-out),
               transform var(--duration-fast) var(--ease-in-out);
 }
 .login-icon:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  transform: translateY(-1px);
+  border-color: var(--color-border-hover);
+  background: var(--color-bg);
+  transform: translateY(-2px);
 }
 .login-icon:active {
-  transform: scale(0.97);
+  transform: scale(0.92);
 }
 .login-tip {
   text-align: center;
@@ -1370,4 +1426,89 @@ onBeforeUnmount(() => {
 }
 .register-link:hover { color: var(--color-primary-dark); }
 .no-transition { transition: none !important; }
+
+/* ===== 新增：图标替代与视觉优化 ===== */
+
+/* 热销榜单火焰装饰 */
+.hot-flame {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background: linear-gradient(180deg, #FFB800 0%, #FF4D4F 100%);
+  border-radius: 3px 3px 1px 1px;
+  margin-right: 8px;
+  position: relative;
+  vertical-align: middle;
+}
+.hot-flame::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-bottom: 4px solid #FFB800;
+}
+
+/* 促销卡片纯CSS图标 */
+.promo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+.promo-card:nth-child(1) .promo-icon { background: linear-gradient(135deg, #FF8C42, #FF6B35); }
+.promo-card:nth-child(2) .promo-icon { background: linear-gradient(135deg, #FF6B8A, #FF8FAB); }
+.promo-card:nth-child(3) .promo-icon { background: linear-gradient(135deg, #F0A030, #E89020); }
+.promo-card:nth-child(4) .promo-icon { background: linear-gradient(135deg, #5BA0D9, #4A90D9); }
+.promo-icon i { font-size: 20px; color: white; }
+
+/* 价格符号优化 - 淘宝风格 ¥小数字大 */
+.product-price::before {
+  content: '¥';
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: super;
+  margin-right: 2px;
+  opacity: 0.95;
+}
+.product-price {
+  font-size: 20px;
+  color: var(--color-primary);
+  font-weight: 800;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-family: 'DIN Alternate', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 吸顶导航阴影增强 */
+.sticky-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  box-shadow: 0 2px 12px rgba(29, 33, 41, 0.08);
+}
+
+/* 搜索框圆角优化 */
+.search-box {
+  display: flex;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  height: 44px;
+  width: 100%;
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
+}
 </style>

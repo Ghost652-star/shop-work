@@ -240,15 +240,12 @@ CREATE TABLE `comment` (
   `id`          BIGINT        NOT NULL AUTO_INCREMENT COMMENT '评论 ID',
   `user_id`     BIGINT        NOT NULL                 COMMENT '用户 ID',
   `product_id`  BIGINT        NOT NULL                 COMMENT '商品 ID',
-  `order_id`    BIGINT        NOT NULL                 COMMENT '订单 ID（确保只有购买过的用户才能评论）',
   `rating`      TINYINT       NOT NULL                 COMMENT '评分：1-5 星',
   `content`     VARCHAR(1000) NULL                     COMMENT '评论内容',
   `images`      VARCHAR(2000) NULL                     COMMENT '评论图片（多张图片用逗号分隔）',
   `create_time` DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间',
   PRIMARY KEY (`id`),
-  KEY `idx_user_id`    (`user_id`),
-  KEY `idx_product_id` (`product_id`),
-  KEY `idx_order_id`   (`order_id`)
+  KEY `idx_comment_product_time` (`product_id`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品评论表';
 
 -- -----------------------------------------------------------

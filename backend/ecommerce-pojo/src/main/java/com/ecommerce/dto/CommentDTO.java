@@ -25,11 +25,6 @@ public class CommentDTO {
     private Long productId;
 
     /**
-     * 订单 ID
-     */
-    private Long orderId;
-
-    /**
      * 评分：1-5 星
      */
     private Integer rating;

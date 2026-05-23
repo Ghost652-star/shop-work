@@ -49,7 +49,7 @@
 
         <!-- 空购物车 -->
         <div v-if="cartItems.length === 0" class="empty-cart">
-          <div class="empty-icon">🛒</div>
+          <div class="empty-icon">购物车</div>
           <p class="empty-text">购物车是空的</p>
           <button class="go-shopping-btn" @click="goShopping">去逛逛</button>
         </div>

@@ -16,8 +16,7 @@
           </div>
         </div>
         <div class="user-info">
-          <span v-if="!isLoggedIn" class="login-btn" @click="showLoginDialog = true">登录</span>
-          <span v-else class="user-nickname">{{ userNickname }}</span>
+          <span v-if="isLoggedIn" class="user-nickname">{{ userNickname }}</span>
         </div>
       </div>
     </div>
@@ -166,10 +165,12 @@
 
           <!-- 价格区域 -->
           <div class="price-panel">
+            <div class="price-label-row">
+              <span class="price-label-tag">到手价</span>
+              <span class="price-label-original">原价 ¥{{ (product.price * 1.3).toFixed(2) }}</span>
+            </div>
             <div class="current-price">
-              <span class="price-symbol">¥</span>
               <span class="price-value">{{ product.price }}</span>
-              <span class="original-price">¥{{ (product.price * 1.3).toFixed(2) }}</span>
             </div>
           </div>
 
@@ -182,19 +183,15 @@
           <!-- 服务保障 -->
           <div class="service-info">
             <div class="service-item">
-              <span class="service-icon">⚡</span>
               <span>24 小时发货</span>
             </div>
             <div class="service-item">
-              <span class="service-icon">📦</span>
               <span>免运费</span>
             </div>
             <div class="service-item">
-              <span class="service-icon">✓</span>
               <span>7 天无理由退换</span>
             </div>
             <div class="service-item coupon-entry" @click="goToCouponPage">
-              <span class="service-icon">🎫</span>
               <span>领取优惠券</span>
               <span class="coupon-arrow">›</span>
             </div>
@@ -248,7 +245,6 @@
           <div class="action-buttons">
             <div class="combined-buttons">
               <button class="cart-btn" @click="addToCart">
-                <span class="cart-icon">🛒</span>
                 <span>加入购物车</span>
               </button>
               <button class="buy-btn" @click="buyNow">
@@ -256,7 +252,7 @@
               </button>
             </div>
             <button class="favorite-btn" @click="toggleFavorite" :class="{ active: isFavorited }">
-              <span class="favorite-icon">{{ isFavorited ? '★' : '☆' }}</span>
+              <span class="favorite-icon">{{ isFavorited ? '♥' : '♡' }}</span>
               <span>收藏</span>
             </button>
           </div>
@@ -345,9 +341,9 @@
               <div class="other-login">
                 <p>其他方式登录</p>
                 <div class="login-icons">
-                  <span class="login-icon">微信</span>
-                  <span class="login-icon">微博</span>
-                  <span class="login-icon">QQ</span>
+                  <span class="login-icon"><i class="ri-wechat-fill" style="color:#07C160;font-size:18px;"></i></span>
+                  <span class="login-icon"><i class="ri-weibo-fill" style="color:#E6162D;font-size:18px;"></i></span>
+                  <span class="login-icon"><i class="ri-qq-fill" style="color:#12B7F5;font-size:18px;"></i></span>
                 </div>
               </div>
               
@@ -609,32 +605,32 @@ export default {
           localStorage.setItem('userNickname', user.nickname)
           localStorage.setItem('userId', user.id)
           this.showLoginDialog = false
-          alert('登录成功')
+          this.$message.success('登录成功')
         } else {
-          alert(result.msg || '登录失败')
+          this.$message.error(result.msg || '登录失败')
         }
       } catch (error) {
         console.error('登录失败:', error)
-        alert('登录失败，请稍后重试')
+        this.$message.error('登录失败，请稍后重试')
       }
     },
     
     async handleRegister() {
       // 验证表单
       if (!this.registerUsername) {
-        alert('请输入用户名')
+        this.$message.warning('请输入用户名')
         return
       }
       if (!this.registerPhone) {
-        alert('请输入手机号')
+        this.$message.warning('请输入手机号')
         return
       }
       if (!this.registerPassword) {
-        alert('请输入密码')
+        this.$message.warning('请输入密码')
         return
       }
       if (this.registerPassword !== this.confirmPassword) {
-        alert('两次输入的密码不一致')
+        this.$message.warning('两次输入的密码不一致')
         return
       }
       
@@ -647,7 +643,7 @@ export default {
         })
         
         if (result.code === 1) {
-          alert('注册成功，请登录')
+          this.$message.success('注册成功，请登录')
           this.showRegister = false
           // 清空注册表单
           this.registerUsername = ''
@@ -655,11 +651,11 @@ export default {
           this.registerPassword = ''
           this.confirmPassword = ''
         } else {
-          alert(result.msg || '注册失败')
+          this.$message.error(result.msg || '注册失败')
         }
       } catch (error) {
         console.error('注册失败:', error)
-        alert('注册失败，请稍后重试')
+        this.$message.error('注册失败，请稍后重试')
       }
     },
     
@@ -862,7 +858,6 @@ export default {
       const commentData = {
         userId,
         productId: Number(this.product.id),
-        orderId: 0, // 临时值，实际应从订单关联获取
         rating: this.commentForm.rating,
         content: this.commentForm.content,
         images: this.commentForm.images || ''
@@ -952,7 +947,7 @@ export default {
 
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1);
 }
 
 .search-input {
@@ -1032,7 +1027,7 @@ export default {
 
 .thumbnail-item.active {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.15);
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.15);
 }
 
 .thumbnail-item img {
@@ -1574,25 +1569,38 @@ export default {
 
 /* 价格面板 - 增加内边距 */
 .price-panel {
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-primary-lighter);
+  background: linear-gradient(135deg, var(--color-primary-lighter), #FFF8F8);
   margin: 0 -24px;
+}
+
+.price-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.price-label-tag {
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+}
+
+.price-label-original {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
 }
 
 .current-price {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  margin-bottom: 6px;
-}
-
-.price-symbol {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1;
-  margin-bottom: 2px;
 }
 
 .price-value {
@@ -1601,6 +1609,7 @@ export default {
   color: var(--color-primary);
   letter-spacing: -1px;
   line-height: 1;
+  font-family: 'DIN Alternate', 'Helvetica Neue', Arial, sans-serif;
 }
 
 .original-price {
@@ -1639,47 +1648,49 @@ export default {
   font-weight: 500;
 }
 
-/* 服务保障 - 增加内边距 */
+/* 服务保障 - 简洁图标+文字风格 */
 .service-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 14px 24px;
   border-bottom: 1px solid var(--color-border-light);
 }
 
 .service-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  background: var(--color-bg);
-  padding: 4px 10px;
+  position: relative;
+  padding-left: 14px;
+}
+
+.service-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
   border-radius: var(--radius-full);
+  background: var(--color-success);
 }
 
-.service-icon {
-  font-size: var(--text-base);
-}
-
-.coupon-entry {
+.service-item.coupon-entry {
   cursor: pointer;
   color: var(--color-primary);
-  transition: background var(--duration-normal) var(--ease-in-out),
-              color var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
-  background: var(--color-primary-light);
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+.service-item.coupon-entry::before {
+  background: var(--color-primary);
 }
 
 .coupon-entry:hover {
-  background: var(--color-primary);
-  color: white;
-  transform: scale(1.02);
-}
-
-.coupon-entry:active {
-  transform: scale(0.98);
+  color: var(--color-primary-dark);
 }
 
 .coupon-arrow {
@@ -1736,7 +1747,7 @@ export default {
   color: var(--color-primary);
   background: var(--color-primary-light);
   font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.1);
+  box-shadow: 0 0 0 1px rgba(255, 77, 79, 0.1);
 }
 
 /* 数量选择 - 增加内边距 */
@@ -1862,7 +1873,7 @@ export default {
 .cart-btn:hover {
   background: var(--color-primary-light);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.15);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
 }
 
 .cart-btn:active {
@@ -1872,18 +1883,18 @@ export default {
 .buy-btn {
   background: var(--color-primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
 }
 
 .buy-btn:hover {
   background: var(--color-primary-dark);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(229, 57, 53, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 77, 79, 0.4);
 }
 
 .buy-btn:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
 }
 
 .favorite-btn {
@@ -1951,21 +1962,9 @@ export default {
   display: flex;
   align-items: center;
   margin-left: 20px;
+  min-width: 80px;
+  justify-content: flex-end;
 }
-
-.login-btn {
-  padding: 8px 16px;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  font-size: var(--text-base);
-  font-weight: 500;
-  transition: opacity 0.2s var(--ease-in-out);
-}
-
-.login-btn:hover { opacity: 0.9; }
 
 .user-nickname {
   color: var(--color-text-primary);
@@ -2195,19 +2194,21 @@ export default {
 }
 
 .login-icon {
-  font-size: var(--text-base);
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
-  padding: 8px 16px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   transition: all 0.2s var(--ease-in-out);
 }
 
 .login-icon:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--color-border-hover);
+  background: var(--color-bg);
+  transform: translateY(-2px);
 }
 
 .login-tip {
@@ -2226,5 +2227,71 @@ export default {
 
 .register-link:hover {
   color: var(--color-primary-dark);
+}
+
+/* ===== 新增：视觉优化 ===== */
+
+/* 价格符号优化 */
+.price-value::before {
+  content: '¥';
+  font-size: 20px;
+  font-weight: 600;
+  vertical-align: super;
+  margin-right: 2px;
+  opacity: 0.9;
+}
+.price-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.original-price::before {
+  content: '¥';
+  font-size: var(--text-xs);
+  font-weight: 400;
+  vertical-align: super;
+  margin-right: 1px;
+}
+
+/* 收藏按钮心形优化 */
+.favorite-icon {
+  font-size: 18px;
+  line-height: 1;
+  transition: transform var(--duration-fast) var(--ease-in-out);
+}
+.favorite-btn:hover .favorite-icon {
+  transform: scale(1.15);
+}
+
+/* 顶部导航阴影增强 */
+.header-search {
+  background: var(--color-bg-white);
+  border-bottom: 1px solid var(--color-border-light);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(29, 33, 41, 0.06);
+}
+
+/* 商品图片区域优化 */
+.main-image-container {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+/* 规格选择优化 */
+.spec-option.selected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(255, 77, 79, 0.1);
 }
 </style>

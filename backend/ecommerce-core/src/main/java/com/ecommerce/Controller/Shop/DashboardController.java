@@ -1,7 +1,9 @@
 package com.ecommerce.Controller.Shop;
 
+import com.ecommerce.entity.Merchant;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.Shop.DashboardService;
+import com.ecommerce.service.Shop.MerchantService;
 import com.ecommerce.vo.ShopOrderStatusVO;
 import com.ecommerce.vo.ShopSalesTrendVO;
 import com.ecommerce.vo.ShopTopProductVO;
@@ -18,9 +20,11 @@ import java.util.List;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final MerchantService merchantService;
 
-    public DashboardController(DashboardService dashboardService) {
+    public DashboardController(DashboardService dashboardService, MerchantService merchantService) {
         this.dashboardService = dashboardService;
+        this.merchantService = merchantService;
     }
 
     @GetMapping("/sales-trend")
@@ -37,7 +41,8 @@ public class DashboardController {
 
     @GetMapping("/top-products")
     public Result<List<ShopTopProductVO>> topProducts() {
-        log.debug("查询热销商品排行");
-        return Result.success(dashboardService.getTopProducts());
+        Merchant merchant = merchantService.getMerchantInfo();
+        log.debug("查询热销商品排行: merchantId={}", merchant.getId());
+        return Result.success(dashboardService.getTopProducts(merchant.getId().longValue()));
     }
 }

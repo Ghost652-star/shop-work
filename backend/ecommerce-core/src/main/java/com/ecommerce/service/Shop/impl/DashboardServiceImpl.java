@@ -93,9 +93,12 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<ShopTopProductVO> getTopProducts() {
+    public List<ShopTopProductVO> getTopProducts(Long merchantId) {
         QueryWrapper<Product> wrapper = new QueryWrapper<>();
-        wrapper.select("name", "sales").orderByDesc("sales").last("LIMIT 10");
+        wrapper.select("name", "sales")
+               .eq("merchant_id", merchantId)
+               .orderByDesc("sales")
+               .last("LIMIT 10");
         List<Product> products = productMapper.selectList(wrapper);
 
         List<ShopTopProductVO> topProducts = products.stream().map(p -> ShopTopProductVO.builder()

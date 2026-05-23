@@ -2,45 +2,45 @@
 
 :root {
   /* ===== 色彩系统 ===== */
-  --color-primary: #E53935;
-  --color-primary-light: #FFEBEE;
-  --color-primary-lighter: #FFF5F5;
-  --color-primary-dark: #C62828;
-  --color-primary-hover: #D32F2F;
+  --color-primary: #FF4D4F;
+  --color-primary-light: #FFF1F0;
+  --color-primary-lighter: #FFF7F7;
+  --color-primary-dark: #D9363E;
+  --color-primary-hover: #CF1322;
 
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #606266;
-  --color-text-tertiary: #909399;
-  --color-text-regular: #333333;
+  --color-text-primary: #1D2129;
+  --color-text-secondary: #4E5969;
+  --color-text-tertiary: #86909C;
+  --color-text-regular: #1D2129;
 
-  --color-border: #EBEEF5;
-  --color-border-light: #F2F6FC;
-  --color-border-hover: #D4D7DE;
+  --color-border: #E5E6EB;
+  --color-border-light: #F2F3F5;
+  --color-border-hover: #C9CDD4;
 
-  --color-bg: #F5F5F5;
+  --color-bg: #F7F8FA;
   --color-bg-white: #FFFFFF;
-  --color-bg-hover: #F8F8F8;
-  --color-bg-stripe: #FAFAFA;
+  --color-bg-hover: #F2F3F5;
+  --color-bg-stripe: #FAFBFC;
   --color-bg-overlay: rgba(0, 0, 0, 0.45);
 
   /* 语义色 */
-  --color-danger: #E53935;
-  --color-danger-light: #FFEBEE;
-  --color-success: #43A047;
-  --color-success-light: #E8F5E9;
-  --color-warning: #FB8C00;
-  --color-warning-light: #FFF3E0;
-  --color-info: #1E88E5;
-  --color-info-light: #E3F2FD;
+  --color-danger: #FF4D4F;
+  --color-danger-light: #FFF1F0;
+  --color-success: #00B578;
+  --color-success-light: #E8FFEA;
+  --color-warning: #FF7D00;
+  --color-warning-light: #FFF7E8;
+  --color-info: #165DFF;
+  --color-info-light: #E8F3FF;
 
   /* ===== 阴影系统 ===== */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
-  --shadow-primary: 0 4px 14px rgba(229, 57, 53, 0.25);
-  --input-focus-shadow: 0 0 0 2px rgba(229, 57, 53, 0.12);
+  --shadow-xs: 0 1px 2px rgba(29, 33, 41, 0.04);
+  --shadow-sm: 0 2px 8px rgba(29, 33, 41, 0.06);
+  --shadow-md: 0 4px 16px rgba(29, 33, 41, 0.08);
+  --shadow-lg: 0 8px 24px rgba(29, 33, 41, 0.12);
+  --shadow-card-hover: 0 12px 32px rgba(29, 33, 41, 0.12);
+  --shadow-primary: 0 4px 14px rgba(255, 77, 79, 0.25);
+  --input-focus-shadow: 0 0 0 2px rgba(255, 77, 79, 0.12);
 
   /* ===== 圆角系统 ===== */
   --radius-xs: 2px;
@@ -67,6 +67,11 @@
   --spacing-xl: 24px;
   --spacing-2xl: 32px;
   --spacing-3xl: 48px;
+
+  /* ===== 字体系统 ===== */
+  --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-price: 'Roboto', 'DIN Alternate', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
 
   /* ===== 字体大小 ===== */
   --text-xs: 12px;

@@ -2,7 +2,7 @@ import request from '../utils/request'
 
 /**
  * 发表评论
- * @param {Object} commentData - 评论数据 {userId, productId, orderId, rating, content, images}
+ * @param {Object} commentData - 评论数据 {userId, productId, rating, content, images}
  * @returns {Promise}
  */
 export const addComment = (commentData) => request.post('/comment', commentData)

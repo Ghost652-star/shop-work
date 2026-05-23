@@ -2,6 +2,7 @@ package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ecommerce.common.RedisKeys;
 import com.ecommerce.dto.CommentDTO;
 import com.ecommerce.entity.Comment;
 import com.ecommerce.entity.User;
@@ -9,7 +10,9 @@ import com.ecommerce.common.exception.CommentException;
 import com.ecommerce.mapper.CommentMapper;
 import com.ecommerce.mapper.UserMapper;
 import com.ecommerce.service.User.CommentService;
+import com.ecommerce.utils.RedisCacheUtil;
 import com.ecommerce.vo.CommentVO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +31,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final UserMapper userMapper;
+    private final RedisCacheUtil redisCacheUtil;
 
-    CommentServiceImpl(UserMapper userMapper) {
+    CommentServiceImpl(UserMapper userMapper, RedisCacheUtil redisCacheUtil) {
         this.userMapper = userMapper;
+        this.redisCacheUtil = redisCacheUtil;
     }
 
     /**
@@ -39,7 +44,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
      */
     @Override
     public void addComment(CommentDTO commentDTO) {
-        log.info("发表评论：userId={}, productId={}, orderId={}", commentDTO.getUserId(), commentDTO.getProductId(), commentDTO.getOrderId());
+        log.info("发表评论：userId={}, productId={}", commentDTO.getUserId(), commentDTO.getProductId());
 
         // 校验评分
         if (commentDTO.getRating() == null || commentDTO.getRating() < 1 || commentDTO.getRating() > 5) {
@@ -57,13 +62,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         Comment comment = Comment.builder()
                 .userId(commentDTO.getUserId())
                 .productId(commentDTO.getProductId())
-                .orderId(commentDTO.getOrderId())
                 .rating(commentDTO.getRating())
                 .content(commentDTO.getContent())
                 .images(commentDTO.getImages())
                 .build();
 
         save(comment);
+        redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_LIST_PREFIX + commentDTO.getProductId());
         log.info("评论发表成功：id={}", comment.getId());
     }
 
@@ -85,6 +90,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         removeById(id);
+        redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_LIST_PREFIX + comment.getProductId());
         log.info("评论删除成功：id={}", id);
     }
 
@@ -95,14 +101,22 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
      */
     @Override
     public List<CommentVO> getCommentListByProductId(Long productId) {
-        log.debug("查询商品评论列表：productId={}", productId);
+        String cacheKey = RedisKeys.COMMENT_LIST_PREFIX + productId;
+        List<CommentVO> cached = redisCacheUtil.valueOps.get(cacheKey, new TypeReference<List<CommentVO>>() {});
+        if (cached != null) {
+            log.debug("商品评论缓存命中：productId={}", productId);
+            return cached;
+        }
 
+        log.debug("商品评论缓存未命中，查询数据库：productId={}", productId);
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getProductId, productId)
                     .orderByDesc(Comment::getCreateTime);
 
         List<Comment> comments = list(queryWrapper);
-        return convertToVOList(comments);
+        List<CommentVO> result = convertToVOList(comments);
+        redisCacheUtil.valueOps.set(cacheKey, result, 10);
+        return result;
     }
 
     /**
@@ -176,7 +190,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                         .userId(c.getUserId())
                         .username(usernameMap.get(c.getUserId()))
                         .productId(c.getProductId())
-                        .orderId(c.getOrderId())
                         .rating(c.getRating())
                         .content(c.getContent())
                         .images(c.getImages())
