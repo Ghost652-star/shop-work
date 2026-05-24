@@ -36,6 +36,9 @@ backend/target/
 !DEV_GUIDE.md
 docs/
 
+# k6 压测
+k6/
+
 # Python
 **/__pycache__/
 *.pyc
