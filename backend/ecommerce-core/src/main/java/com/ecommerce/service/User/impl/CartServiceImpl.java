@@ -3,9 +3,11 @@ package com.ecommerce.service.User.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ecommerce.dto.CartDTO;
 import com.ecommerce.entity.Cart;
+import com.ecommerce.entity.Merchant;
 import com.ecommerce.entity.Product;
 import com.ecommerce.common.exception.CartException;
 import com.ecommerce.mapper.CartMapper;
+import com.ecommerce.mapper.MerchantMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.User.CartService;
 import com.ecommerce.vo.CartVO;
@@ -16,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +30,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
 
     @Autowired
     private ProductMapper productMapper;
+
+    @Autowired
+    private MerchantMapper merchantMapper;
 
     @Override
     @Transactional
@@ -57,7 +62,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             existingCart.setUpdateTime(LocalDateTime.now());
             updateById(existingCart);
             log.info("更新购物车商品数量：cartId={}, quantity={}", existingCart.getId(), existingCart.getQuantity());
-            return convertToVO(existingCart);
+            return convertToVO(existingCart, getMerchantName(existingCart.getMerchantId()));
         } else {
             // 创建新的购物车记录
             Cart cart = Cart.builder()
@@ -68,28 +73,41 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                     .price(product.getPrice())
                     .quantity(cartDTO.getQuantity())
                     .isChecked(1)
+                    .merchantId(product.getMerchantId() != null ? product.getMerchantId().longValue() : 1L)
                     .createTime(LocalDateTime.now())
                     .updateTime(LocalDateTime.now())
                     .build();
             save(cart);
             log.info("创建购物车记录：cartId={}", cart.getId());
-            return convertToVO(cart);
+            return convertToVO(cart, getMerchantName(cart.getMerchantId()));
         }
     }
 
     @Override
     public List<CartVO> getCartList(Long userId) {
         log.info("查询购物车列表：userId={}", userId);
-        
+
         // 查询用户的购物车列表
         List<Cart> carts = query()
                 .eq("user_id", userId)
                 .orderByDesc("update_time")
                 .list();
-        
-        // 转换为 VO 列表
+
+        // 批量加载商家名称
+        Set<Long> merchantIds = carts.stream()
+                .map(Cart::getMerchantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> merchantNameMap = Collections.emptyMap();
+        if (!merchantIds.isEmpty()) {
+            List<Merchant> merchants = merchantMapper.selectBatchIds(merchantIds);
+            merchantNameMap = merchants.stream()
+                    .collect(Collectors.toMap(m -> m.getId().longValue(), Merchant::getName));
+        }
+
+        final Map<Long, String> names = merchantNameMap;
         return carts.stream()
-                .map(this::convertToVO)
+                .map(cart -> convertToVO(cart, names.getOrDefault(cart.getMerchantId(), "未知商家")))
                 .collect(Collectors.toList());
     }
 
@@ -113,8 +131,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         cart.setQuantity(cartDTO.getQuantity());
         cart.setUpdateTime(LocalDateTime.now());
         updateById(cart);
-        
-        return convertToVO(cart);
+
+        return convertToVO(cart, getMerchantName(cart.getMerchantId()));
     }
 
     @Override
@@ -165,7 +183,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         cart.setUpdateTime(LocalDateTime.now());
         updateById(cart);
 
-        return convertToVO(cart);
+        return convertToVO(cart, getMerchantName(cart.getMerchantId()));
     }
 
     @Override
@@ -178,9 +196,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     /**
      * 转换为 VO
      */
-    private CartVO convertToVO(Cart cart) {
+    private CartVO convertToVO(Cart cart, String merchantName) {
         BigDecimal subtotal = cart.getPrice().multiply(new BigDecimal(cart.getQuantity()));
-        
+
         return CartVO.builder()
                 .id(cart.getId())
                 .userId(cart.getUserId())
@@ -190,9 +208,22 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 .price(cart.getPrice())
                 .quantity(cart.getQuantity())
                 .isChecked(cart.getIsChecked())
+                .merchantId(cart.getMerchantId())
+                .merchantName(merchantName)
                 .createTime(cart.getCreateTime())
                 .updateTime(cart.getUpdateTime())
                 .subtotal(subtotal)
                 .build();
+    }
+
+    /**
+     * 获取单个商家名称
+     */
+    private String getMerchantName(Long merchantId) {
+        if (merchantId == null) {
+            return "未知商家";
+        }
+        Merchant merchant = merchantMapper.selectById(merchantId);
+        return merchant != null ? merchant.getName() : "未知商家";
     }
 }
