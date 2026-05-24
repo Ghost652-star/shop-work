@@ -234,6 +234,8 @@
     "price": 199.00,
     "quantity": 1,
     "isChecked": 1,
+    "merchantId": 1,
+    "merchantName": "FlowShop 官方旗舰店",
     "createTime": "2026-05-19T10:00:00",
     "updateTime": "2026-05-19T10:00:00",
     "subtotal": 199.00
@@ -331,48 +333,42 @@
 {
   "code": 1,
   "msg": "success",
-  "data": {
-    "id": 1,
-    "orderNo": "ORD20260519100000123",
-    "userId": 1,
-    "status": 0,
-    "statusText": "待付款",
-    "totalAmount": 199.00,
-    "freightAmount": 5.00,
-    "couponAmount": 20.00,
-    "payAmount": 184.00,
-    "paymentType": null,
-    "paymentTime": null,
-    "receiverName": "张三",
-    "receiverPhone": "13800138000",
-    "receiverAddress": "广东省深圳市南山区xxx",
-    "remark": "请尽快发货",
-    "afterSaleStatus": 0,
-    "createTime": "2026-05-19T10:00:00",
-    "items": [
-      {
-        "id": 1,
-        "productId": 3,
-        "productName": "无线蓝牙耳机",
-        "productImage": "https://example.com/product1.jpg",
-        "categoryId": 1,
-        "price": 199.00,
-        "quantity": 1,
-        "totalPrice": 199.00
-      }
-    ],
-    "coupons": [
-      {
-        "id": 1,
-        "couponId": 1,
-        "description": "满100减20",
-        "categoryId": null,
-        "discountAmount": 20.00
-      }
-    ]
-  }
+  "data": [
+    {
+      "id": 1,
+      "orderNo": "ORD20260519100000123",
+      "batchNo": "BAT20260519100000120",
+      "userId": 1,
+      "merchantId": 1,
+      "merchantName": "FlowShop 官方旗舰店",
+      "status": 0,
+      "statusText": "待付款",
+      "totalAmount": 199.00,
+      "freightAmount": 5.00,
+      "couponAmount": 20.00,
+      "payAmount": 184.00,
+      "items": [...],
+      "coupons": [...]
+    },
+    {
+      "id": 2,
+      "orderNo": "ORD20260519100000124",
+      "batchNo": "BAT20260519100000120",
+      "merchantId": 2,
+      "merchantName": "另一商家",
+      "status": 0,
+      "totalAmount": 299.00,
+      "freightAmount": 5.00,
+      "couponAmount": 0,
+      "payAmount": 304.00,
+      "items": [...],
+      "coupons": []
+    }
+  ]
 }
 ```
+
+> 多商家下单时，后端按商家自动拆分为独立订单，所有订单共享同一个 `batchNo`。
 
 ### GET `/order/list?userId=1&status=0` — 订单列表
 
@@ -391,16 +387,18 @@
 { "code": 1, "msg": "success", "data": true }
 ```
 
-### POST `/order/pay` — 模拟支付
+### POST `/order/pay` — 模拟支付（支持批量）
 
 **请求体：**
 ```json
 {
-  "orderId": 1,
+  "batchNo": "BAT20260519100000120",
   "userId": 1,
   "paymentType": "alipay"
 }
 ```
+
+> 传入 `batchNo` 时批量支付该批次下所有订单；也可传 `orderId` 支付单个订单。
 
 **响应：**
 ```json
@@ -983,7 +981,9 @@
 
 **响应：** `{ "code": 1, "msg": "success", "data": null }`
 
-### GET `/shop/order/list?page=1&size=10&status=` — 订单列表
+### GET `/shop/order/list?page=1&size=10&status=&merchantId=` — 订单列表
+
+`merchantId` 可选，商家端用于筛选当前商家的订单。
 
 **响应：**
 ```json
@@ -1110,8 +1110,8 @@
 | `user` | 用户表 | username, password, nickname, phone, email, avatar, gender |
 | `category` | 商品分类表 | name, sort, status |
 | `product` | 商品表 | name, price, stock, sales, categoryId, mainImage |
-| `cart` | 购物车表 | userId, productId, quantity, price, isChecked |
-| `orders` | 订单表 | orderNo, userId, status, totalAmount, payAmount, 收货信息 |
+| `cart` | 购物车表 | userId, productId, quantity, price, isChecked, merchantId |
+| `orders` | 订单表 | orderNo, userId, merchantId, batchNo, status, totalAmount, payAmount, 收货信息 |
 | `order_item` | 订单商品表 | orderId, productId, price, quantity, totalPrice |
 | `coupon` | 优惠券表 | categoryId, minSpend, discountAmount, stock, 时间窗口 |
 | `user_coupon` | 用户优惠券表 | userId, couponId, status, expireTime |

@@ -7,7 +7,7 @@ import com.ecommerce.entity.Merchant;
 import com.ecommerce.entity.Product;
 import com.ecommerce.common.exception.CartException;
 import com.ecommerce.mapper.CartMapper;
-import com.ecommerce.mapper.MerchantMapper;
+import com.ecommerce.mapper.Shop.MerchantMapper;
 import com.ecommerce.mapper.ProductMapper;
 import com.ecommerce.service.User.CartService;
 import com.ecommerce.vo.CartVO;

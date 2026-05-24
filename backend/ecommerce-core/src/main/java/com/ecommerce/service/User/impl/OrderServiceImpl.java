@@ -13,6 +13,7 @@ import com.ecommerce.common.exception.CouponException;
 import com.ecommerce.common.exception.OrderException;
 import com.ecommerce.common.exception.ProductException;
 import com.ecommerce.mapper.*;
+import com.ecommerce.mapper.Shop.MerchantMapper;
 import com.ecommerce.service.User.OrderService;
 import com.ecommerce.vo.OrderVO;
 import com.ecommerce.vo.AvailableCouponVO;
@@ -713,6 +714,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return OrderVO.builder()
                 .id(order.getId())
                 .orderNo(order.getOrderNo())
+                .batchNo(order.getBatchNo())
                 .userId(order.getUserId())
                 .merchantId(merchantId)
                 .merchantName(merchantName)

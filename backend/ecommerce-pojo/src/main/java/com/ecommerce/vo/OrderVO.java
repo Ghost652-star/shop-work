@@ -26,7 +26,12 @@ public class OrderVO {
      * 订单号
      */
     private String orderNo;
-    
+
+    /**
+     * 批次号（同一批次创建的订单共享，用于批量支付）
+     */
+    private String batchNo;
+
     /**
      * 用户 ID
      */
