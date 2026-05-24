@@ -69,6 +69,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         save(comment);
         redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_LIST_PREFIX + commentDTO.getProductId());
+        redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_STATS_PREFIX + commentDTO.getProductId());
         log.info("评论发表成功：id={}", comment.getId());
     }
 
@@ -91,6 +92,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         removeById(id);
         redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_LIST_PREFIX + comment.getProductId());
+        redisCacheUtil.valueOps.delete(RedisKeys.COMMENT_STATS_PREFIX + comment.getProductId());
         log.info("评论删除成功：id={}", id);
     }
 
@@ -143,20 +145,31 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
      */
     @Override
     public Object[] getCommentStats(Long productId) {
+        String cacheKey = RedisKeys.COMMENT_STATS_PREFIX + productId;
+        List<Object> cached = redisCacheUtil.valueOps.get(cacheKey, new TypeReference<List<Object>>() {});
+        if (cached != null) {
+            log.debug("评论统计缓存命中：productId={}", productId);
+            return cached.toArray();
+        }
+
+        log.debug("评论统计缓存未命中，查询数据库：productId={}", productId);
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getProductId, productId);
 
         List<Comment> comments = list(queryWrapper);
+        Object[] result;
         if (comments.isEmpty()) {
-            return new Object[]{0.0, 0};
+            result = new Object[]{0.0, 0};
+        } else {
+            double avgRating = comments.stream()
+                    .mapToInt(Comment::getRating)
+                    .average()
+                    .orElse(0.0);
+            result = new Object[]{Math.round(avgRating * 10) / 10.0, comments.size()};
         }
 
-        double avgRating = comments.stream()
-                .mapToInt(Comment::getRating)
-                .average()
-                .orElse(0.0);
-
-        return new Object[]{Math.round(avgRating * 10) / 10.0, comments.size()};
+        redisCacheUtil.valueOps.set(cacheKey, java.util.Arrays.asList(result), 10);
+        return result;
     }
 
     /**

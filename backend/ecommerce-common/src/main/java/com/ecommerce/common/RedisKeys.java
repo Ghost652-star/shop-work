@@ -26,6 +26,7 @@ public class RedisKeys {
 
     // ==================== 评论 ====================
     public static final String COMMENT_LIST_PREFIX = "comment:list:";
+    public static final String COMMENT_STATS_PREFIX = "comment:stats:";
 
     // ==================== Dashboard ====================
     public static final String DASHBOARD_SALES_TREND = "dashboard:salesTrend";

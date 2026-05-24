@@ -92,9 +92,12 @@ RuntimeException
 | `SalesRankInitRunner` | `product:sales_rank` | ZSet | 无 | 热销排行（启动时预热） |
 | `SalesRankCacheTask` | `product:name:map` | Hash | 无 | 商品 ID→名称映射（cache-aside 按需回填） |
 | `SalesRankCacheTask` | `cache:hot_sales:top10` | String | 35 秒 | 热销榜单快照缓存 |
+| `CommentServiceImpl.getCommentListByProductId()` | `comment:list:{productId}` | String | 10 分钟 | 商品评论列表 |
+| `CommentServiceImpl.getCommentStats()` | `comment:stats:{productId}` | String | 10 分钟 | 评论统计（平均分+数量） |
 
 **缓存清除策略：**
 - 商品名映射 Hash（`product:name:map`）：修改/删除商品时删除对应字段，新增无需操作（cache-aside 自动回填）
+- 评论相关缓存（`comment:list:{productId}` + `comment:stats:{productId}`）：新增/删除评论时同步清除
 - 其他缓存由商家端在修改/删除数据时主动调用清除方法
 
 缓存 Key 常量定义在 `ecommerce-common` 模块的 `RedisKeys` 类中。
