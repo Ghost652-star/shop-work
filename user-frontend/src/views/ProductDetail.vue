@@ -492,7 +492,7 @@
 <script>
 import CartSidebar from '../components/CartSidebar.vue'
 import { getProductDetail } from '@/api/product'
-import { login, register } from '../api/user'
+import { login, register, logout } from '../api/user'
 import { addFavorite, removeFavorite, isFavorite } from '../api/favorite'
 import { addToCart } from '../api/cart'
 import { createOrder } from '../api/order'
@@ -652,38 +652,55 @@ export default {
       }
     },
     checkLoginStatus() {
-      const savedLoginState = localStorage.getItem('isLoggedIn')
-      const savedNickname = localStorage.getItem('userNickname')
-      if (savedLoginState === 'true') {
+      const savedLoginUser = JSON.parse(localStorage.getItem('loginUser'))
+      if (savedLoginUser && savedLoginUser.user) {
         this.isLoggedIn = true
-        this.userNickname = savedNickname || '用户'
+        this.userNickname = savedLoginUser.user.nickname || '用户'
       }
     },
-    
+    getUserId() {
+      const loginUser = JSON.parse(localStorage.getItem('loginUser'))
+      return loginUser && loginUser.user ? loginUser.user.id : null
+    },
+    async handleLogout() {
+      try {
+        const result = await logout()
+        if (result.code === 1) {
+          this.isLoggedIn = false
+          this.userNickname = '用户'
+          localStorage.removeItem('loginUser')
+          localStorage.removeItem('userId')
+          this.$message.success('退出登录成功')
+        } else {
+          this.$message.error(result.msg || '退出登录失败')
+        }
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        this.$message.error('退出登录失败，请稍后重试')
+      }
+    },
+
     async handleLogin() {
       try {
         let result
         if (this.loginTab === 'password') {
-          // 用户名密码登录
           result = await login({
             username: this.username,
             password: this.password
           })
         } else {
-          // 手机号验证码登录
           result = await login({
             username: this.phone,
             password: this.verificationCode
           })
         }
-        
+
         if (result.code === 1) {
-          const user = result.data
+          const loginUser = result.data
           this.isLoggedIn = true
-          this.userNickname = user.nickname
-          localStorage.setItem('isLoggedIn', 'true')
-          localStorage.setItem('userNickname', user.nickname)
-          localStorage.setItem('userId', user.id)
+          this.userNickname = loginUser.user.nickname
+          localStorage.setItem('loginUser', JSON.stringify(loginUser))
+          localStorage.setItem('userId', loginUser.user.id)
           this.showLoginDialog = false
           this.$message.success('登录成功')
         } else {
@@ -756,7 +773,7 @@ export default {
       
       try {
         const result = await addToCart({
-          userId: parseInt(localStorage.getItem('userId')),
+          userId: this.getUserId(),
           productId: this.product.id,
           quantity: parseInt(this.quantity)
         })
@@ -789,7 +806,7 @@ export default {
       console.log('立即购买 - 商品ID:', this.product.id, '数量:', this.quantity)
 
       try {
-        const userId = parseInt(localStorage.getItem('userId'))
+        const userId = this.getUserId()
         const addressResult = await getDefaultAddress(userId)
 
         if (addressResult.code !== 1 || !addressResult.data) {
@@ -830,7 +847,7 @@ export default {
         return
       }
 
-      const userId = localStorage.getItem('userId')
+      const userId = this.getUserId()
       const productId = this.product.id
 
       if (this.isFavorited) {
@@ -870,7 +887,7 @@ export default {
     loadFavoriteStatus() {
       if (!this.isLoggedIn) return
 
-      const userId = localStorage.getItem('userId')
+      const userId = this.getUserId()
       const productId = this.product.id
       if (!userId || !productId) return
 
@@ -934,7 +951,7 @@ export default {
         return
       }
 
-      const userId = parseInt(localStorage.getItem('userId'))
+      const userId = this.getUserId()
       const commentData = {
         userId,
         productId: Number(this.product.id),
@@ -1027,8 +1044,8 @@ export default {
 
 /* 顶部导航 */
 .header-search {
-  background: var(--color-bg-white);
-  border-bottom: 1px solid var(--color-border-light);
+  background: #f5f5f5;
+  border-bottom: 1px solid #eee;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -1037,7 +1054,7 @@ export default {
 .header-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1053,7 +1070,7 @@ export default {
 .logo-icon {
   width: 36px;
   height: 36px;
-  background: var(--color-primary);
+  background: #ff6b00;
   color: white;
   border-radius: 8px;
   display: flex;
@@ -1065,7 +1082,7 @@ export default {
 
 .logo {
   font-size: 24px;
-  color: var(--color-primary);
+  color: #ff6b00;
   margin: 0;
   font-weight: 700;
   cursor: pointer;
@@ -1083,19 +1100,12 @@ export default {
 
 .search-box {
   display: flex;
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   overflow: hidden;
-  background: var(--color-bg-white);
-  transition: all 0.2s var(--ease-in-out);
-  box-shadow: var(--shadow-xs);
+  background: #fff;
   max-width: 500px;
   width: 100%;
-}
-
-.search-box:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1);
 }
 
 .search-input {
@@ -1109,7 +1119,7 @@ export default {
 
 .search-btn {
   padding: 10px 24px;
-  background: var(--color-primary);
+  background: #ff6b00;
   color: white;
   border: none;
   cursor: pointer;
@@ -1663,17 +1673,17 @@ export default {
   position: sticky;
   top: 80px;
   align-self: flex-start;
+  margin-top: 0; /* 与左侧店铺栏顶部对齐 */
 }
 
 /* 购买面板 - 内部可滚动 */
 .purchase-panel {
-  height: 100%;
-  padding-top: 72px;
-  box-sizing: border-box;
+  padding-top: 0; /* 移除顶部空白，与店铺栏对齐 */
   background: var(--color-bg-white);
+  border-radius: var(--color-radius-lg);
+  border: 1px solid var(--color-border-light);
   overflow-y: auto;
   overflow-x: hidden;
-  border-left: 1px solid var(--color-border-light);
 }
 
 /* 自定义滚动条样式 */

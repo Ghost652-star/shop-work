@@ -1,10 +1,42 @@
 <template>
   <div class="merchant-page">
+    <!-- 购物车侧边栏 -->
+    <CartSidebar ref="cartSidebar" />
+
+    <!-- 顶部小字导航 -->
+    <div class="header-top">
+      <div class="header-top-content">
+        <div class="left-links">
+          <span class="region-link">中国大陆 ▾</span>
+          <span class="divider">|</span>
+          <template v-if="!isLoggedIn">
+            <span class="login-link" @click="showLoginDialog = true">亲，请登录</span>
+            <span class="register-link" @click="showLoginDialog = true; showRegister = true">免费注册</span>
+          </template>
+          <template v-else>
+            <span class="welcome-text">你好，{{ userNickname }}</span>
+            <span class="action-link" @click="handleLogout">退出</span>
+          </template>
+          <span class="divider">|</span>
+          <span class="theme-link">选择主题 ▾</span>
+        </div>
+        <div class="right-links">
+          <span class="action-link" @click="goHome">首页</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="$router.push('/personal')">个人中心</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="$router.push('/personal?tab=orders')">我的订单</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="$router.push('/customer-service')">联系客服</span>
+        </div>
+      </div>
+    </div>
+
     <!-- 顶部导航栏 -->
     <header class="header-bar">
       <div class="header-content">
         <div class="logo-area">
-          <span class="logo-text">潮品优选</span>
+          <span class="logo-text" @click="$router.push('/')" style="cursor:pointer">潮品优选</span>
         </div>
         <div class="search-area">
           <div class="search-box">
@@ -128,14 +160,42 @@
         </div>
       </div>
     </div>
+
+    <!-- 登录对话框 -->
+    <div v-if="showLoginDialog" class="login-dialog-overlay" @click.self="showLoginDialog = false">
+      <div class="login-dialog">
+        <div class="login-header">
+          <h3>登录</h3>
+          <span class="close-btn" @click="showLoginDialog = false">×</span>
+        </div>
+        <div class="login-tabs">
+          <span :class="{ active: loginTab === 'password' }" @click="loginTab = 'password'">密码登录</span>
+          <span :class="{ active: loginTab === 'sms' }" @click="loginTab = 'sms'">短信登录</span>
+        </div>
+        <div class="login-form">
+          <div class="form-group">
+            <label>用户名</label>
+            <input v-model="username" type="text" placeholder="请输入用户名" />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input v-model="password" type="password" placeholder="请输入密码" />
+          </div>
+          <button class="login-btn" @click="handleLogin">登录</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { getMerchantDetail, getMerchantProducts } from '@/api/merchant'
+import { login, logout } from '@/api/user'
+import CartSidebar from '@/components/CartSidebar.vue'
 
 export default {
   name: 'MerchantDetail',
+  components: { CartSidebar },
   data() {
     return {
       merchantId: null,
@@ -148,7 +208,14 @@ export default {
       total: 0,
       searchKeyword: '',
       activeCategory: 0,
-      categories: ['分类1', '分类2', '分类3', '分类4', '分类5']
+      categories: ['分类1', '分类2', '分类3', '分类4', '分类5'],
+      isLoggedIn: false,
+      userNickname: '用户',
+      showLoginDialog: false,
+      showRegister: false,
+      loginTab: 'password',
+      username: '',
+      password: ''
     }
   },
   computed: {
@@ -157,6 +224,7 @@ export default {
     }
   },
   created() {
+    this.checkLoginStatus()
     this.merchantId = this.$route.query.id
     if (this.merchantId) {
       this.loadMerchantInfo()
@@ -208,6 +276,56 @@ export default {
     handleSearch() {
       // 搜索功能暂不实现
       console.log('搜索:', this.searchKeyword)
+    },
+    checkLoginStatus() {
+      const savedLoginUser = JSON.parse(localStorage.getItem('loginUser'))
+      if (savedLoginUser && savedLoginUser.user) {
+        this.isLoggedIn = true
+        this.userNickname = savedLoginUser.user.nickname || '用户'
+      }
+    },
+    getUserId() {
+      const loginUser = JSON.parse(localStorage.getItem('loginUser'))
+      return loginUser && loginUser.user ? loginUser.user.id : null
+    },
+    async handleLogin() {
+      try {
+        const result = await login({ username: this.username, password: this.password })
+        if (result.code === 1) {
+          const loginUser = result.data
+          this.isLoggedIn = true
+          this.userNickname = loginUser.user.nickname
+          localStorage.setItem('loginUser', JSON.stringify(loginUser))
+          localStorage.setItem('userId', loginUser.user.id)
+          this.showLoginDialog = false
+          this.$message.success('登录成功')
+        } else {
+          this.$message.error(result.msg || '登录失败')
+        }
+      } catch (error) {
+        console.error('登录失败:', error)
+        this.$message.error('登录失败，请稍后重试')
+      }
+    },
+    async handleLogout() {
+      try {
+        const result = await logout()
+        if (result.code === 1) {
+          this.isLoggedIn = false
+          this.userNickname = '用户'
+          localStorage.removeItem('loginUser')
+          localStorage.removeItem('userId')
+          this.$message.success('退出登录成功')
+        } else {
+          this.$message.error(result.msg || '退出登录失败')
+        }
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        this.$message.error('退出登录失败，请稍后重试')
+      }
+    },
+    goHome() {
+      this.$router.push('/')
     }
   }
 }
@@ -219,9 +337,40 @@ export default {
   background: #f5f5f5;
 }
 
+/* 顶部小字导航 */
+.header-top {
+  background: #f5f5f5;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+}
+.header-top-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.left-links, .right-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.login-link, .register-link, .action-link {
+  color: #E53935;
+  cursor: pointer;
+}
+.login-link:hover, .register-link:hover, .action-link:hover {
+  text-decoration: underline;
+}
+.welcome-text { color: #333; }
+.region-link, .theme-link { cursor: pointer; }
+.divider { color: #ccc; }
+
 /* 顶部导航栏 */
 .header-bar {
-  background: #fff;
+  background: #f5f5f5;
   border-bottom: 1px solid #eee;
   position: sticky;
   top: 0;
@@ -245,7 +394,7 @@ export default {
 .logo-text {
   font-size: 24px;
   font-weight: bold;
-  color: #E53935;
+  color: #ff6b00;
 }
 
 .search-area {
@@ -256,9 +405,10 @@ export default {
 
 .search-box {
   display: flex;
-  border: 2px solid #E53935;
-  border-radius: 24px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   overflow: hidden;
+  background: #fff;
 }
 
 .search-box input {
@@ -270,9 +420,9 @@ export default {
 }
 
 .search-btn {
-  background: #E53935;
+  background: #ff6b00;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -281,7 +431,7 @@ export default {
 }
 
 .search-btn:hover {
-  background: #c62828;
+  background: #e65c00;
 }
 
 .search-icon {
@@ -290,8 +440,9 @@ export default {
 
 /* 店铺头部 */
 .merchant-header {
-  background: linear-gradient(135deg, #E53935 0%, #ff6f60 100%);
-  padding: 30px 0;
+  background: #fff;
+  padding: 20px 0;
+  border-bottom: 1px solid #eee;
 }
 
 .merchant-header-content {
@@ -312,10 +463,10 @@ export default {
 .merchant-logo {
   width: 80px;
   height: 80px;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eee;
 }
 
 .merchant-logo img {
@@ -332,11 +483,11 @@ export default {
   justify-content: center;
   font-size: 32px;
   font-weight: bold;
-  color: #E53935;
+  color: #ff6b00;
 }
 
 .merchant-meta {
-  color: #fff;
+  color: #333;
 }
 
 .merchant-name {
@@ -353,11 +504,12 @@ export default {
 }
 
 .score-label {
-  opacity: 0.9;
+  color: #999;
 }
 
 .score-value {
-  background: rgba(255, 255, 255, 0.2);
+  background: #fff0f0;
+  color: #ff6b00;
   padding: 2px 10px;
   border-radius: 12px;
 }
@@ -365,7 +517,7 @@ export default {
 .merchant-desc {
   margin: 8px 0 0 0;
   font-size: 13px;
-  opacity: 0.85;
+  color: #666;
 }
 
 .merchant-actions {
@@ -377,21 +529,19 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
-  border-radius: 20px;
-  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
-}
-
-.customer-btn {
   background: #fff;
-  color: #E53935;
+  color: #333;
 }
 
 .customer-btn:hover {
-  background: #fff3f3;
+  border-color: #ff6b00;
+  color: #ff6b00;
 }
 
 .btn-icon {
@@ -596,4 +746,47 @@ export default {
   font-size: 14px;
   color: #666;
 }
+
+/* 登录对话框 */
+.login-dialog-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.login-dialog {
+  background: #fff;
+  border-radius: 8px;
+  width: 380px;
+  padding: 24px;
+}
+.login-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.login-header h3 { margin: 0; font-size: 18px; }
+.close-btn { font-size: 24px; cursor: pointer; color: #999; }
+.login-tabs {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+.login-tabs span { cursor: pointer; color: #999; padding-bottom: 6px; }
+.login-tabs span.active { color: #E53935; border-bottom: 2px solid #E53935; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
+.form-group input {
+  width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;
+}
+.login-btn {
+  width: 100%; padding: 10px; background: #E53935; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 8px;
+}
+.login-btn:hover { background: #c62828; }
 </style>

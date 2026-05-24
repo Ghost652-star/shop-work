@@ -340,9 +340,8 @@ export default {
     },
 
     async loadClaimedCoupons() {
-      const userIdRaw = localStorage.getItem('userId')
-      const userId = userIdRaw ? parseInt(userIdRaw) : NaN
-      if (!userId || Number.isNaN(userId)) {
+      const userId = this.getUserId()
+      if (!userId) {
         this.claimedCouponIds = []
         return
       }
@@ -460,41 +459,41 @@ export default {
     },
     
     checkLoginStatus() {
-      const savedLoginState = localStorage.getItem('isLoggedIn')
-      const savedNickname = localStorage.getItem('userNickname')
-      if (savedLoginState === 'true') {
+      const savedLoginUser = JSON.parse(localStorage.getItem('loginUser'))
+      if (savedLoginUser && savedLoginUser.user) {
         this.isLoggedIn = true
-        this.userNickname = savedNickname || '用户'
+        this.userNickname = savedLoginUser.user.nickname || '用户'
 
-        // 登录状态恢复时，同步“已领取”状态
+        // 登录状态恢复时，同步”已领取”状态
         this.loadClaimedCoupons().then(() => this.applyClaimedState())
       }
     },
-    
+    getUserId() {
+      const loginUser = JSON.parse(localStorage.getItem('loginUser'))
+      return loginUser && loginUser.user ? loginUser.user.id : null
+    },
+
     async handleLogin() {
       try {
         let result
         if (this.loginTab === 'password') {
-          // 用户名密码登录
           result = await login({
             username: this.username,
             password: this.password
           })
         } else {
-          // 手机号验证码登录
           result = await login({
             username: this.phone,
             password: this.verificationCode
           })
         }
-        
+
         if (result.code === 1) {
-          const user = result.data
+          const loginUser = result.data
           this.isLoggedIn = true
-          this.userNickname = user.nickname
-          localStorage.setItem('isLoggedIn', 'true')
-          localStorage.setItem('userNickname', user.nickname)
-          localStorage.setItem('userId', user.id)
+          this.userNickname = loginUser.user.nickname
+          localStorage.setItem('loginUser', JSON.stringify(loginUser))
+          localStorage.setItem('userId', loginUser.user.id)
           this.showLoginDialog = false
 
           // 登录成功后，立刻把已领取的券置灰
@@ -567,7 +566,7 @@ export default {
       coupon.grabbing = true
       
       try {
-        const userId = localStorage.getItem('userId')
+        const userId = this.getUserId()
         if (!userId) {
           this.showLoginDialog = true
           return

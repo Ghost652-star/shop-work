@@ -439,6 +439,7 @@ const handleLogout = async () => {
     if (result.code === 1) {
       isLoggedIn.value = false; userNickname.value = '用户'
       localStorage.removeItem('loginUser')
+      localStorage.removeItem('userId')
       ElMessage.success('退出登录成功')
     } else { ElMessage.error(result.msg || '退出登录失败') }
   } catch (error) { ElMessage.error('退出登录失败') }
@@ -603,9 +604,9 @@ onBeforeUnmount(() => {
 
 /* ===== 顶部第二行 - Logo + 搜索栏 (居中布局) ===== */
 .header-search {
-  background: var(--color-bg-white);
-  padding: 20px 0;
-  border-bottom: 1px solid var(--color-border-light);
+  background: #f5f5f5;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
 }
 .search-content {
   max-width: 1200px;
@@ -627,7 +628,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .logo-icon {
-  background: var(--color-primary);
+  background: #ff6b00;
   color: white;
   width: 48px;
   height: 48px;
@@ -637,7 +638,6 @@ onBeforeUnmount(() => {
   font-size: var(--text-3xl);
   font-weight: 700;
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.2);
   transition: transform var(--duration-normal) var(--ease-out);
 }
 .logo:hover .logo-icon {
@@ -645,7 +645,7 @@ onBeforeUnmount(() => {
 }
 .logo-text {
   font-size: var(--text-3xl);
-  color: var(--color-primary);
+  color: #ff6b00;
   font-weight: 700;
 }
 .search-center {
@@ -656,20 +656,14 @@ onBeforeUnmount(() => {
 }
 .search-box {
   display: flex;
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   overflow: hidden;
+  background: #fff;
   height: 44px;
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  transition: border-color var(--duration-normal) var(--ease-in-out),
-              box-shadow var(--duration-normal) var(--ease-in-out);
-  box-shadow: var(--shadow-xs);
-}
-.search-box:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1);
 }
 .search-input {
   flex: 1;
@@ -681,25 +675,18 @@ onBeforeUnmount(() => {
 .search-input::placeholder { color: var(--color-text-tertiary); }
 .search-btn {
   padding: 0 32px;
-  background: var(--color-primary);
+  background: #ff6b00;
   color: white;
   border: none;
   cursor: pointer;
   font-size: var(--text-md);
   font-weight: 500;
-  border-radius: 0 6px 6px 0;
-  transition: background var(--duration-normal) var(--ease-in-out),
-              box-shadow var(--duration-normal) var(--ease-in-out),
-              transform var(--duration-fast) var(--ease-in-out);
+  border-radius: 0 4px 4px 0;
+  transition: background 0.2s;
 }
 .search-btn:hover {
-  background: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.25);
+  background: #e65c00;
 }
-.search-btn:active {
-  transform: scale(0.97);
-  background: var(--color-primary-dark);
-} /* ✅ 用透明度替代渐变变化 */
 .hot-search {
   display: flex;
   align-items: center;
