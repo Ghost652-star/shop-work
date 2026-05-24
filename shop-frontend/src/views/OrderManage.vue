@@ -74,6 +74,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderList, getOrderDetail, markShipped } from '@/api/adminOrder'
+import { getMerchantInfo } from '@/api/merchant'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -81,6 +82,7 @@ const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const searchStatus = ref(null)
+const merchantId = ref(null)
 
 const detailVisible = ref(false)
 const detail = ref(null)
@@ -94,6 +96,7 @@ async function loadData() {
   loading.value = true
   try {
     const params = { page: page.value, size: size.value }
+    if (merchantId.value !== null) params.merchantId = merchantId.value
     if (searchStatus.value !== null && searchStatus.value !== '') params.status = searchStatus.value
     const res = await getOrderList(params)
     if (res.code === 1) {
@@ -120,7 +123,17 @@ async function ship(row) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  try {
+    const res = await getMerchantInfo()
+    if (res.code === 1 && res.data) {
+      merchantId.value = res.data.id
+    }
+  } catch (e) {
+    // ignore
+  }
+  loadData()
+})
 </script>
 
 <style scoped>
