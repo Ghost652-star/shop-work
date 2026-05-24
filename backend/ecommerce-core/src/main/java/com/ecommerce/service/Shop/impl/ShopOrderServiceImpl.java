@@ -45,6 +45,9 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         Page<Order> pageParam = new Page<>(query.getPage(), query.getSize());
         QueryWrapper<Order> wrapper = new QueryWrapper<>();
 
+        if (query.getMerchantId() != null) {
+            wrapper.eq("merchant_id", query.getMerchantId());
+        }
         if (query.getStatus() != null) {
             wrapper.eq("status", query.getStatus());
         }
