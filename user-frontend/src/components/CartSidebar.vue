@@ -57,7 +57,11 @@
         <!-- 购物车列表 -->
         <div v-else class="cart-body">
           <div class="cart-list">
-            <div v-for="item in cartItems" :key="item.id" class="cart-item">
+            <div v-for="group in groupedCartItems" :key="group.merchantId" class="merchant-group">
+            <div class="merchant-header">
+              <span class="merchant-name-tag">{{ group.merchantName }}</span>
+            </div>
+            <div v-for="item in group.items" :key="item.id" class="cart-item">
               <div class="item-checkbox">
                 <input
                   type="checkbox"
@@ -83,6 +87,7 @@
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
               </button>
+            </div>
             </div>
           </div>
         </div>
@@ -146,6 +151,21 @@ export default {
     },
     totalPrice() {
       return this.selectedItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0).toFixed(2)
+    },
+    groupedCartItems() {
+      const groups = {}
+      this.cartItems.forEach(item => {
+        const key = item.merchantId || 0
+        if (!groups[key]) {
+          groups[key] = {
+            merchantId: item.merchantId,
+            merchantName: item.merchantName || '未知商家',
+            items: []
+          }
+        }
+        groups[key].items.push(item)
+      })
+      return Object.values(groups)
     }
   },
   mounted() {
@@ -367,7 +387,9 @@ export default {
         productImage: item.productImage,
         price: item.price,
         quantity: item.quantity,
-        categoryId: item.categoryId
+        categoryId: item.categoryId,
+        merchantId: item.merchantId,
+        merchantName: item.merchantName
       }))
       
       // 存储选中的商品到 localStorage
@@ -623,6 +645,26 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.merchant-group {
+  margin-bottom: 16px;
+}
+
+.merchant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.merchant-name-tag {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .cart-item {
