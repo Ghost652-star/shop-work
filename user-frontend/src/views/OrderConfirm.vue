@@ -64,33 +64,43 @@
         <div class="product-list-section">
           <h2 class="section-title">商品信息</h2>
           <div class="product-list">
-            <div 
-              v-for="item in selectedItems" 
-              :key="item.cartItemId || item.productId"
-              class="product-item"
-            >
-              <!-- 商品图片 -->
-              <div class="product-image">
-                <img :src="item.productImage" :alt="item.productName" />
+            <div v-for="group in groupedItems" :key="group.merchantId" class="merchant-order-group">
+              <div class="merchant-group-header">
+                <span class="merchant-icon">🏪</span>
+                <span class="merchant-label">{{ group.merchantName }}</span>
               </div>
+              <div
+                v-for="item in group.items"
+                :key="item.cartItemId || item.productId"
+                class="product-item"
+              >
+                <!-- 商品图片 -->
+                <div class="product-image">
+                  <img :src="item.productImage" :alt="item.productName" />
+                </div>
 
-              <!-- 商品信息 -->
-              <div class="product-info">
-                <h3 class="product-name">{{ item.productName }}</h3>
-                <p class="product-subtitle">{{ item.productDescription }}</p>
-                <div class="product-price">
-                  <span class="price">¥{{ item.price }}</span>
+                <!-- 商品信息 -->
+                <div class="product-info">
+                  <h3 class="product-name">{{ item.productName }}</h3>
+                  <p class="product-subtitle">{{ item.productDescription }}</p>
+                  <div class="product-price">
+                    <span class="price">¥{{ item.price }}</span>
+                  </div>
+                </div>
+
+                <!-- 数量 -->
+                <div class="product-quantity">
+                  <span class="quantity-value">x{{ item.quantity }}</span>
+                </div>
+
+                <!-- 小计 -->
+                <div class="product-subtotal">
+                  <span class="subtotal-price">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
                 </div>
               </div>
-
-              <!-- 数量 -->
-              <div class="product-quantity">
-                <span class="quantity-value">x{{ item.quantity }}</span>
-              </div>
-
-              <!-- 小计 -->
-              <div class="product-subtotal">
-                <span class="subtotal-price">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+              <div class="merchant-group-summary">
+                <span>小计：¥{{ group.subtotal.toFixed(2) }}</span>
+                <span>运费：¥{{ group.freight.toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -323,6 +333,26 @@ export default {
   computed: {
     canSubmit() {
       return this.selectedAddress && this.selectedItems.length > 0
+    },
+    groupedItems() {
+      const groups = {}
+      this.selectedItems.forEach(item => {
+        const key = item.merchantId || 0
+        if (!groups[key]) {
+          groups[key] = {
+            merchantId: item.merchantId,
+            merchantName: item.merchantName || '未知商家',
+            items: [],
+            subtotal: 0,
+            freight: 5,
+            couponAmount: 0,
+            payAmount: 0
+          }
+        }
+        groups[key].items.push(item)
+        groups[key].subtotal += item.price * item.quantity
+      })
+      return Object.values(groups)
     }
   },
   methods: {
@@ -348,7 +378,7 @@ export default {
       
       // 计算商品总额
       this.totalAmount = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-      this.freightAmount = 0 // 暂定运费为0
+      this.freightAmount = this.groupedItems.length * 5
       this.calculatePayAmount()
       
       // 加载地址列表
@@ -499,12 +529,13 @@ export default {
         }
         
         const result = await createOrder(orderData)
-        if (result.code === 1) {
+        if (result.code === 1 && result.data && result.data.length > 0) {
           // 清空选中的购物车商品
           localStorage.removeItem('selectedCartItems')
-          
-          // 跳转到支付页面
-          this.$router.push(`/payment/${result.data.id}`)
+
+          // Store batchNo for payment page
+          const batchNo = result.data[0].batchNo
+          this.$router.push(`/payment/${batchNo}`)
         } else {
           this.$message.error(result.msg || '创建订单失败')
         }
@@ -833,6 +864,38 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.merchant-order-group {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.merchant-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 12px;
+}
+
+.merchant-label {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.merchant-group-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 /* 商品项 */

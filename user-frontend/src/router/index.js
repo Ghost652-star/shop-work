@@ -47,7 +47,7 @@ const routes = [
     component: CouponSeckill
   },
   {
-    path: '/payment/:id',
+    path: '/payment/:batchNo',
     name: 'Payment',
     component: Payment
   },
