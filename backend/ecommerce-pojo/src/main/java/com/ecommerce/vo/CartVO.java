@@ -70,4 +70,14 @@ public class CartVO {
      * 小计金额（单价 * 数量）
      */
     private BigDecimal subtotal;
+
+    /**
+     * 商家ID
+     */
+    private Long merchantId;
+
+    /**
+     * 商家名称
+     */
+    private String merchantName;
 }

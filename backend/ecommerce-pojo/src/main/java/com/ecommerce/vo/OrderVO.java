@@ -31,7 +31,17 @@ public class OrderVO {
      * 用户 ID
      */
     private Long userId;
-    
+
+    /**
+     * 商家ID
+     */
+    private Long merchantId;
+
+    /**
+     * 商家名称
+     */
+    private String merchantName;
+
     /**
      * 状态：0-待付款，1-待发货，2-待收货，3-已完成，4-已取消
      */

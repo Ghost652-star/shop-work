@@ -60,7 +60,12 @@ public class Cart {
      * 是否选中：0-未选中，1-选中
      */
     private Integer isChecked;
-    
+
+    /**
+     * 商家ID
+     */
+    private Long merchantId;
+
     /**
      * 加入购物车时间
      */
