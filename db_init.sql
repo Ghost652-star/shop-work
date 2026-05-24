@@ -129,11 +129,13 @@ CREATE TABLE `cart` (
   `price`         DECIMAL(10,2) NOT NULL                 COMMENT '单价',
   `quantity`      INT           DEFAULT 1                COMMENT '购买数量',
   `is_checked`    TINYINT       DEFAULT 1                COMMENT '是否选中：0-未选中，1-选中',
+  `merchant_id`   BIGINT        NOT NULL DEFAULT 1       COMMENT '商家ID（冗余，从product带入）',
   `create_time`   DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '加入购物车时间',
   `update_time`   DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_product` (`user_id`, `product_id`) COMMENT '同一用户同一商品只有一条记录',
-  KEY `idx_user_id` (`user_id`)
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_merchant_id` (`merchant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='购物车表';
 
 -- -----------------------------------------------------------
@@ -144,6 +146,8 @@ CREATE TABLE `orders` (
   `id`                      BIGINT        NOT NULL AUTO_INCREMENT COMMENT '订单 ID',
   `order_no`                VARCHAR(50)   NOT NULL                 COMMENT '订单号',
   `user_id`                 BIGINT        NOT NULL                 COMMENT '用户 ID',
+  `merchant_id`             BIGINT        NOT NULL DEFAULT 1       COMMENT '商家ID',
+  `batch_no`                VARCHAR(50)   NULL                     COMMENT '下单批次号，同一次下单的多个商家订单共享',
   `status`                  TINYINT       DEFAULT 0                COMMENT '状态：0-待付款，1-待发货，2-待收货，3-已完成，4-已取消',
   `total_amount`            DECIMAL(10,2) NOT NULL                 COMMENT '总金额（优惠券抵扣前）',
   `freight_amount`          DECIMAL(10,2) DEFAULT 0.00             COMMENT '运费',
@@ -163,7 +167,9 @@ CREATE TABLE `orders` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
   KEY `idx_user_id` (`user_id`),
-  KEY `idx_status`  (`status`)
+  KEY `idx_status`  (`status`),
+  KEY `idx_merchant_id` (`merchant_id`),
+  KEY `idx_batch_no`    (`batch_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单表';
 
 -- -----------------------------------------------------------
@@ -291,6 +297,7 @@ CREATE TABLE `merchant` (
   `phone`        VARCHAR(20)  NULL                     COMMENT '联系电话',
   `description`  TEXT         NULL                     COMMENT '商家描述',
   `logo`         VARCHAR(500) NULL                     COMMENT 'Logo URL',
+  `score`        DECIMAL(2,1) DEFAULT 4.8              COMMENT '店铺评分',
   `status`       TINYINT      DEFAULT 1                COMMENT '0=禁用 1=启用',
   `create_time`  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time`  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -302,5 +309,3 @@ CREATE TABLE `merchant` (
 -- -----------------------------------------------------------
 INSERT INTO `merchant` (`name`, `phone`, `description`, `logo`, `status`) VALUES
 ('FlowShop 官方旗舰店', '400-888-8888', 'FlowShop 官方自营店铺', 'https://via.placeholder.com/100', 1);
-
-kkkkkkkkkk
