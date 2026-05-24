@@ -3,20 +3,47 @@
     <!-- 购物车侧边栏 -->
     <CartSidebar ref="cartSidebar" />
 
+    <!-- 顶部小字导航 -->
+    <div class="header-top">
+      <div class="header-top-content">
+        <div class="left-links">
+          <span class="region-link">中国大陆 ▾</span>
+          <span class="divider">|</span>
+          <template v-if="!isLoggedIn">
+            <span class="login-link" @click="showLoginDialog = true">亲，请登录</span>
+            <span class="register-link" @click="showLoginDialog = true; showRegister = true">免费注册</span>
+          </template>
+          <template v-else>
+            <span class="welcome-text">你好，{{ userNickname }}</span>
+            <span class="action-link" @click="handleLogout">退出</span>
+          </template>
+          <span class="divider">|</span>
+          <span class="theme-link">选择主题 ▾</span>
+        </div>
+        <div class="right-links">
+          <span class="action-link" @click="goHome">首页</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="handlePersonalCenter">个人中心</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="handleMyOrders">我的订单</span>
+          <span class="divider">|</span>
+          <span class="action-link" @click="goToCustomerService">联系客服</span>
+        </div>
+      </div>
+    </div>
+
     <!-- 顶部导航栏 -->
     <div class="header-search">
       <div class="header-content">
         <div class="logo-section">
-          <h1 class="logo" @click="goHome">电商平台</h1>
+          <span class="logo-icon">潮</span>
+          <h1 class="logo" @click="goHome">潮选优品</h1>
         </div>
         <div class="search-wrapper">
           <div class="search-box">
             <input type="text" placeholder="搜索商品" class="search-input" />
             <button class="search-btn">搜索</button>
           </div>
-        </div>
-        <div class="user-info">
-          <span v-if="isLoggedIn" class="user-nickname">{{ userNickname }}</span>
         </div>
       </div>
     </div>
@@ -25,6 +52,24 @@
     <div class="main-content">
       <!-- 左侧：商品图片和详情 -->
       <div class="left-section">
+        <!-- 店铺信息 -->
+        <div class="store-bar" v-if="product.merchantName">
+          <div class="store-info">
+            <div class="store-avatar">{{ product.merchantName.charAt(0) }}</div>
+            <div class="store-meta">
+              <span class="store-name">{{ product.merchantName }}</span>
+              <div class="store-rating">
+                <span class="rating-star">★★★★★</span>
+                <span class="rating-score">4.8</span>
+              </div>
+            </div>
+          </div>
+          <div class="store-actions">
+            <button class="store-btn customer-btn">💬 客服</button>
+            <button class="store-btn enter-btn" @click="goToMerchant">进店 ›</button>
+          </div>
+        </div>
+
         <!-- 商品图片区域 -->
         <div class="product-gallery">
           <div class="thumbnail-list">
@@ -157,21 +202,6 @@
       <!-- 右侧：购买操作区（固定） -->
       <div class="right-section">
         <div class="purchase-panel">
-          <!-- 店铺信息 -->
-          <div class="store-bar" v-if="product.merchantName">
-            <div class="store-info">
-              <div class="store-avatar">{{ product.merchantName.charAt(0) }}</div>
-              <div class="store-meta">
-                <span class="store-name">{{ product.merchantName }}</span>
-                <div class="store-rating">
-                  <span class="rating-star">★</span>
-                  <span class="rating-score">4.8</span>
-                </div>
-              </div>
-            </div>
-            <button class="store-enter-btn">进店 ›</button>
-          </div>
-
           <!-- 商品标题 -->
           <h2 class="product-title">{{ product.name }}</h2>
 
@@ -583,6 +613,11 @@ export default {
     goHome() {
       this.$router.push('/')
     },
+    goToMerchant() {
+      if (this.product.merchantId) {
+        this.$router.push({ path: '/merchant', query: { id: this.product.merchantId } })
+      }
+    },
     goToCouponPage() {
       this.$router.push('/coupon-seckill')
     },
@@ -941,6 +976,55 @@ export default {
   background: var(--color-bg);
 }
 
+/* 顶部小字导航 */
+.header-top {
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border-light);
+  height: 32px;
+  line-height: 32px;
+}
+.header-top-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+}
+.left-links, .right-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.region-link, .theme-link, .action-link {
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+}
+.region-link:hover, .theme-link:hover, .action-link:hover {
+  color: var(--color-primary);
+}
+.login-link {
+  font-size: 12px;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-weight: 500;
+}
+.login-link:hover { text-decoration: underline; }
+.register-link {
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+}
+.register-link:hover { color: var(--color-primary); }
+.welcome-text {
+  font-size: 12px;
+  color: #333;
+}
+.divider {
+  color: #ddd;
+  font-size: 12px;
+}
+
 /* 顶部导航 */
 .header-search {
   background: var(--color-bg-white);
@@ -961,10 +1045,26 @@ export default {
 
 .logo-section {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .logo {
-  font-size: var(--text-3xl);
+  font-size: 24px;
   color: var(--color-primary);
   margin: 0;
   font-weight: 700;
@@ -976,18 +1076,21 @@ export default {
 
 .search-wrapper {
   flex: 1;
-  max-width: 480px;
-  margin-left: auto;
+  display: flex;
+  justify-content: center;
+  padding-left: 100px;
 }
 
 .search-box {
   display: flex;
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   overflow: hidden;
   background: var(--color-bg-white);
   transition: all 0.2s var(--ease-in-out);
   box-shadow: var(--shadow-xs);
+  max-width: 500px;
+  width: 100%;
 }
 
 .search-box:focus-within {
@@ -1033,7 +1136,6 @@ export default {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
 }
 
 /* 商品图片 */
@@ -1559,8 +1661,8 @@ export default {
   width: 420px;
   flex-shrink: 0;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: 80px;
+  align-self: flex-start;
 }
 
 /* 购买面板 - 内部可滚动 */
@@ -1598,21 +1700,52 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  margin: 0 20px;
-  background: var(--color-bg);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--color-bg-white);
   border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
 }
 
 .store-info {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.store-actions {
+  display: flex;
   gap: 10px;
 }
 
+.store-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.customer-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.enter-btn {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.enter-btn:hover {
+  background: var(--color-primary-hover);
+}
+
 .store-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: var(--color-primary);
   color: white;
@@ -1639,17 +1772,19 @@ export default {
 .store-rating {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .rating-star {
-  color: #FF9800;
-  font-size: 12px;
+  color: #FF6B00;
+  font-size: 14px;
 }
 
 .rating-score {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 14px;
+  color: #FF6B00;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 .store-enter-btn {

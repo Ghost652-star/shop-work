@@ -6,9 +6,18 @@
     <div class="header-top" :class="{ hidden: isScrolled }">
       <div class="header-content">
         <div class="left-links">
-          <span v-if="!isLoggedIn" class="welcome-text">你好，请登录</span>
-          <span v-else class="welcome-text">你好，{{ userNickname }}</span>
-          <span v-if="!isLoggedIn" class="register-btn" @click="showRegister = true; showLoginDialog = true">免费注册</span>
+          <span class="region-link">中国大陆 ▾</span>
+          <span class="divider">|</span>
+          <template v-if="!isLoggedIn">
+            <span class="login-link" @click="showLoginDialog = true">亲，请登录</span>
+            <span class="register-link" @click="showLoginDialog = true; showRegister = true">免费注册</span>
+          </template>
+          <template v-else>
+            <span class="welcome-text">你好，{{ userNickname }}</span>
+            <span class="action-link" @click="handleLogout">退出</span>
+          </template>
+          <span class="divider">|</span>
+          <span class="theme-link">选择主题 ▾</span>
         </div>
         <div class="right-links">
           <span class="action-link" @click="handlePersonalCenter">个人中心</span>
@@ -16,9 +25,16 @@
           <span class="action-link" @click="handleMyOrders">我的订单</span>
           <span class="divider">|</span>
           <span class="action-link" @click="goToCustomerService">联系客服</span>
-          <span class="divider">|</span>
-          <span v-if="isLoggedIn" class="action-link" @click="handleLogout">退出</span>
         </div>
+      </div>
+    </div>
+
+    <!-- 秒杀倒计时条 - 个人中心下方 -->
+    <div class="countdown-bar">
+      <div class="countdown-content">
+        <span class="countdown-label">限时秒杀</span>
+        <span class="countdown-time">{{ seckillCountdown }}</span>
+        <span class="countdown-more" @click="goToCouponSeckill">更多秒杀 ›</span>
       </div>
     </div>
 
@@ -130,15 +146,6 @@
             <p>省钱省心</p>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 倒计时条 -->
-    <div class="countdown-bar">
-      <div class="countdown-content">
-        <span class="countdown-label">限时秒杀</span>
-        <span class="countdown-time">{{ seckillCountdown }}</span>
-        <span class="countdown-more" @click="goToCouponSeckill">更多秒杀 ›</span>
       </div>
     </div>
 
@@ -548,16 +555,34 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
 }
-.left-links { display: flex; align-items: center; gap: 4px; }
-.right-links { display: flex; align-items: center; gap: 4px; }
-.welcome-text { font-size: var(--text-xs); color: var(--color-text-primary); }
-.register-btn {
+.left-links { display: flex; align-items: center; gap: 10px; }
+.right-links { display: flex; align-items: center; gap: 10px; }
+.region-link {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.region-link:hover { color: var(--color-primary); }
+.login-link {
   font-size: var(--text-xs);
   color: var(--color-primary);
   cursor: pointer;
   font-weight: 500;
 }
-.register-btn:hover { text-decoration: underline; }
+.login-link:hover { text-decoration: underline; }
+.register-link {
+  font-size: var(--text-xs);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.register-link:hover { color: var(--color-primary); }
+.theme-link {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.theme-link:hover { color: var(--color-primary); }
+.welcome-text { font-size: var(--text-xs); color: var(--color-text-primary); }
 .action-link {
   cursor: pointer;
   transition: color var(--duration-normal) var(--ease-in-out);
@@ -588,7 +613,8 @@ onBeforeUnmount(() => {
   padding: 0 24px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+  position: relative;
 }
 .logo {
   display: flex;
@@ -596,6 +622,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  position: absolute;
+  left: 24px;
   flex-shrink: 0;
 }
 .logo-icon {
@@ -621,7 +649,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 .search-center {
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -629,10 +657,12 @@ onBeforeUnmount(() => {
 .search-box {
   display: flex;
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   overflow: hidden;
   height: 44px;
   width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
   transition: border-color var(--duration-normal) var(--ease-in-out),
               box-shadow var(--duration-normal) var(--ease-in-out);
   box-shadow: var(--shadow-xs);
@@ -657,7 +687,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   font-size: var(--text-md);
   font-weight: 500;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-radius: 0 6px 6px 0;
   transition: background var(--duration-normal) var(--ease-in-out),
               box-shadow var(--duration-normal) var(--ease-in-out),
               transform var(--duration-fast) var(--ease-in-out);
@@ -675,7 +705,6 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0;
   margin-top: 10px;
-  width: 100%;
   justify-content: center;
 }
 .hot-tag {
@@ -1003,10 +1032,8 @@ onBeforeUnmount(() => {
 
 /* ===== 倒计时条 ===== */
 .countdown-bar {
-  max-width: 1200px;
-  margin: 0 auto 20px;
+  width: 100%;
   background: linear-gradient(135deg, var(--color-primary), #CF1322);
-  border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
 }

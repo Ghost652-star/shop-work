@@ -1,6 +1,7 @@
 package com.ecommerce.Controller.User;
 
 import com.ecommerce.dto.OrderDTO;
+import com.ecommerce.dto.PayDTO;
 import com.ecommerce.dto.AvailableCouponDTO;
 import com.ecommerce.result.Result;
 import com.ecommerce.service.User.OrderService;
@@ -31,11 +32,11 @@ public class OrderController {
      * @return 订单 VO
      */
     @PostMapping("/create")
-    public Result<OrderVO> createOrder(@RequestBody OrderDTO orderDTO) {
+    public Result<List<OrderVO>> createOrder(@RequestBody OrderDTO orderDTO) {
         log.info("创建订单请求: userId={}", orderDTO.getUserId());
-        OrderVO orderVO = orderService.createOrder(orderDTO);
-        log.info("创建订单成功: orderId={}, orderNo={}", orderVO.getId(), orderVO.getOrderNo());
-        return Result.success(orderVO);
+        List<OrderVO> orders = orderService.createOrder(orderDTO);
+        log.info("创建订单成功: orderCount={}", orders.size());
+        return Result.success(orders);
     }
 
     /**
@@ -81,16 +82,16 @@ public class OrderController {
     }
 
     /**
-     * 支付订单
-     * @param orderDTO 订单请求 DTO
+     * 支付订单（按批次号批量支付）
+     * @param payDTO 支付请求 DTO
      * @return 操作结果
      */
     @PostMapping("/pay")
-    public Result<Boolean> payOrder(@RequestBody OrderDTO orderDTO) {
-        log.info("支付订单请求: orderId={}, userId={}, paymentType={}", 
-                orderDTO.getOrderId(), orderDTO.getUserId(), orderDTO.getPaymentType());
-        boolean result = orderService.payOrder(orderDTO.getOrderId(), orderDTO.getUserId(), orderDTO.getPaymentType());
-        log.info("支付订单成功: orderId={}", orderDTO.getOrderId());
+    public Result<Boolean> payOrder(@RequestBody PayDTO payDTO) {
+        log.info("支付订单请求: batchNo={}, userId={}, paymentType={}",
+                payDTO.getBatchNo(), payDTO.getUserId(), payDTO.getPaymentType());
+        boolean result = orderService.payOrder(payDTO.getBatchNo(), payDTO.getUserId(), payDTO.getPaymentType());
+        log.info("支付订单成功: batchNo={}", payDTO.getBatchNo());
         return Result.success(result);
     }
 

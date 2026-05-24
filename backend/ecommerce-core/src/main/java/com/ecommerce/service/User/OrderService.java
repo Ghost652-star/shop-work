@@ -19,7 +19,7 @@ public interface OrderService extends IService<Order> {
      * @param orderDTO 订单请求 DTO
      * @return 订单 VO
      */
-    OrderVO createOrder(OrderDTO orderDTO);
+    List<OrderVO> createOrder(OrderDTO orderDTO);
     
     /**
      * 查询订单列表
@@ -52,7 +52,7 @@ public interface OrderService extends IService<Order> {
      * @param paymentType 支付方式
      * @return 操作结果
      */
-    boolean payOrder(Long orderId, Long userId, String paymentType);
+    boolean payOrder(String batchNo, Long userId, String paymentType);
     
     /**
      * 获取可用优惠券

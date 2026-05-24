@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Personal from '../views/Personal.vue'
 import ProductDetail from '../views/ProductDetail.vue'
+import MerchantDetail from '../views/MerchantDetail.vue'
 import OrderDetail from '../views/OrderDetail.vue'
 import CouponSeckill from '../views/CouponSeckill.vue'
 import Payment from '../views/Payment.vue'
@@ -29,6 +30,11 @@ const routes = [
     path: '/product',
     name: 'ProductDetail',
     component: ProductDetail
+  },
+  {
+    path: '/merchant',
+    name: 'MerchantDetail',
+    component: MerchantDetail
   },
   {
     path: '/order/detail',
@@ -72,7 +78,7 @@ const router = createRouter({
   routes
 })
 
-const whiteList = ['/', '/product', '/coupon-seckill', '/customer-service']
+const whiteList = ['/', '/product', '/merchant', '/coupon-seckill', '/customer-service']
 
 router.beforeEach((to, from, next) => {
   const loginUser = JSON.parse(localStorage.getItem('loginUser'))

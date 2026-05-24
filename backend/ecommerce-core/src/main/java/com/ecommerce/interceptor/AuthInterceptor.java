@@ -38,6 +38,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 商家详情和商品列表接口放行（不需要登录）
+        if (uri.startsWith("/merchant/") && !uri.contains("/follow")) {
+            log.debug("商家公开接口放行: uri={}", uri);
+            return true;
+        }
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("请求缺少Token: {}", uri);
