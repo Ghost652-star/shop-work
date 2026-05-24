@@ -38,18 +38,20 @@
         <!-- 订单信息 -->
         <div class="order-info-section">
           <h2 class="section-title">订单信息</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">订单编号：</span>
-              <span class="info-value">{{ order.orderNo }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">订单金额：</span>
-              <span class="info-value price">¥{{ order.payAmount.toFixed(2) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">下单时间：</span>
-              <span class="info-value">{{ order.createTime }}</span>
+          <div v-for="order in orders" :key="order.id" class="order-brief">
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">商家：</span>
+                <span class="info-value">{{ order.merchantName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">订单号：</span>
+                <span class="info-value">{{ order.orderNo }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">金额：</span>
+                <span class="info-value price">¥{{ parseFloat(order.payAmount || 0).toFixed(2) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -103,7 +105,7 @@
           <div class="action-info">
             <div class="total-display">
               <span>应付金额：</span>
-              <span class="price">¥{{ order.payAmount.toFixed(2) }}</span>
+              <span class="price">¥{{ totalPayAmount.toFixed(2) }}</span>
             </div>
           </div>
           <div class="action-buttons">
@@ -133,7 +135,7 @@
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button type="primary" @click="goToOrderDetail">查看订单</el-button>
+          <el-button type="primary" @click="goToOrderList">查看订单</el-button>
         </span>
       </template>
     </el-dialog>
@@ -162,19 +164,16 @@
 </template>
 
 <script>
-import { payOrder, getOrderDetail } from '../api/order'
+import { payOrder, getOrderList } from '../api/order'
 
 export default {
   name: 'Payment',
   data() {
     return {
       isScrolled: false,
-      order: {
-        id: 0,
-        orderNo: '',
-        payAmount: 0,
-        createTime: ''
-      },
+      batchNo: '',
+      orders: [],
+      totalPayAmount: 0,
       paymentMethods: [
         {
           id: 1,
@@ -224,14 +223,13 @@ export default {
     goBack() {
       this.$router.back()
     },
-    goToOrderDetail() {
-      this.$router.push(`/order/detail?id=${this.order.id}`)
+    goToOrderList() {
+      this.$router.push('/personal?tab=orders')
     },
     async loadOrderData() {
-      const orderIdRaw = this.$route.params.id
-      const orderId = orderIdRaw ? parseInt(orderIdRaw) : NaN
-      if (!orderId || Number.isNaN(orderId)) {
-        this.$message.error('订单ID不存在')
+      const batchNo = this.$route.params.batchNo
+      if (!batchNo) {
+        this.$message.error('订单批次号不存在')
         this.$router.push('/')
         return
       }
@@ -244,41 +242,28 @@ export default {
         return
       }
 
-      try {
-        const result = await getOrderDetail(orderId, userId)
-        if (result.code === 1 && result.data) {
-          const data = result.data
-          // 注意：后端 BigDecimal 可能序列化为字符串，这里统一转 number，避免 toFixed 报错
-          const payAmount = typeof data.payAmount === 'number'
-            ? data.payAmount
-            : parseFloat(data.payAmount || 0)
+      this.batchNo = batchNo
 
-          this.order = {
-            id: data.id,
-            orderNo: data.orderNo || '',
-            payAmount: Number.isFinite(payAmount) ? payAmount : 0,
-            createTime: this.formatDateTime(data.createTime)
+      try {
+        const result = await getOrderList(userId)
+        if (result.code === 1 && result.data) {
+          this.orders = result.data.filter(o => o.batchNo === batchNo && o.status === 0)
+          if (this.orders.length === 0) {
+            this.$message.error('未找到待付款订单')
+            this.$router.push('/')
+            return
           }
-        } else {
-          this.$message.error(result.msg || '加载订单失败')
-          this.$router.push('/')
+          this.totalPayAmount = this.orders.reduce((sum, o) => {
+            const amount = typeof o.payAmount === 'number' ? o.payAmount : parseFloat(o.payAmount || 0)
+            return sum + (Number.isFinite(amount) ? amount : 0)
+          }, 0)
         }
       } catch (error) {
         console.error('加载订单失败:', error)
-        this.$message.error('加载订单失败，请稍后重试')
-        this.$router.push('/')
+        this.$message.error('加载订单失败')
       }
     },
 
-    formatDateTime(value) {
-      if (!value) return ''
-      // 兼容 "2026-04-20T08:47:58"、"2026-04-20 08:47:58" 等
-      const d = new Date(value)
-      if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleString('zh-CN')
-      }
-      return String(value)
-    },
     getPaymentMethodName(id) {
       const method = this.paymentMethods.find(m => m.id === id)
       return method ? method.name : ''
@@ -296,30 +281,18 @@ export default {
     },
     async confirmPayment() {
       this.isProcessing = true
-      
       try {
-        const userIdRaw = localStorage.getItem('userId')
-        const userId = userIdRaw ? parseInt(userIdRaw) : NaN
-        if (!userId || Number.isNaN(userId)) {
-          this.isProcessing = false
-          this.$message.warning('请先登录')
-          return
-        }
-
+        const userId = parseInt(localStorage.getItem('userId'))
         const result = await payOrder({
-          orderId: this.order.id,
+          batchNo: this.batchNo,
           userId,
           paymentType: this.getPaymentMethodName(this.selectedPaymentMethod)
         })
-        
         if (result.code === 1) {
-          // 模拟支付成功
           setTimeout(() => {
             this.isProcessing = false
             this.showSuccessDialog = true
-            if (this.countdownTimer) {
-              clearInterval(this.countdownTimer)
-            }
+            if (this.countdownTimer) clearInterval(this.countdownTimer)
           }, 2000)
         } else {
           this.isProcessing = false
@@ -800,6 +773,14 @@ export default {
   color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.6;
+}
+
+.order-brief {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.order-brief:last-child {
+  border-bottom: none;
 }
 
 /* 响应式设计 */
