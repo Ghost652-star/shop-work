@@ -1,9 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+import traceback
+import sys
+import json
+import io
 
 from app.serviceClient import run_service_agent
 
+# 修复Windows终端编码问题
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # 创建 FastAPI 应用实例
 app = FastAPI(title="ShopChat API", description="简单的请求处理API")
@@ -17,24 +25,41 @@ class RequestData(BaseModel):
 
 # POST 请求处理端点
 @app.post("/process")
-def process_request(data: RequestData):
-    # 把 FastAPI 收到的输入交给你的 service agent 处理
-    processed_msg = run_service_agent(
-        message=data.message,
-        user_id=data.user_id,
-        order_no=data.order_no
-    )
+async def process_request(request: Request):
+    try:
+        body = await request.json()
+        data = RequestData(**body)
 
-    # 返回处理结果
-    return {
-        "status": "success",
-        "processed_message": processed_msg,
-        "original_data": {
-            "message": data.message,
-            "user_id": data.user_id,
-            "order_no": data.order_no
+        # 把 FastAPI 收到的输入交给你的 service agent 处理
+        processed_msg = run_service_agent(
+            message=data.message,
+            user_id=data.user_id,
+            order_no=data.order_no
+        )
+
+        # 返回处理结果，确保UTF-8编码
+        result = {
+            "status": "success",
+            "processed_message": processed_msg,
+            "original_data": {
+                "message": data.message,
+                "user_id": data.user_id,
+                "order_no": data.order_no
+            }
         }
-    }
+        return JSONResponse(
+            content=result,
+            media_type="application/json; charset=utf-8"
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status": "error",
+                "processed_message": f"处理出错: {str(e)}",
+                "original_data": {}
+            },
+            media_type="application/json; charset=utf-8"
+        )
 
 # GET 请求处理端点（带查询参数）
 # @app.get("/query")

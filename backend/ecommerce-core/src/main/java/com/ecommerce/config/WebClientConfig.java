@@ -18,7 +18,9 @@ public class WebClientConfig {
     @Bean
     public WebClient webClient() {
         return WebClient.builder()
-                .baseUrl("http://127.0.0.1:8000") // Python FastAPI服务地址
+                .baseUrl("http://127.0.0.1:8001") // Python FastAPI服务地址
+                .defaultHeader("Accept-Charset", "UTF-8")
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
                 .build();
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ public class FastAPIWebClient {
 
     public FastAPIWebClient(WebClient webClient) {
         this.webClient = webClient;
-        log.info("FastAPIWebClient初始化成功，目标地址: http://127.0.0.1:8000");
+        log.info("FastAPIWebClient初始化成功，目标地址: http://127.0.0.1:8001");
     }
 
     @SuppressWarnings("unchecked")
@@ -32,7 +33,8 @@ public class FastAPIWebClient {
 
         Map<String, Object> response = webClient.post()
                 .uri("/process")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8))
+                .accept(MediaType.APPLICATION_JSON)
                 .header("Accept-Charset", "UTF-8")
                 .bodyValue(requestBody)
                 .retrieve()

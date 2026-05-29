@@ -11,8 +11,9 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 @dataclass
 class LLMConfig:
     """LLM 配置"""
-    model: str = "MiniMax-M2.5"
+    model: str = "mimo-v2.5"
     api_key: str = field(default_factory=lambda: os.getenv("LLM_API_KEY", ""))
+    base_url: str = field(default_factory=lambda: os.getenv("LLM_BASE_URL", "https://token-plan-cn.xiaomimimo.com/v1"))
 
 
 @dataclass

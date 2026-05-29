@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户端商品服务实现类（只读）
@@ -61,17 +62,38 @@ public class UserProductServiceImpl extends ServiceImpl<ProductMapper, Product> 
             return cached;
         }
 
-        Product product = query().eq("id", id).one();
-        if (product == null) {
-            log.warn("商品不存在: productId={}", id);
-            return null;
+        // 加互斥锁，防止缓存击穿
+        String lockKey = "lock:" + cacheKey;
+        boolean locked = redisCacheUtil.valueOps.setIfAbsent(lockKey, "1", 2, TimeUnit.SECONDS);
+        if (!locked) {
+            // 没拿到锁，等 50ms 后重试读缓存
+            try { Thread.sleep(50); } catch (InterruptedException ignored) {}
+            return redisCacheUtil.valueOps.get(cacheKey, ProductVO.class);
         }
 
-        ProductVO result = convertToVO(product);
-        redisCacheUtil.valueOps.set(cacheKey, result, 5);
-        log.debug("商品详情已缓存: productId={}", id);
+        try {
+            // 双重检查
+            ProductVO doubleCheck = redisCacheUtil.valueOps.get(cacheKey, ProductVO.class);
+            if (doubleCheck != null) {
+                return doubleCheck;
+            }
 
-        return result;
+            Product product = query().eq("id", id).one();
+            if (product == null) {
+                // 防穿透：缓存空值，2 分钟过期
+                redisCacheUtil.valueOps.set(cacheKey, "", 2);
+                log.warn("商品不存在，已缓存空值: productId={}", id);
+                return null;
+            }
+
+            ProductVO result = convertToVO(product);
+            redisCacheUtil.valueOps.set(cacheKey, result, 5);
+            log.debug("商品详情已缓存: productId={}", id);
+            return result;
+        } finally {
+            // 释放锁
+            redisCacheUtil.valueOps.delete(lockKey);
+        }
     }
 
     @Override

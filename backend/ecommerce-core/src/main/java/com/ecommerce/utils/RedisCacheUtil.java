@@ -127,6 +127,18 @@ public class RedisCacheUtil {
                 throw new RuntimeException("存入缓存失败", e);
             }
         }
+
+        /**
+         * 仅当 key 不存在时设置（自定义时间单位）
+         */
+        public Boolean setIfAbsent(String key, Object value, long timeout, TimeUnit unit) {
+            try {
+                String json = mapper.writeValueAsString(value);
+                return template.opsForValue().setIfAbsent(key, json, timeout, unit);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("存入缓存失败", e);
+            }
+        }
     }
 
     // ==================== 内部类：处理 ZSet 类型（排行榜） ====================

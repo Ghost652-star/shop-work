@@ -6,7 +6,7 @@ import os
 from typing import Any, Dict, Optional
 
 from langchain.agents import create_agent
-from langchain_community.chat_models.tongyi import ChatTongyi
+from langchain_openai import ChatOpenAI
 
 from config.settings import settings
 from app.callbacks import AgentDebugCallback
@@ -37,7 +37,11 @@ system_prompt = _load_system_prompt()
 
 
 service_agent = create_agent(
-    model=ChatTongyi(model=settings.llm.model),
+    model=ChatOpenAI(
+        model=settings.llm.model,
+        api_key=settings.llm.api_key,
+        base_url=settings.llm.base_url,
+    ),
     tools=[
         get_orderStatus,
         get_userOrders,

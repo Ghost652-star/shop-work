@@ -35,6 +35,18 @@
         </div>
         <div class="nav-tooltip">客服</div>
       </div>
+
+      <!-- AI助手 -->
+      <div class="nav-item" @click="toggleAiAssistant" @mouseenter="hoverIndex = 3" @mouseleave="hoverIndex = -1">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.27a7 7 0 0 1-12.46 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+            <circle cx="9" cy="15" r="1"/>
+            <circle cx="15" cy="15" r="1"/>
+          </svg>
+        </div>
+        <div class="nav-tooltip">AI助手</div>
+      </div>
     </div>
 
     <!-- 购物车侧边栏（点击购物车时弹出） -->
@@ -117,6 +129,91 @@
         </div>
       </div>
     </transition>
+
+    <!-- AI助手弹窗 -->
+    <div v-if="aiVisible" class="ai-sidebar-overlay" @click="closeAiAssistant"></div>
+    <transition name="slide-right">
+      <div v-if="aiVisible" class="ai-sidebar">
+        <!-- 头部 -->
+        <div class="ai-header">
+          <h3 class="ai-title">AI助手</h3>
+          <button class="close-btn" @click="closeAiAssistant">×</button>
+        </div>
+
+        <!-- 消息区域 -->
+        <div class="ai-messages" ref="aiMessagesContainer">
+          <div class="ai-messages-inner">
+            <div class="ai-welcome">
+              <div class="ai-avatar">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.27a7 7 0 0 1-12.46 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                  <circle cx="9" cy="15" r="1"/>
+                  <circle cx="15" cy="15" r="1"/>
+                </svg>
+              </div>
+              <div class="ai-bubble">
+                <p>您好！我是AI助手，有什么可以帮您？</p>
+              </div>
+            </div>
+            <div v-for="msg in aiMessages" :key="msg.id" class="ai-message-row" :class="{ 'msg-self': msg.role === 'user' }">
+              <div v-if="msg.role === 'ai'" class="ai-avatar">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.27a7 7 0 0 1-12.46 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                  <circle cx="9" cy="15" r="1"/>
+                  <circle cx="15" cy="15" r="1"/>
+                </svg>
+              </div>
+              <div class="ai-bubble" :class="{ 'bubble-user': msg.role === 'user' }">
+                <div class="bubble-text">{{ msg.content }}</div>
+              </div>
+            </div>
+            <div v-if="aiTyping" class="ai-message-row">
+              <div class="ai-avatar">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.27a7 7 0 0 1-12.46 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                  <circle cx="9" cy="15" r="1"/>
+                  <circle cx="15" cy="15" r="1"/>
+                </svg>
+              </div>
+              <div class="ai-bubble bubble-ai">
+                <div class="typing-indicator">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="ai-input-area">
+          <div class="ai-quick-tags">
+            <span class="ai-quick-tag" @click="sendQuickMessage('商品推荐')">商品推荐</span>
+            <span class="ai-quick-tag" @click="sendQuickMessage('订单查询')">订单查询</span>
+            <span class="ai-quick-tag" @click="sendQuickMessage('售后服务')">售后服务</span>
+          </div>
+          <div class="ai-input-wrapper">
+            <input
+              ref="aiInputRef"
+              v-model="aiInputText"
+              type="text"
+              class="ai-msg-input"
+              placeholder="输入您的问题..."
+              @keydown.enter="sendAiMessage"
+            />
+            <button
+              class="ai-send-btn"
+              :class="{ active: aiInputText.trim() }"
+              @click="sendAiMessage"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -130,7 +227,11 @@ export default {
       visible: false,
       hoverIndex: -1,
       cartItems: [],
-      msgCount: 0
+      msgCount: 0,
+      aiVisible: false,
+      aiInputText: '',
+      aiMessages: [],
+      aiTyping: false
     }
   },
   computed: {
@@ -192,6 +293,77 @@ export default {
     },
     handleService() {
       this.$router.push('/customer-service')
+    },
+    toggleAiAssistant() {
+      this.aiVisible = !this.aiVisible
+      if (this.aiVisible) {
+        this.$nextTick(() => {
+          this.scrollAiToBottom()
+        })
+      }
+    },
+    openAiAssistant() {
+      this.aiVisible = true
+      this.$nextTick(() => {
+        this.scrollAiToBottom()
+      })
+    },
+    closeAiAssistant() {
+      this.aiVisible = false
+    },
+    async sendAiMessage() {
+      const text = this.aiInputText.trim()
+      if (!text) return
+
+      this.aiMessages.push({
+        id: Date.now(),
+        role: 'user',
+        content: text
+      })
+      this.aiInputText = ''
+      this.scrollAiToBottom()
+
+      this.aiTyping = true
+      this.scrollAiToBottom()
+
+      try {
+        const userId = localStorage.getItem('userId') || 'default_user'
+        const response = await fetch('/api/shop/customer-service/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, user_id: userId })
+        })
+        const data = await response.json()
+        this.aiTyping = false
+
+        let reply = '抱歉，我暂时无法回答这个问题。'
+        if (data.code === 1 && data.data) {
+          reply = data.data.processed_message || reply
+        }
+        this.aiMessages.push({
+          id: Date.now() + 1,
+          role: 'ai',
+          content: reply
+        })
+        this.scrollAiToBottom()
+      } catch (error) {
+        this.aiTyping = false
+        this.aiMessages.push({
+          id: Date.now() + 1,
+          role: 'ai',
+          content: '网络错误，请稍后重试。'
+        })
+        this.scrollAiToBottom()
+      }
+    },
+    sendQuickMessage(text) {
+      this.aiInputText = text
+      this.sendAiMessage()
+    },
+    scrollAiToBottom() {
+      if (this.$refs.aiMessagesContainer) {
+        this.$refs.aiMessagesContainer.scrollTop = this.$refs.aiMessagesContainer.scrollHeight
+      }
     },
     async loadCartData() {
       const userId = localStorage.getItem('userId')
@@ -924,6 +1096,213 @@ export default {
   background: var(--color-primary-dark);
 }
 
+/* ===== AI助手侧边栏 ===== */
+.ai-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+.ai-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100vh;
+  background: var(--color-bg-white);
+  z-index: 1001;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.ai-title {
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.ai-messages-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-welcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.ai-message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-message-row.msg-self {
+  flex-direction: row-reverse;
+}
+
+.ai-bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+
+.ai-bubble.bubble-user {
+  background: var(--color-primary);
+  color: white;
+}
+
+.ai-bubble.bubble-ai {
+  background: var(--color-bg);
+}
+
+.ai-bubble p {
+  margin: 0;
+}
+
+.ai-input-area {
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.ai-quick-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.ai-quick-tag {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-in-out);
+  border: 1px solid var(--color-border-light);
+}
+
+.ai-quick-tag:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.ai-input-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ai-msg-input {
+  flex: 1;
+  height: 44px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0 16px;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-white);
+  transition: border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
+}
+
+.ai-msg-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+}
+
+.ai-msg-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.ai-send-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+
+.ai-send-btn.active {
+  background: var(--color-primary);
+}
+
+.ai-send-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-tertiary);
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
 /* 响应式 */
 @media (max-width: 1440px) {
   .side-nav {
@@ -938,6 +1317,10 @@ export default {
   }
 
   .cart-sidebar {
+    width: 100%;
+  }
+
+  .ai-sidebar {
     width: 100%;
   }
 }
