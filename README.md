@@ -47,6 +47,7 @@
 | | FastAPI | 0.115+ | Web 框架 |
 | | LangChain | 0.3.7+ | AI Agent 框架 |
 | | ChromaDB | - | 向量数据库 (RAG) |
+| | Redis | - | 聊天历史持久化 |
 | | ZhipuAI Embedding | embedding-3 | 文本向量化 |
 | | MiniMax-M2.5 | - | 大语言模型 |
 | **数据库** | MySQL | 8.0+ | 主数据库 (13 张表) |
@@ -126,6 +127,7 @@ npm run dev    # http://localhost:5174
 | 订单详情 | `/order/detail?id=` | 订单状态、收货地址、商品列表、金额明细、操作按钮 |
 | 优惠券中心 | `/coupon-seckill` | 分类标签、优惠券列表、领取按钮 |
 | 智能客服 | `/customer-service` | 联系人列表、消息对话框、实时问答 |
+| AI购物助手 | 侧边栏浮窗 | 一句话下单、识图找商品、智能推荐、订单管理 |
 
 ### 商家端（端口 5174）
 
@@ -144,3 +146,42 @@ npm run dev    # http://localhost:5174
 |------|------|
 | [API 接口文档](API.md) | 所有 REST API 接口、请求/响应示例、数据库设计 |
 | [开发指南](DEV_GUIDE.md) | 配置说明、代码规范、异常体系、Redis 缓存策略、单元测试 |
+
+---
+
+## AI 购物助手（Agent）
+
+AI 助手支持**一句话下单**流程，用户只需告诉 AI 想买什么，AI 自动完成搜索→加购→下单→支付全流程。
+
+### 下单流程
+
+```
+用户："帮我下单新鲜草莓"
+   ↓
+AI 搜索商品 → 展示结果
+   ↓
+用户确认 → AI 加入购物车
+   ↓
+AI 获取收货地址 → 用户选择地址
+   ↓
+AI 调用 create_order 创建订单
+   ↓
+用户确认支付 → AI 调用 pay_order 完成支付
+   ↓
+订单完成，状态更新为"待发货"
+```
+
+### Agent 工具列表
+
+| 工具 | 功能 |
+|------|------|
+| `search_products` | 搜索商品 |
+| `add_to_cart` | 加入购物车 |
+| `get_addresses_for_order` | 获取收货地址 |
+| `create_order` | 创建订单（自动下单已勾选商品） |
+| `pay_order` | 完成支付（模拟免密支付） |
+| `get_user_cart` | 查看购物车 |
+| `get_userOrders` | 查询订单列表 |
+| `get_order_detail` | 查看订单详情 |
+| `cancel_order` | 取消订单 |
+| `analyze_product_image` | 识图找商品 |
