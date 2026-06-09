@@ -15,6 +15,7 @@ def _get_pool() -> pooling.MySQLConnectionPool:
             "user": settings.database.user,
             "password": settings.database.password,
             "database": settings.database.database,
+            "charset": "utf8mb4",
         }
         _connection_pool = pooling.MySQLConnectionPool(
             pool_name="shopchat_pool",

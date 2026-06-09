@@ -24,3 +24,10 @@ export const getProductDetail = (id) => request.get(`/product/${id}`)
  * @returns {Promise}
  */
 export const getHotSales = () => request.get('/product/hot-sales')
+
+/**
+ * 搜索商品
+ * @param {string} keyword - 搜索关键词
+ * @returns {Promise}
+ */
+export const searchProducts = (keyword) => request.get('/product/search', { params: { keyword } })

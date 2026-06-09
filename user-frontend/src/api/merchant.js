@@ -14,3 +14,10 @@ export const getMerchantDetail = (id) => request.get(`/merchant/${id}`)
  * @returns {Promise}
  */
 export const getMerchantProducts = (id, params) => request.get(`/merchant/${id}/products`, { params })
+
+/**
+ * 查询推荐商家列表
+ * @param {number} limit - 数量
+ * @returns {Promise}
+ */
+export const getRecommendMerchants = (limit = 3) => request.get('/merchant/recommend', { params: { limit } })

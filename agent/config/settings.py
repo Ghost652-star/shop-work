@@ -38,11 +38,21 @@ class DatabaseConfig:
 
 
 @dataclass
+class RedisConfig:
+    """Redis 配置"""
+    host: str = field(default_factory=lambda: os.getenv("REDIS_HOST", "192.168.174.133"))
+    port: int = field(default_factory=lambda: int(os.getenv("REDIS_PORT", "6379")))
+    db: int = field(default_factory=lambda: int(os.getenv("REDIS_DB", "1")))
+    password: str = field(default_factory=lambda: os.getenv("REDIS_PASSWORD", ""))
+
+
+@dataclass
 class Settings:
     """全局配置"""
     llm: LLMConfig = field(default_factory=LLMConfig)
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
+    redis: RedisConfig = field(default_factory=RedisConfig)
 
     @classmethod
     def get_instance(cls) -> "Settings":

@@ -8,6 +8,8 @@ import CouponSeckill from '../views/CouponSeckill.vue'
 import Payment from '../views/Payment.vue'
 import OrderConfirm from '../views/OrderConfirm.vue'
 import CustomerService from '../views/CustomerService.vue'
+import ShopList from '../views/ShopList.vue'
+import SearchResult from '../views/SearchResult.vue'
 import AfterSaleApply from '../views/AfterSaleApply.vue'
 import AfterSaleDetail from '../views/AfterSaleDetail.vue'
 
@@ -27,14 +29,24 @@ const routes = [
     redirect: { path: '/personal', query: { tab: 'orders' } }
   },
   {
-    path: '/product',
+    path: '/product/:id',
     name: 'ProductDetail',
     component: ProductDetail
   },
   {
-    path: '/merchant',
+    path: '/merchant/:id',
     name: 'MerchantDetail',
     component: MerchantDetail
+  },
+  {
+    path: '/shops',
+    name: 'ShopList',
+    component: ShopList
+  },
+  {
+    path: '/search',
+    name: 'SearchResult',
+    component: SearchResult
   },
   {
     path: '/order/detail',
@@ -78,13 +90,13 @@ const router = createRouter({
   routes
 })
 
-const whiteList = ['/', '/product', '/merchant', '/coupon-seckill', '/customer-service']
+const whiteList = ['/', '/product', '/merchant', '/coupon-seckill', '/customer-service', '/shops', '/search']
 
 router.beforeEach((to, from, next) => {
   const loginUser = JSON.parse(localStorage.getItem('loginUser'))
   if (loginUser && loginUser.token) {
     next()
-  } else if (whiteList.includes(to.path)) {
+  } else if (whiteList.includes(to.path) || to.path.startsWith('/merchant/') || to.path.startsWith('/product/') || to.path === '/shops' || to.path === '/search') {
     next()
   } else {
     next('/')

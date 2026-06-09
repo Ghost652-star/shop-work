@@ -225,7 +225,7 @@ export default {
   },
   created() {
     this.checkLoginStatus()
-    this.merchantId = this.$route.query.id
+    this.merchantId = this.$route.params.id
     if (this.merchantId) {
       this.loadMerchantInfo()
       this.loadProducts()

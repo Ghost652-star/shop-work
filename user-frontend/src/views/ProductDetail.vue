@@ -105,22 +105,7 @@
           </div>
 
           <div v-if="activeTab === 'detail'" class="detail-content">
-            <!-- 商品详细介绍 -->
-            <div class="feature-section">
-              <h3 class="feature-title">为你推荐</h3>
-              <div class="feature-list">
-                <div v-for="(feature, index) in productFeatures" :key="index" class="feature-item">
-                  <div class="feature-content">
-                    <h4 class="feature-subtitle">{{ feature.title }}</h4>
-                    <p class="feature-text">{{ feature.content }}</p>
-                  </div>
-                  <div class="feature-image-wrapper">
-                    <img :src="feature.image" :alt="feature.title" class="feature-image" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
+            <!-- 商品详情图 -->
             <div class="detail-images">
               <img v-for="(img, index) in detailImages" :key="index" :src="img" class="detail-image" />
             </div>
@@ -595,6 +580,22 @@ export default {
               productData.stock = 999 // 设置默认库存
             }
             this.product = productData
+
+            // 使用数据库中的主图作为轮播图
+            if (productData.mainImage) {
+              this.productImages = [productData.mainImage]
+            }
+
+            // 使用数据库中的详情图
+            if (productData.detailImages) {
+              try {
+                const detailImgs = JSON.parse(productData.detailImages)
+                this.detailImages = detailImgs
+              } catch (e) {
+                console.log('解析详情图失败:', e)
+              }
+            }
+
             console.log('最终商品数据 - stock:', this.product.stock)
             // 加载收藏状态
             this.loadFavoriteStatus()

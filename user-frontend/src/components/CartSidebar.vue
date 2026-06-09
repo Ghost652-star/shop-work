@@ -38,6 +38,19 @@
 
       <!-- AI助手 -->
       <div class="nav-item" @click="toggleAiAssistant" @mouseenter="hoverIndex = 3" @mouseleave="hoverIndex = -1">
+        <div class="ai-hint-bubble" v-if="showAiHint">
+          <div class="ai-hint-content">
+            <div class="ai-hint-title">🛍️ AI智能购物助手</div>
+            <div class="ai-hint-desc">发张图片，一句话完成购物</div>
+            <div class="ai-hint-features">
+              <span>识图找商品</span>
+              <span>智能推荐</span>
+              <span>快速下单</span>
+            </div>
+          </div>
+          <button class="ai-hint-action" @click.stop="toggleAiAssistant">立即体验</button>
+          <span class="ai-hint-close" @click.stop="showAiHint = false">×</span>
+        </div>
         <div class="nav-icon">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.27a7 7 0 0 1-12.46 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
@@ -133,10 +146,13 @@
     <!-- AI助手弹窗 -->
     <div v-if="aiVisible" class="ai-sidebar-overlay" @click="closeAiAssistant"></div>
     <transition name="slide-right">
-      <div v-if="aiVisible" class="ai-sidebar">
+      <div v-if="aiVisible" class="ai-sidebar" :style="{ width: aiSidebarWidth + 'px' }">
+        <!-- 拖拽手柄 -->
+        <div class="ai-resize-handle" :class="{ active: aiResizing }" @mousedown="onAiResizeStart"></div>
         <!-- 头部 -->
         <div class="ai-header">
           <h3 class="ai-title">AI助手</h3>
+          <span class="ai-clear-btn" @click="clearAiHistory" title="清空聊天记录">清空</span>
           <button class="close-btn" @click="closeAiAssistant">×</button>
         </div>
 
@@ -151,8 +167,35 @@
                   <circle cx="15" cy="15" r="1"/>
                 </svg>
               </div>
-              <div class="ai-bubble">
-                <p>您好！我是AI助手，有什么可以帮您？</p>
+              <div class="ai-bubble ai-welcome-bubble">
+                <div class="welcome-header">
+                  <strong>您好！我是潮选优品AI购物助手 🛍️</strong>
+                </div>
+                <div class="welcome-features">
+                  <div class="welcome-feature">
+                    <span class="feature-icon">🔍</span>
+                    <span><strong>识图找商品</strong> - 发送商品图片，帮您快速找到同款</span>
+                  </div>
+                  <div class="welcome-feature">
+                    <span class="feature-icon">💬</span>
+                    <span><strong>智能推荐</strong> - 描述您的需求，为您推荐最合适的商品</span>
+                  </div>
+                  <div class="welcome-feature">
+                    <span class="feature-icon">🛒</span>
+                    <span><strong>一句话下单</strong> - 告诉我想要什么，快速完成加购</span>
+                  </div>
+                  <div class="welcome-feature">
+                    <span class="feature-icon">📦</span>
+                    <span><strong>订单管理</strong> - 查询订单状态、物流信息</span>
+                  </div>
+                  <div class="welcome-feature">
+                    <span class="feature-icon">🔧</span>
+                    <span><strong>售后服务</strong> - 申请退货退款、查询售后进度</span>
+                  </div>
+                </div>
+                <div class="welcome-hint">
+                  💡 试试发送一张商品图片，或直接告诉我您想买什么？
+                </div>
               </div>
             </div>
             <div v-for="msg in aiMessages" :key="msg.id" class="ai-message-row" :class="{ 'msg-self': msg.role === 'user' }">
@@ -164,7 +207,13 @@
                 </svg>
               </div>
               <div class="ai-bubble" :class="{ 'bubble-user': msg.role === 'user' }">
-                <div class="bubble-text">{{ msg.content }}</div>
+                <div v-if="msg.role === 'ai'" class="bubble-text" v-html="renderAiMarkdown(msg.content)"></div>
+                <template v-else>
+                  <div v-if="msg.image" class="bubble-image">
+                    <img :src="msg.image" alt="发送的图片" @click="previewAiImage(msg.image)" />
+                  </div>
+                  <div v-if="msg.content" class="bubble-text">{{ msg.content }}</div>
+                </template>
               </div>
             </div>
             <div v-if="aiTyping" class="ai-message-row">
@@ -191,7 +240,25 @@
             <span class="ai-quick-tag" @click="sendQuickMessage('订单查询')">订单查询</span>
             <span class="ai-quick-tag" @click="sendQuickMessage('售后服务')">售后服务</span>
           </div>
+          <div v-if="aiPreviewImage" class="ai-image-preview">
+            <img :src="aiPreviewImage" alt="预览" />
+            <span class="ai-preview-close" @click="clearAiImage">×</span>
+          </div>
           <div class="ai-input-wrapper">
+            <input
+              ref="aiFileInput"
+              type="file"
+              accept="image/*"
+              style="display:none"
+              @change="onAiImageSelected"
+            />
+            <button class="ai-upload-btn" @click="$refs.aiFileInput.click()" title="发送图片">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </button>
             <input
               ref="aiInputRef"
               v-model="aiInputText"
@@ -202,7 +269,7 @@
             />
             <button
               class="ai-send-btn"
-              :class="{ active: aiInputText.trim() }"
+              :class="{ active: aiInputText.trim() || aiPreviewImage }"
               @click="sendAiMessage"
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -218,7 +285,10 @@
 </template>
 
 <script>
+import { marked } from 'marked'
 import { addToCart, getCartList, updateQuantity, deleteCart, batchDelete, getCartCount, updateChecked, checkAll } from '../api/cart'
+
+marked.setOptions({ breaks: true, gfm: true })
 
 export default {
   name: 'CartSidebar',
@@ -231,7 +301,14 @@ export default {
       aiVisible: false,
       aiInputText: '',
       aiMessages: [],
-      aiTyping: false
+      aiTyping: false,
+      aiSidebarWidth: 380,
+      aiResizing: false,
+      aiPreviewImage: '',
+      aiImageBase64: '',
+      aiWelcomeShown: false,
+      showAiHint: false,
+      aiHintTimer: null
     }
   },
   computed: {
@@ -272,9 +349,17 @@ export default {
   mounted() {
     this.loadCartData()
     window.addEventListener('cartUpdated', this.loadCartData)
+    // 首页加载后短暂展示AI助手提示
+    if (this.$route.path === '/') {
+      this.aiHintTimer = setTimeout(() => {
+        this.showAiHint = true
+      }, 1500)
+      setTimeout(() => { this.showAiHint = false }, 6000)
+    }
   },
   beforeDestroy() {
     window.removeEventListener('cartUpdated', this.loadCartData)
+    if (this.aiHintTimer) clearTimeout(this.aiHintTimer)
   },
   methods: {
     toggleCart() {
@@ -297,6 +382,7 @@ export default {
     toggleAiAssistant() {
       this.aiVisible = !this.aiVisible
       if (this.aiVisible) {
+        this.loadAiHistory()
         this.$nextTick(() => {
           this.scrollAiToBottom()
         })
@@ -304,6 +390,7 @@ export default {
     },
     openAiAssistant() {
       this.aiVisible = true
+      this.loadAiHistory()
       this.$nextTick(() => {
         this.scrollAiToBottom()
       })
@@ -311,16 +398,103 @@ export default {
     closeAiAssistant() {
       this.aiVisible = false
     },
+    onAiImageSelected(e) {
+      const file = e.target.files[0]
+      if (!file || !file.type.startsWith('image/')) return
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        this.aiPreviewImage = ev.target.result
+        this.aiImageBase64 = ev.target.result.split(',')[1]
+      }
+      reader.readAsDataURL(file)
+      e.target.value = ''
+    },
+    clearAiImage() {
+      this.aiPreviewImage = ''
+      this.aiImageBase64 = ''
+    },
+    previewAiImage(src) {
+      if (src) {
+        window.open(src, '_blank')
+      }
+    },
+    renderAiMarkdown(text) {
+      if (!text) return ''
+      return marked.parse(text)
+    },
+    /* AI侧边栏拖拽调整宽度 */
+    onAiResizeStart(e) {
+      this.aiResizing = true
+      const startX = e.clientX
+      const startWidth = this.aiSidebarWidth
+      const onMove = (ev) => {
+        const diff = startX - ev.clientX
+        this.aiSidebarWidth = Math.max(300, Math.min(600, startWidth + diff))
+      }
+      const onEnd = () => {
+        this.aiResizing = false
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onEnd)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onEnd)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    },
+    /* 加载AI聊天历史 */
+    async loadAiHistory() {
+      const userId = localStorage.getItem('userId')
+      if (!userId) return
+      try {
+        const response = await fetch(`/api/shop/customer-service/history/${userId}`)
+        const data = await response.json()
+        if (data.code === 1 && data.data && data.data.length > 0) {
+          this.aiMessages = data.data.map(m => {
+            let image = null
+            if (m.image) {
+              // 确保图片有正确的前缀
+              image = m.image.startsWith('data:') ? m.image : `data:image/png;base64,${m.image}`
+            }
+            return {
+              id: Date.now() + Math.random(),
+              role: m.role === 'user' ? 'user' : 'ai',
+              content: m.content,
+              image: image
+            }
+          })
+        }
+      } catch {}
+    },
+    async clearAiHistory() {
+      const userId = localStorage.getItem('userId')
+      if (!userId) return
+      try {
+        await fetch(`/api/shop/customer-service/history/${userId}`, { method: 'DELETE' })
+      } catch {}
+      this.aiMessages = []
+    },
     async sendAiMessage() {
       const text = this.aiInputText.trim()
-      if (!text) return
+      const hasImage = !!this.aiImageBase64
+      if (!text && !hasImage) return
+
+      const displayContent = hasImage && !text ? '[发送了一张图片]' : text
+      const currentPreviewImage = this.aiPreviewImage || null
 
       this.aiMessages.push({
         id: Date.now(),
         role: 'user',
-        content: text
+        content: displayContent,
+        image: currentPreviewImage
       })
+
+      const sendText = text || ''
+      const currentImage = this.aiImageBase64 || null
+
       this.aiInputText = ''
+      this.clearAiImage()
       this.scrollAiToBottom()
 
       this.aiTyping = true
@@ -328,10 +502,13 @@ export default {
 
       try {
         const userId = localStorage.getItem('userId') || 'default_user'
+        const body = { message: sendText, user_id: userId }
+        if (currentImage) body.image = currentImage
+
         const response = await fetch('/api/shop/customer-service/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, user_id: userId })
+          body: JSON.stringify(body)
         })
         const data = await response.json()
         this.aiTyping = false
@@ -682,6 +859,183 @@ export default {
   transform: translateY(-50%);
   border: 4px solid transparent;
   border-left-color: var(--color-text-primary);
+}
+
+/* AI助手气泡提示 */
+.ai-hint-bubble {
+  position: absolute;
+  right: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 13px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  white-space: nowrap;
+  z-index: 1002;
+  cursor: default;
+  animation: hintFadeIn 0.3s ease;
+}
+.ai-hint-bubble::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #667eea;
+}
+.ai-hint-content {
+  margin-bottom: 10px;
+}
+.ai-hint-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.ai-hint-desc {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+.ai-hint-features {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.ai-hint-features span {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.ai-hint-action {
+  width: 100%;
+  padding: 8px 16px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ai-hint-action:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+@keyframes hintFadeIn {
+  from { opacity: 0; transform: translateY(-50%) translateX(8px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+.ai-hint-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: white;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+  opacity: 0.7;
+}
+.ai-hint-close:hover { opacity: 1; }
+
+/* AI消息中的图片 */
+.bubble-image {
+  margin-bottom: 8px;
+}
+.bubble-image img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: block;
+}
+.bubble-image img:hover {
+  transform: scale(1.05);
+}
+
+/* 欢迎气泡样式 */
+.ai-welcome-bubble {
+  max-width: 85% !important;
+}
+.welcome-header {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.welcome-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.welcome-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.feature-icon {
+  flex-shrink: 0;
+}
+.welcome-hint {
+  background: rgba(229, 57, 53, 0.08);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+/* AI图片预览 */
+.ai-image-preview {
+  position: relative;
+  display: inline-block;
+  margin: 4px 12px;
+}
+.ai-image-preview img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+.ai-preview-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+.ai-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: #999;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.ai-upload-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 /* ===== 购物车侧边栏 ===== */
@@ -1120,6 +1474,138 @@ export default {
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
+}
+
+/* AI侧边栏拖拽手柄 */
+.ai-resize-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.ai-resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 32px;
+  border-radius: 1px;
+  background: var(--color-border);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ai-resize-handle:hover {
+  background: var(--color-primary-light);
+}
+
+.ai-resize-handle:hover::after,
+.ai-resize-handle.active::after {
+  opacity: 1;
+  background: var(--color-primary);
+}
+
+/* 清空按钮 */
+.ai-clear-btn {
+  margin-left: auto;
+  margin-right: 8px;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.ai-clear-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* AI消息markdown渲染 */
+.ai-bubble .bubble-text {
+  white-space: normal;
+}
+
+.ai-bubble .bubble-text p {
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.ai-bubble .bubble-text p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-bubble .bubble-text strong {
+  font-weight: 600;
+}
+
+.ai-bubble .bubble-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 12px;
+}
+
+.ai-bubble .bubble-text th {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  padding: 4px 6px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.ai-bubble .bubble-text td {
+  border: 1px solid var(--color-border-light);
+  padding: 3px 6px;
+}
+
+.ai-bubble .bubble-text tr:nth-child(even) {
+  background: rgba(0,0,0,0.02);
+}
+
+.ai-bubble .bubble-text ul,
+.ai-bubble .bubble-text ol {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
+.ai-bubble .bubble-text li {
+  margin: 1px 0;
+}
+
+.ai-bubble .bubble-text hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: 6px 0;
+}
+
+.ai-bubble .bubble-text code {
+  background: var(--color-bg);
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-size: 0.9em;
+}
+
+.ai-bubble .bubble-text pre {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin: 4px 0;
+  overflow-x: auto;
+}
+
+.ai-bubble .bubble-text pre code {
+  background: none;
+  padding: 0;
 }
 
 .ai-header {

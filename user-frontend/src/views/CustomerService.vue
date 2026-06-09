@@ -24,7 +24,7 @@
                 <span class="contact-name">官方客服</span>
                 <span class="contact-time">{{ lastMsgTime }}</span>
               </div>
-              <span class="contact-preview">您好，有什么可以帮您？</span>
+              <span class="contact-preview">您好，欢迎来到潮选优品客服中心！</span>
             </div>
           </div>
         </div>
@@ -37,6 +37,7 @@
             <span class="status-dot"></span>
             在线
           </span>
+          <span class="clear-history-btn" @click="clearHistory" title="清空聊天记录">清空记录</span>
         </div>
 
         <div class="messages-area" ref="messagesContainer">
@@ -56,7 +57,11 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div class="bubble" :class="{ 'bubble-agent': msg.role === 'agent', 'bubble-user': msg.role === 'user' }">
-                  <div class="bubble-text" v-html="formatMessage(msg.content)"></div>
+                  <div v-if="msg.image" class="bubble-image">
+                    <img :src="msg.image" alt="发送的图片" />
+                  </div>
+                  <div v-if="msg.role === 'agent'" class="bubble-text" v-html="renderMarkdown(msg.content)"></div>
+                  <div v-else-if="msg.content && msg.content !== '[发送了一张图片]'" class="bubble-text" v-text="msg.content"></div>
                 </div>
               </div>
             </transition-group>
@@ -85,7 +90,25 @@
             <span>已选：{{ selectedOrder.orderNo }}</span>
             <span class="tag-close" @click="selectedOrder = null">×</span>
           </div>
+          <div v-if="previewImage" class="image-preview">
+            <img :src="previewImage" alt="预览" />
+            <span class="preview-close" @click="clearImage">×</span>
+          </div>
           <div class="input-wrapper">
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              style="display:none"
+              @change="onImageSelected"
+            />
+            <button class="upload-btn" @click="$refs.fileInputRef.click()" title="发送图片">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </button>
             <input
               ref="inputRef"
               v-model="inputText"
@@ -96,9 +119,9 @@
             />
             <button
               class="send-btn"
-              :class="{ active: inputText.trim() }"
+              :class="{ active: inputText.trim() || previewImage }"
               @click="sendMessage"
-              :disabled="!inputText.trim()"
+              :disabled="!inputText.trim() && !previewImage"
             >
               发送
             </button>
@@ -106,7 +129,8 @@
         </div>
       </div>
 
-      <div class="sidebar-right">
+      <div class="resize-handle" :class="{ active: isResizing }" @mousedown="onResizeStart"></div>
+      <div class="sidebar-right" :style="{ width: sidebarWidth + 'px' }">
         <div class="order-tabs">
           <span
             v-for="tab in orderTabs"
@@ -214,16 +238,20 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { marked } from 'marked'
 import { getOrderList } from '../api/order'
 import { getCartList } from '../api/cart'
-import { processMessage } from '../api/customerService'
+import { processMessage, getChatHistory, clearChatHistory } from '../api/customerService'
 
 const router = useRouter()
 const inputText = ref('')
 const messagesContainer = ref(null)
 const inputRef = ref(null)
+const fileInputRef = ref(null)
+const previewImage = ref('')
+const imageBase64 = ref('')
 const isTyping = ref(false)
 const activeContact = ref('official')
 const activeTab = ref('orders')
@@ -233,6 +261,16 @@ const cartItems = ref([])
 const selectedOrder = ref(null)
 const selectedService = ref(null)
 const showOrderDialog = ref(false)
+
+/* ========== Markdown 渲染 ========== */
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  return marked.parse(text)
+}
 
 const now = new Date()
 const currentTime = ref(
@@ -304,13 +342,81 @@ watch(activeTab, (tab) => {
   else if (tab === 'cart') loadCartItems()
 })
 
-const messages = ref([
-  {
-    id: ++msgIdCounter.value,
-    role: 'agent',
-    content: '您好，欢迎来到我们的客服中心！\n我是您的专属客服小助手，请问有什么可以帮您？'
+const welcomeMessage = '您好，欢迎来到潮选优品客服中心！👋\n我是您的智能客服小助手，可以帮您：\n\n📦 订单相关：查询订单状态、查看订单详情、取消订单、确认收货\n🛍️ 商品咨询：搜索商品、查看商品详情和评价\n🎫 优惠券：查看可用优惠券\n🔧 售后服务：查询售后进度、申请退货退款\n\n请问有什么可以帮您？'
+
+const messages = ref([])
+
+/* ========== 聊天记录持久化 ========== */
+const loadChatHistory = async () => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) {
+    messages.value = [{ id: ++msgIdCounter.value, role: 'agent', content: welcomeMessage }]
+    return
   }
-])
+  try {
+    const res = await getChatHistory(userId)
+    if (res.code === 1 && res.data && res.data.length > 0) {
+      messages.value = res.data.map(m => ({
+        id: ++msgIdCounter.value,
+        role: m.role,
+        content: m.content,
+        // 加载图片数据，如果没有 data: 前缀则添加
+        image: m.image ? (m.image.startsWith('data:') ? m.image : `data:image/png;base64,${m.image}`) : null,
+      }))
+    } else {
+      messages.value = [{ id: ++msgIdCounter.value, role: 'agent', content: welcomeMessage }]
+    }
+  } catch {
+    messages.value = [{ id: ++msgIdCounter.value, role: 'agent', content: welcomeMessage }]
+  }
+  scrollToBottom()
+}
+
+const clearHistory = async () => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) return
+  try {
+    await clearChatHistory(userId)
+  } catch {}
+  messages.value = [{ id: ++msgIdCounter.value, role: 'agent', content: welcomeMessage }]
+  scrollToBottom()
+}
+
+/* ========== 右侧边栏拖拽调整宽度 ========== */
+const sidebarWidth = ref(300)
+const isResizing = ref(false)
+let startX = 0
+let startWidth = 0
+
+const onResizeStart = (e) => {
+  isResizing.value = true
+  startX = e.clientX
+  startWidth = sidebarWidth.value
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeEnd)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const onResizeMove = (e) => {
+  if (!isResizing.value) return
+  const diff = startX - e.clientX
+  const newWidth = Math.max(200, Math.min(500, startWidth + diff))
+  sidebarWidth.value = newWidth
+}
+
+const onResizeEnd = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+})
 
 const goBack = () => {
   router.push('/')
@@ -327,27 +433,57 @@ const formatMessage = (text) => {
   return text.replace(/\n/g, '<br>')
 }
 
+/* ========== 图片上传 ========== */
+const onImageSelected = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) return
+
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    previewImage.value = ev.target.result
+    // 去掉 data:image/xxx;base64, 前缀，只保留纯 base64
+    imageBase64.value = ev.target.result.split(',')[1]
+  }
+  reader.readAsDataURL(file)
+  // 清空 input 允许重复选同一张图
+  e.target.value = ''
+}
+
+const clearImage = () => {
+  previewImage.value = ''
+  imageBase64.value = ''
+}
+
 const sendMessage = async () => {
   const text = inputText.value.trim()
-  if (!text) return
+  const hasImage = !!imageBase64.value
+  if (!text && !hasImage) return
 
   const orderNo = selectedOrder.value ? selectedOrder.value.orderNo : null
   const service = selectedService.value
 
+  // 构建用户消息展示
   const displayParts = []
   if (service) displayParts.push(`[${service}]`)
   if (orderNo) displayParts.push(`[订单 ${orderNo}]`)
-  displayParts.push(text)
+  if (hasImage && !text) displayParts.push('[发送了一张图片]')
+  else if (text) displayParts.push(text)
 
   messages.value.push({
     id: ++msgIdCounter.value,
     role: 'user',
-    content: displayParts.join(' ')
+    content: displayParts.join(' '),
+    image: hasImage ? previewImage.value : null  // 存储图片用于显示
   })
+
+  const sendText = text || ''
+  const currentImage = imageBase64.value || null
 
   inputText.value = ''
   selectedOrder.value = null
   selectedService.value = null
+  clearImage()
   scrollToBottom()
 
   const userId = localStorage.getItem('userId')
@@ -365,7 +501,7 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    const res = await processMessage(text, userId, orderNo)
+    const res = await processMessage(sendText, userId, orderNo, currentImage)
     isTyping.value = false
 
     if (res.code === 1 && res.data && res.data.processed_message) {
@@ -395,7 +531,7 @@ const sendMessage = async () => {
 }
 
 onMounted(() => {
-  scrollToBottom()
+  loadChatHistory()
   inputRef.value?.focus()
   loadOrders()
 })
@@ -668,6 +804,123 @@ onMounted(() => {
   white-space: pre-wrap;
 }
 
+/* ========== 图片消息样式 ========== */
+.bubble-image {
+  margin-bottom: 6px;
+}
+
+.bubble-image img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.bubble-image img:hover {
+  transform: scale(1.05);
+}
+
+.bubble-user .bubble-image img {
+  border: 2px solid var(--color-primary-light, #ffcdd2);
+}
+
+/* ========== Markdown 渲染样式（仅AI消息） ========== */
+.bubble-agent .bubble-text {
+  white-space: normal;
+}
+
+.bubble-agent .bubble-text p {
+  margin: 0 0 6px;
+  line-height: 1.6;
+}
+
+.bubble-agent .bubble-text p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble-agent .bubble-text strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bubble-agent .bubble-text em {
+  font-style: italic;
+}
+
+.bubble-agent .bubble-text ul,
+.bubble-agent .bubble-text ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.bubble-agent .bubble-text li {
+  margin: 2px 0;
+  line-height: 1.6;
+}
+
+.bubble-agent .bubble-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: var(--text-xs);
+}
+
+.bubble-agent .bubble-text th {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.bubble-agent .bubble-text td {
+  border: 1px solid var(--color-border-light);
+  padding: 5px 8px;
+  color: var(--color-text-primary);
+}
+
+.bubble-agent .bubble-text tr:nth-child(even) {
+  background: var(--color-bg-stripe, #fafafa);
+}
+
+.bubble-agent .bubble-text code {
+  background: var(--color-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+.bubble-agent .bubble-text pre {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin: 6px 0;
+  overflow-x: auto;
+}
+
+.bubble-agent .bubble-text pre code {
+  background: none;
+  padding: 0;
+}
+
+.bubble-agent .bubble-text hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: 8px 0;
+}
+
+.bubble-agent .bubble-text blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--color-text-secondary);
+}
+
 .typing-indicator {
   display: flex;
   align-items: center;
@@ -856,6 +1109,53 @@ onMounted(() => {
   color: var(--color-text-tertiary);
 }
 
+/* 图片预览 */
+.image-preview {
+  position: relative;
+  display: inline-block;
+  margin: 0 12px 4px;
+  max-width: 120px;
+}
+.image-preview img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+.preview-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: none;
+  color: #999;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.upload-btn:hover {
+  color: #ff6b00;
+  background: rgba(255,107,0,0.08);
+}
+
 .send-btn {
   height: 38px;
   padding: 0 20px;
@@ -899,13 +1199,62 @@ onMounted(() => {
 }
 
 .sidebar-right {
-  width: 300px;
   flex-shrink: 0;
   background: var(--color-bg-white);
   border-left: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* ========== 拖拽手柄 ========== */
+.resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background var(--duration-fast) var(--ease-in-out);
+  position: relative;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 32px;
+  border-radius: 1px;
+  background: var(--color-border);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-in-out);
+}
+
+.resize-handle:hover {
+  background: var(--color-primary-light);
+}
+
+.resize-handle:hover::after,
+.resize-handle.active::after {
+  opacity: 1;
+  background: var(--color-primary);
+}
+
+/* ========== 清空记录按钮 ========== */
+.clear-history-btn {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-in-out);
+}
+
+.clear-history-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 .order-tabs {

@@ -116,35 +116,25 @@
         </div>
       </div>
 
-      <!-- 右侧:金刚区导航 -->
-      <div class="promo-cards">
-        <div class="promo-card" @click="selectCategory(null)">
-          <div class="promo-icon"><i class="ri-home-smile-line"></i></div>
-          <div class="promo-text">
-            <h4>品质家居</h4>
-            <p>超值优惠</p>
-          </div>
+      <!-- 右侧:品质店铺推荐 -->
+      <div class="shop-recommend">
+        <div class="shop-recommend-header">
+          <h3>🏆 品质店铺</h3>
+          <span class="shop-recommend-more" @click="router.push('/shops')">更多 ›</span>
         </div>
-        <div class="promo-card" @click="selectCategory(null)">
-          <div class="promo-icon"><i class="ri-heart-pulse-line"></i></div>
-          <div class="promo-text">
-            <h4>精致美妆</h4>
-            <p>品质之选</p>
+        <div class="shop-card" v-for="shop in recommendMerchants" :key="shop.id" @click="router.push(`/merchant/${shop.id}`)">
+          <div class="shop-card-top">
+            <div class="shop-avatar">{{ shop.name.charAt(0) }}</div>
+            <div class="shop-info">
+              <h4 class="shop-name">{{ shop.name }}</h4>
+              <div class="shop-score">
+                <span class="score-star">★</span>
+                <span class="score-num">{{ shop.score }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="promo-card" @click="selectCategory(null)">
-          <div class="promo-icon"><i class="ri-tools-line"></i></div>
-          <div class="promo-text">
-            <h4>品质五金</h4>
-            <p>超值特惠</p>
-          </div>
-        </div>
-        <div class="promo-card" @click="selectCategory(null)">
-          <div class="promo-icon"><i class="ri-shopping-basket-line"></i></div>
-          <div class="promo-text">
-            <h4>超值百货</h4>
-            <p>省钱省心</p>
-          </div>
+          <p class="shop-desc">{{ shop.description }}</p>
+          <div class="shop-enter">进店逛逛 →</div>
         </div>
       </div>
     </div>
@@ -265,6 +255,7 @@ import { getCategoryList, getProductList, getHotSales } from '../api/product'
 import { login, register, logout } from '../api/user'
 import { createOrder } from '../api/order'
 import { getDefaultAddress } from '../api/address'
+import { getRecommendMerchants } from '../api/merchant'
 
 const router = useRouter()
 const categories = ref([])
@@ -290,6 +281,7 @@ const currentPlaceholderIndex = ref(0)
 const placeholderTimer = ref(null)
 const currentPlaceholderText = computed(() => searchPlaceholders[currentPlaceholderIndex.value])
 const hotSales = ref([])
+const recommendMerchants = ref([])
 const isLoggedIn = ref(false)
 const userNickname = ref('用户')
 const showLoginDialog = ref(false)
@@ -362,10 +354,17 @@ const loadHotSales = async () => {
   } catch (error) {}
 }
 
+const loadRecommendMerchants = async () => {
+  try {
+    const result = await getRecommendMerchants(3)
+    if (result.code === 1) recommendMerchants.value = result.data || []
+  } catch (error) {}
+}
+
 const selectCategory = (categoryId) => { activeCategoryId.value = categoryId }
 
 const goToProduct = (productId) => {
-  router.push(`/product?id=${productId}`)
+  router.push(`/product/${productId}`)
 }
 
 const startSeckillCountdown = () => {
@@ -391,7 +390,7 @@ const goToCustomerService = () => { router.push('/customer-service') }
 const goToCouponSeckill = () => { router.push('/coupon-seckill') }
 const handleSearchFocus = () => { isSearchFocused.value = true }
 const handleSearchBlur = () => { if (!searchText.value) isSearchFocused.value = false }
-const handleSearch = () => { if (searchText.value) ElMessage.success('搜索:' + searchText.value) }
+const handleSearch = () => { if (searchText.value.trim()) router.push({ path: '/search', query: { q: searchText.value.trim() } }) }
 const handleWelcomeClick = () => { showLoginDialog.value = true }
 const handlePersonalCenter = () => { if (!isLoggedIn.value) { showLoginDialog.value = true } else { router.push('/personal') } }
 const handleMyOrders = () => { if (!isLoggedIn.value) { showLoginDialog.value = true } else { router.push({ path: '/personal', query: { tab: 'orders' } }) } }
@@ -447,7 +446,7 @@ const handleLogout = async () => {
 
 const closeLoginDialog = () => { showLoginDialog.value = false }
 const goHome = () => { router.push('/') }
-const goToProductDetail = (productId) => { router.push({ path: '/product', query: { id: productId } }) }
+const goToProductDetail = (productId) => { router.push(`/product/${productId}`) }
 
 const buyNow = async (product) => {
   if (!isLoggedIn.value) { showLoginDialog.value = true; return }
@@ -514,7 +513,7 @@ const startPlaceholderAutoplay = () => {
 }
 
 onMounted(() => {
-  loadCategoryList(); loadProductList(); loadHotSales()
+  loadCategoryList(); loadProductList(); loadHotSales(); loadRecommendMerchants()
   const savedLoginUser = JSON.parse(localStorage.getItem('loginUser'))
   if (savedLoginUser && savedLoginUser.user) {
     isLoggedIn.value = true
@@ -954,67 +953,118 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 8px rgba(255,255,255,0.4);
 }
 
-/* 右侧金刚区 - 2x2 图标网格导航 */
-.promo-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  height: 400px;
-}
-.promo-card {
-  border-radius: var(--radius-md);
+/* 右侧品质店铺推荐 */
+.shop-recommend {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+.shop-recommend-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  padding: 16px 8px;
+}
+.shop-recommend-header h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.shop-recommend-more {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.shop-recommend-more:hover {
+  color: var(--color-primary);
+}
+.shop-card {
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: 14px;
   cursor: pointer;
   transition: all var(--duration-normal) var(--ease-in-out);
-  border: 1px solid var(--color-border-light);
-  background: var(--color-bg-white);
-  gap: 10px;
   box-shadow: var(--shadow-xs);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
-.promo-card:hover {
-  transform: translateY(-4px);
+.shop-card:hover {
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary);
 }
-.promo-card:active {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+.shop-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.promo-text {
-  text-align: center;
-}
-.promo-text h4 {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  margin: 0 0 2px 0;
-  color: var(--color-text-primary);
-}
-.promo-text p {
-  font-size: 11px;
-  margin: 0;
-  color: var(--color-text-primary);
-  opacity: 0.6;
-}
-.promo-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
+.shop-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), #FF8FAB);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: var(--text-base);
   font-weight: 700;
-  color: white;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform var(--duration-normal) var(--ease-in-out);
 }
-.promo-card:hover .promo-icon {
-  transform: scale(1.08);
+.shop-card:nth-child(2) .shop-avatar { background: linear-gradient(135deg, #FF8C42, #FF6B35); }
+.shop-card:nth-child(3) .shop-avatar { background: linear-gradient(135deg, #5BA0D9, #4A90D9); }
+.shop-card:nth-child(4) .shop-avatar { background: linear-gradient(135deg, #F0A030, #E89020); }
+.shop-info {
+  flex: 1;
+  overflow: hidden;
+}
+.shop-name {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-score {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.score-star {
+  color: #FFB800;
+  font-size: 12px;
+}
+.score-num {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+.shop-desc {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  flex: 1;
+}
+.shop-enter {
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-top: 8px;
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+.shop-card:hover .shop-enter {
+  color: var(--color-primary-dark);
 }
 
 /* ===== 倒计时条 ===== */
@@ -1466,25 +1516,6 @@ onBeforeUnmount(() => {
   border-right: 2px solid transparent;
   border-bottom: 4px solid #FFB800;
 }
-
-/* 促销卡片纯CSS图标 */
-.promo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-.promo-card:nth-child(1) .promo-icon { background: linear-gradient(135deg, #FF8C42, #FF6B35); }
-.promo-card:nth-child(2) .promo-icon { background: linear-gradient(135deg, #FF6B8A, #FF8FAB); }
-.promo-card:nth-child(3) .promo-icon { background: linear-gradient(135deg, #F0A030, #E89020); }
-.promo-card:nth-child(4) .promo-icon { background: linear-gradient(135deg, #5BA0D9, #4A90D9); }
-.promo-icon i { font-size: 20px; color: white; }
 
 /* 价格符号优化 - 淘宝风格 ¥小数字大 */
 .product-price::before {
