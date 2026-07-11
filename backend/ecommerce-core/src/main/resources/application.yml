@@ -23,6 +23,25 @@ spring:
         max-idle: 8
         min-idle: 2
         max-wait: 3000ms
+  rabbitmq:
+    host: 106.15.77.8
+    port: 5672
+    username: traework
+    password: traework123
+    # 开启发送确认
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        # 手动确认
+        acknowledge-mode: manual
+        # 每次抓取1条，公平调度
+        prefetch: 1
+        # 重试配置
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 3000ms
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.ecommerce.entity

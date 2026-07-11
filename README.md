@@ -42,7 +42,8 @@
 | | Maven | - | 多模块构建工具 |
 | | Spring WebFlux | 2.7.15 | WebClient 调用 Agent 服务 |
 | | Springdoc OpenAPI | 1.6.15 | API 文档自动生成 (Swagger UI) |
-| | Redis | - | 缓存（热销榜单、商品名映射、用户信息等） |
+| | Redis | - | 缓存（热销榜单、秒杀库存、用户信息等） |
+| | RabbitMQ | 3.13 | 消息队列（秒杀削峰、异步写库） |
 | **Agent** | Python | 3.8+ | 编程语言 |
 | | FastAPI | 0.115+ | Web 框架 |
 | | LangChain | 0.3.7+ | AI Agent 框架 |
@@ -185,3 +186,59 @@ AI 调用 create_order 创建订单
 | `get_order_detail` | 查看订单详情 |
 | `cancel_order` | 取消订单 |
 | `analyze_product_image` | 识图找商品 |
+
+---
+
+## 优惠券秒杀架构
+
+优惠券秒杀采用 **Redis Lua + RabbitMQ 削峰** 架构，解决高并发下的超卖和数据库压力问题。
+
+### 架构图
+
+```
+用户领取优惠券
+     ↓
+Controller → Service
+     ↓
+① 校验优惠券（DB 读取：状态、时间）
+     ↓
+② Redis Lua 原子操作
+   ├── 检查库存 coupon:stock:{id} > 0
+   ├── 检查未领取 coupon:claimed:{id} (Set)
+   ├── DECR 库存
+   └── SADD 已领取标记
+     ↓ 成功（毫秒级返回）
+③ 发送 MQ 消息（RabbitMQ）
+     ↓ 异步
+④ Consumer 写 MySQL
+   ├── 插入 user_coupon（唯一键防重）
+   ├── UPDATE coupon SET stock = stock - 1
+   └── 失败 → 补偿 Redis（INCR + SREM）
+```
+
+### 核心组件
+
+| 组件 | 文件 | 作用 |
+|------|------|------|
+| Lua 脚本 | `lua/coupon_seckill.lua` | 原子检查库存 + 防重复 + 扣库存 |
+| RabbitMQ 配置 | `config/RabbitMQConfig.java` | 队列/交换机/绑定声明、Lua Bean |
+| 生产者 | `mq/CouponSeckillMqProducer.java` | Lua 成功后发 MQ 消息 |
+| 消费者 | `mq/CouponSeckillMqConsumer.java` | 异步写 MySQL + 补偿 Redis |
+| 服务层 | `service/.../UserCouponServiceImpl.java` | 秒杀主流程编排 |
+
+### 启动 RabbitMQ
+
+```bash
+# Docker 方式（已在 106.15.77.8 部署）
+docker run -d --name rabbitmq --restart always \
+  -p 5672:5672 -p 15672:15672 \
+  -e RABBITMQ_DEFAULT_USER=traework \
+  -e RABBITMQ_DEFAULT_PASS=traework123 \
+  rabbitmq:3.13-management-alpine
+
+# 管理界面: http://106.15.77.8:15672
+```
+
+### 库存预热
+
+优惠券上架后需调用 `preloadCouponStock(couponId)` 将库存加载到 Redis，否则秒杀接口会因 Redis 库存 key 不存在而返回"已抢完"。

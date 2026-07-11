@@ -1,26 +1,30 @@
 package com.ecommerce.service.User.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ecommerce.config.RabbitMQConfig;
 import com.ecommerce.dto.UserCouponDTO;
 import com.ecommerce.entity.Coupon;
 import com.ecommerce.entity.UserCoupon;
 import com.ecommerce.common.exception.CouponException;
 import com.ecommerce.mapper.CouponMapper;
 import com.ecommerce.mapper.UserCouponMapper;
+import com.ecommerce.mq.CouponSeckillMqProducer;
 import com.ecommerce.service.User.UserCouponService;
 import com.ecommerce.vo.UserCouponVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 用户优惠券服务实现类
+ * 用户优惠券服务实现类（秒杀版：Redis Lua + MQ 削峰）
  */
 @Slf4j
 @Service
@@ -29,24 +33,31 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
     @Autowired
     private CouponMapper couponMapper;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    @Qualifier("couponSeckillScript")
+    private DefaultRedisScript<Long> couponSeckillScript;
+
+    @Autowired
+    private CouponSeckillMqProducer mqProducer;
+
     @Override
-    @Transactional
     public UserCouponVO receiveCoupon(UserCouponDTO userCouponDTO) {
-        log.info("领取优惠券请求: userId={}, couponId={}", userCouponDTO.getUserId(), userCouponDTO.getCouponId());
-        
-        // 1. 检查优惠券是否存在且有效
-        Coupon coupon = couponMapper.selectById(userCouponDTO.getCouponId());
+        Long userId = userCouponDTO.getUserId();
+        Long couponId = userCouponDTO.getCouponId();
+        log.info("领取优惠券请求: userId={}, couponId={}", userId, couponId);
+
+        // 1. 校验优惠券（DB 读取，这些数据变化不频繁）
+        Coupon coupon = couponMapper.selectById(couponId);
         if (coupon == null) {
             throw new CouponException("优惠券不存在");
         }
         if (coupon.getStatus() != 1) {
             throw new CouponException("优惠券已下架");
         }
-        if (coupon.getStock() <= 0) {
-            throw new CouponException("优惠券已被抢完");
-        }
-        
-        // 2. 检查是否在领取时间范围内
+
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(coupon.getStartTime())) {
             throw new CouponException("优惠券还未开始发放");
@@ -54,62 +65,77 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         if (now.isAfter(coupon.getEndTime())) {
             throw new CouponException("优惠券已过期");
         }
-        
-        // 3. 检查用户是否已领取过该优惠券
-        // 注意：数据库通常会对 (user_id, coupon_id) 做唯一约束，表示“同一用户同一优惠券只能领一次”。
-        // 所以这里不能只查 status=0，否则用户领取后再使用/过期（status=1/2）时，仍会触发唯一键冲突。
-        UserCoupon existingCoupon = query()
-                .eq("user_id", userCouponDTO.getUserId())
-                .eq("coupon_id", userCouponDTO.getCouponId())
-                .one();
-        if (existingCoupon != null) {
-            throw new CouponException("您已领取过该优惠券");
-        }
-        
-        // 4. 扣减优惠券库存
-        coupon.setStock(coupon.getStock() - 1);
-        couponMapper.updateById(coupon);
-        
-        // 5. 创建用户优惠券记录
-        UserCoupon userCoupon = UserCoupon.builder()
-                .userId(userCouponDTO.getUserId())
-                .couponId(userCouponDTO.getCouponId())
-                .status(0) // 未使用
-                .orderId(null) // 未使用，订单ID为空
-                .getTime(now) // 领取时间
-                .useTime(null) // 未使用，使用时间为空
-                .expireTime(now.plusDays(coupon.getValidPeriod())) // 过期时间
-                .build();
-        try {
-            save(userCoupon);
-        } catch (DuplicateKeyException e) {
-            // 并发/重复点击导致的唯一键冲突，转换为可读的业务异常
-            throw new CouponException("您已领取过该优惠券");
+
+        // 2. 执行 Redis Lua 脚本（原子：检查库存 + 防重复 + 扣库存）
+        String stockKey = RabbitMQConfig.COUPON_STOCK_KEY + couponId;
+        String claimedKey = RabbitMQConfig.COUPON_CLAIMED_KEY + couponId;
+
+        Long result = stringRedisTemplate.execute(
+                couponSeckillScript,
+                Arrays.asList(stockKey, claimedKey),
+                String.valueOf(userId)
+        );
+
+        if (result == null) {
+            throw new CouponException("系统繁忙，请稍后再试");
         }
 
-        log.info("领取优惠券成功: userCouponId={}", userCoupon.getId());
-        
-        // 6. 返回VO
-        return convertToVO(userCoupon, coupon);
+        switch (result.intValue()) {
+            case 0:
+                // 成功 → 发 MQ 异步写库
+                log.info("Lua 脚本执行成功: userId={}, couponId={}", userId, couponId);
+                break;
+            case 1:
+                throw new CouponException("优惠券已被抢完");
+            case 2:
+                throw new CouponException("您已领取过该优惠券");
+            default:
+                throw new CouponException("系统繁忙，请稍后再试");
+        }
+
+        // 3. 发送 MQ 消息，异步写 MySQL
+        mqProducer.sendSeckillMessage(userId, couponId);
+
+        // 4. 立即返回成功（DB 稍后追上）
+        return UserCouponVO.builder()
+                .userId(userId)
+                .couponId(couponId)
+                .description(coupon.getDescription())
+                .minSpend(coupon.getMinSpend())
+                .discountAmount(coupon.getDiscountAmount())
+                .status(0)
+                .getTime(now)
+                .expireTime(now.plusDays(coupon.getValidPeriod()))
+                .build();
     }
 
     /**
-     *
-     * 查询用户的优惠券列表
-     * @param userId 用户 ID
-     * @return
+     * 预热优惠券库存到 Redis（优惠券上架/启动时调用）
+     */
+    public void preloadCouponStock(Long couponId) {
+        Coupon coupon = couponMapper.selectById(couponId);
+        if (coupon == null || coupon.getStatus() != 1) {
+            log.warn("无法预热库存: couponId={}, 优惠券不存在或已下架", couponId);
+            return;
+        }
+
+        String stockKey = RabbitMQConfig.COUPON_STOCK_KEY + couponId;
+        stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(coupon.getStock()));
+        log.info("优惠券库存已预热: couponId={}, stock={}", couponId, coupon.getStock());
+    }
+
+    /**
+     * 查询用户的优惠券列表（不变）
      */
     @Override
     public List<UserCouponVO> getUserCouponList(Long userId) {
         log.info("查询用户优惠券列表：userId={}", userId);
-        
-        // 查询用户的所有优惠券
+
         List<UserCoupon> userCoupons = query()
                 .eq("user_id", userId)
                 .orderByDesc("get_time")
                 .list();
-        
-        // 转换为 VO 列表
+
         return userCoupons.stream()
                 .map(userCoupon -> {
                     Coupon coupon = couponMapper.selectById(userCoupon.getCouponId());
@@ -117,9 +143,9 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
                 })
                 .collect(Collectors.toList());
     }
-    
+
     /**
-     * 转换为VO
+     * 转换为 VO
      */
     private UserCouponVO convertToVO(UserCoupon userCoupon, Coupon coupon) {
         return UserCouponVO.builder()
