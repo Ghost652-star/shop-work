@@ -93,8 +93,15 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
                 throw new CouponException("系统繁忙，请稍后再试");
         }
 
-        // 3. 发送 MQ 消息，异步写 MySQL
-        mqProducer.sendSeckillMessage(userId, couponId);
+        // 3. 发送 MQ 消息，异步写 MySQL（失败则回滚 Redis，避免库存泄漏）
+        try {
+            mqProducer.sendSeckillMessage(userId, couponId);
+        } catch (Exception e) {
+            log.error("发送 MQ 失败，回滚 Redis: userId={}, couponId={}", userId, couponId, e);
+            stringRedisTemplate.opsForValue().increment(stockKey);
+            stringRedisTemplate.opsForSet().remove(claimedKey, String.valueOf(userId));
+            throw new CouponException("系统繁忙，请稍后再试");
+        }
 
         // 4. 立即返回成功（DB 稍后追上）
         return UserCouponVO.builder()

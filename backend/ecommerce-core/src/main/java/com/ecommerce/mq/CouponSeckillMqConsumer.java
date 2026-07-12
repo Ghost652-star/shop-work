@@ -62,7 +62,8 @@ public class CouponSeckillMqConsumer {
 
             // 2. 检查 DB 库存（Redis 库存可能因补偿而虚高，DB 是最终真相）
             if (coupon.getStock() <= 0) {
-                log.warn("DB库存已耗尽，丢弃消息: couponId={}", couponId);
+                log.warn("DB库存已耗尽，补偿Redis后丢弃消息: couponId={}", couponId);
+                compensateRedis(couponId, userId);
                 channel.basicAck(deliveryTag, false);
                 return;
             }
@@ -107,12 +108,12 @@ public class CouponSeckillMqConsumer {
             safeAck(channel, deliveryTag);
 
         } catch (Exception e) {
-            log.error("消费秒杀消息失败: userId={}, couponId={}", userId, couponId, e);
+            log.error("消费秒杀消息失败，补偿Redis后丢弃消息: userId={}, couponId={}", userId, couponId, e);
 
-            // 补偿 Redis：退回库存 + 移除已领取标记
+            // 补偿 Redis：退回库存 + 移除已领取标记（只做一次，不重入队避免重复补偿）
             compensateRedis(couponId, userId);
 
-            // 拒绝消息，重新入队（最多重试3次，由 application.yml 配置控制）
+            // requeue=false：直接丢弃，避免无限重试导致补偿多次、库存虚高
             safeNack(channel, deliveryTag);
         }
     }
@@ -143,7 +144,7 @@ public class CouponSeckillMqConsumer {
 
     private void safeNack(Channel channel, long deliveryTag) {
         try {
-            channel.basicReject(deliveryTag, true); // requeue=true，重新入队
+            channel.basicReject(deliveryTag, false); // requeue=false，丢弃消息，避免重复补偿
         } catch (IOException e) {
             log.error("拒绝消息失败", e);
         }
